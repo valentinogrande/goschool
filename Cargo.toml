@@ -15,3 +15,5 @@ actix-cors = "0.7"
 bcrypt = "0.17"
 jsonwebtoken="9.3"
 chrono = "0.4"
+utoipa = { version = "3.5", features = ["actix_extras"] }
+utoipa-swagger-ui = { version = "3.1.5", features = ["actix-web"] }
