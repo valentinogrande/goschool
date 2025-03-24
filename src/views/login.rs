@@ -10,7 +10,7 @@ use crate::Claims;
 
 #[utoipa::path(
     post,
-    path = "/api/v1/login",
+    path = "/api/v1/login/",
     request_body(content = Credentials, description = "User credentials", content_type = "application/json"),
     responses(
         (status = 200, description = "Login successful", body = String),

@@ -6,7 +6,7 @@ use crate::{PersonalData, validate};
 
 #[utoipa::path(
     post,
-    path = "/api/v1/update_personal_data",
+    path = "/api/v1/update_personal_data/",
     request_body(content = PersonalData, description = "Personal data to update", content_type = "application/json"),
     responses(
         (status = 201, description = "Personal data updated successfully"),

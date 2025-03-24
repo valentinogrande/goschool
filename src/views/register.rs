@@ -7,7 +7,7 @@ use crate::NewUser;
 
 #[utoipa::path(
     post,
-    path = "/api/v1/register",
+    path = "/api/v1/register/",
     request_body(content = NewUser, description = "User registration data", content_type = "application/json"),
     responses(
         (status = 201, description = "User created successfully"),

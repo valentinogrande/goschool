@@ -7,7 +7,7 @@ use crate::{RespondPersonalData, validate};
 
 #[utoipa::path(
     get,
-    path = "/api/v1/get_personal_data",
+    path = "/api/v1/get_personal_data/",
     request_body(content = String, description = "JWT token", content_type = "application/json"),
     responses(
         (status = 200, description = "Success", body = RespondPersonalData),
