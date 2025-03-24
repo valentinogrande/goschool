@@ -1,6 +1,9 @@
 # goschool
 
 
+### mensaje para fran 😎​😎
+actualizalo aca el front desp
+
 ## importtante!!!!
 como ver la documentacion de la api??
 
