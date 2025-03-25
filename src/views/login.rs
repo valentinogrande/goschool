@@ -14,11 +14,13 @@ use crate::Claims;
     request_body(content = Credentials, description = "User credentials", content_type = "application/json"),
     responses(
         (status = 200, description = "Login successful", body = String),
-        (status = 401, description = "Invalid credentials")
+        (status = 401, description = "Invalid credentials"),
+        (status = 400, description = "Json parsing error"),
     )
 )]
 #[post("/api/v1/login/")]
 pub async fn login(pool: web::Data<MySqlPool>, creds: web::Json<Credentials>) -> impl Responder {
+    println!("juan");
     let password_from_db = sqlx::query("SELECT userid,password FROM user WHERE email = ?")
         .bind(creds.email.clone())
         .fetch_one(pool.get_ref())

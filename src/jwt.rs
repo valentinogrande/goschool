@@ -41,3 +41,4 @@ pub fn validate(jwt: String) -> Result<TokenData<Claims>, jsonwebtoken::errors::
     );
     decode
 }
+
