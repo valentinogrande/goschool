@@ -1,4 +1,4 @@
-use actix_web::{post, web, HttpResponse,  Responder};
+use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 
 use crate::{PersonalData, validate};
@@ -17,9 +17,19 @@ use crate::{PersonalData, validate};
 #[post("/api/v1/update_personal_data/")]
 async fn update_personal_data(
     pool: web::Data<MySqlPool>,
-    data: web::Json<PersonalData>) -> impl Responder {
+    data: web::Json<PersonalData>,
+    req: HttpRequest,
+) -> impl Responder {
         
-    let decode = validate(data.jwt.clone());
+    let option_jwt = req.cookie("jwt");
+    let jwt: String;
+    if let Some(jsonwt) = option_jwt {
+        jwt = jsonwt.value().to_string();
+    }
+    else {
+        return HttpResponse::Unauthorized().json("Missing json web token")
+    }
+    let decode = validate(jwt.clone());
 
     match decode {
         Ok(token_data) => {

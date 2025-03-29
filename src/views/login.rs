@@ -20,7 +20,6 @@ use crate::Claims;
 )]
 #[post("/api/v1/login/")]
 pub async fn login(pool: web::Data<MySqlPool>, creds: web::Json<Credentials>) -> impl Responder {
-    println!("juan");
     let password_from_db = sqlx::query("SELECT userid,password FROM user WHERE email = ?")
         .bind(creds.email.clone())
         .fetch_one(pool.get_ref())

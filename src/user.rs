@@ -34,7 +34,6 @@ impl NewUser{
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct PersonalData {
-    pub jwt: String,
     pub nombre_completo: String,
     pub edad: i32,
     pub mensaje: String,
