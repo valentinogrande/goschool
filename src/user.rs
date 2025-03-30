@@ -47,5 +47,4 @@ pub struct TeacherData{
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct NewTeacherData{
     pub subject: String,
-    pub created_at: String,
 }

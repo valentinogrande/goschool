@@ -1,6 +1,9 @@
 use actix_web::{web, App, HttpServer};
 use actix_cors::Cors;
 use sqlx::mysql::MySqlPool;
+use user::NewStudentData;
+use user::NewTeacherData;
+use user::NewUser;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 use env_logger::Env;
@@ -36,7 +39,7 @@ use jwt::Claims;
         update_teachers,
     ),
     components(
-        schemas(User, Credentials, Claims, TeacherData, StudentData)
+        schemas(User, Credentials, Claims, TeacherData, StudentData, NewUser, NewTeacherData, NewStudentData)
     ),
     tags(
         (name = "users", description = "User management endpoints"),
