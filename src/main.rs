@@ -13,29 +13,21 @@ use views::login::__path_login;
 use views::register::create_user;
 use views::register::__path_create_user;
 
-use views::update_personal_data::update_personal_data;
-use views::update_personal_data::__path_update_personal_data;
-
-use views::get_personal_data::get_personal_data;
-use views::get_personal_data::__path_get_personal_data;
-
 mod user;
 mod jwt;
 mod json;
 
-use user::{RespondPersonalData, PersonalData, NewUser, Credentials};
-use jwt::{Claims, validate};
+use user::{NewUser, Credentials};
+use jwt::Claims;
 
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        get_personal_data,
-        update_personal_data,
         login,
         create_user
     ),
     components(
-        schemas(NewUser, Credentials, PersonalData, RespondPersonalData, Claims)
+        schemas(NewUser, Credentials, Claims)
     ),
     tags(
         (name = "users", description = "User management endpoints"),
@@ -55,6 +47,12 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     let json_conf = json::json_config();
+    
+    /*let pass = hash("admin", DEFAULT_COST).unwrap();
+    let res = sqlx::query("INSERT INTO users (email, password, is_admin) VALUES ('admin',?,1)")
+        .bind(pass)
+        .execute(&pool)
+        .await;*/
 
     HttpServer::new(move || {
         App::new()
@@ -63,8 +61,6 @@ async fn main() -> std::io::Result<()> {
             .wrap(Cors::default().allow_any_origin().allow_any_method().allow_any_header())
             .service(create_user)
             .service(login)
-            .service(update_personal_data)
-            .service(get_personal_data)
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")
                     .url("/api-docs/openapi.json", ApiDoc::openapi())

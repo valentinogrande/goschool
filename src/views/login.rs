@@ -20,7 +20,7 @@ use crate::Claims;
 )]
 #[post("/api/v1/login/")]
 pub async fn login(pool: web::Data<MySqlPool>, creds: web::Json<Credentials>) -> impl Responder {
-    let password_from_db = sqlx::query("SELECT userid,password FROM user WHERE email = ?")
+    let password_from_db = sqlx::query("SELECT id,password FROM users WHERE email = ?")
         .bind(creds.email.clone())
         .fetch_one(pool.get_ref())
         .await;
@@ -28,7 +28,7 @@ pub async fn login(pool: web::Data<MySqlPool>, creds: web::Json<Credentials>) ->
     if let Ok(record) = password_from_db {
         let password = record.get::<String, &str>("password");
         if verify(&creds.password, &password).unwrap_or(false) {
-            let claims = Claims::new(record.get::<i32, &str>("userid") as usize);
+            let claims = Claims::new(record.get::<i32, &str>("id") as usize);
             let secret = "prod_secret";
             let token = encode(
                 &Header::new(Algorithm::HS256),
