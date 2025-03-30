@@ -23,3 +23,29 @@ pub struct Credentials{
     pub email: String,
     pub password: String,
 }
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct StudentData {
+    pub id: i32,
+    pub grade: i8,
+    pub divition: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct NewStudentData {
+    pub grade: i8,
+    pub divition: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct TeacherData{
+    pub id: i32,
+    pub subject: String,
+    pub created_at: String,
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct NewTeacherData{
+    pub subject: String,
+    pub created_at: String,
+}

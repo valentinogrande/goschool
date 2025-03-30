@@ -2,7 +2,7 @@ use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 use bcrypt::{hash, DEFAULT_COST};
 
-use crate::{jwt::validate, NewUser};
+use crate::{jwt::validate, user::NewUser};
 
 
 #[utoipa::path(
