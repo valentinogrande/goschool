@@ -22,13 +22,18 @@ use views::students::__path_update_students;
 use views::teachers::update_teachers;
 use views::teachers::__path_update_teachers;
 
+use creation::create_grades;
+use creation::__path_create_grades;
 
 mod user;
 mod jwt;
 mod json;
+mod creation;
+mod functions;
 
 use user::{User, Credentials, TeacherData, StudentData};
 use jwt::Claims;
+use creation::Grades;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -37,9 +42,10 @@ use jwt::Claims;
         create_user,
         update_students,
         update_teachers,
+        create_grades,
     ),
     components(
-        schemas(User, Credentials, Claims, TeacherData, StudentData, NewUser, NewTeacherData, NewStudentData)
+        schemas(User, Grades, Credentials, Claims, TeacherData, StudentData, NewUser, NewTeacherData, NewStudentData)
     ),
     tags(
         (name = "users", description = "User management endpoints"),
@@ -75,6 +81,7 @@ async fn main() -> std::io::Result<()> {
             .service(login)
             .service(update_teachers)
             .service(update_students)
+            .service(create_grades)
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")
                     .url("/api-docs/openapi.json", ApiDoc::openapi())
