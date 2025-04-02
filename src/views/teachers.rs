@@ -14,25 +14,51 @@ use crate::jwt::validate;
     )
 )]
 #[post("/api/v1/update_teachers/")]
-pub async fn update_teachers(pool: web::Data<MySqlPool>, user: web::Json<NewTeacherData>, req: HttpRequest) -> impl Responder {
+pub async fn update_teachers(
+    pool: web::Data<MySqlPool>,
+    user: web::Json<NewTeacherData>,
+    req: HttpRequest,
+) -> impl Responder {
     let jwt = req.cookie("jtk");
-    if let Some(jwt_val) = jwt {
-        let validate = validate(jwt_val.value().to_string());
-        if let Ok(res) = validate {
+    
+    if jwt.is_none() {
+        return HttpResponse::Unauthorized().json("No JWT provided");
+    }
 
-            let result = sqlx::query("UPDATE students SET subject WHERE id = ?")
-                .bind(user.subject.clone())
-                .bind(res.claims.subject as i32)
-                .execute(pool.get_ref())
-                .await;
+    // Validar el JWT
+    let validate = validate(jwt.unwrap().value().to_string());
+    if let Err(err) = validate {
+        eprintln!("JWT validation failed: {:?}", err);
+        return HttpResponse::Unauthorized().json("Invalid JWT");
+    }
 
-            HttpResponse::Created().finish()
+    let res = validate.unwrap();
 
+    let exists: (bool,) = sqlx::query_as("SELECT EXISTS(SELECT 1 FROM teachers WHERE user_id = ?)")
+        .bind(res.claims.subject as i32)
+        .fetch_one(pool.get_ref())
+        .await
+        .unwrap_or((false,));
+
+    if !exists.0 {
+        return HttpResponse::Unauthorized().json("User is not a teacher");
+    }
+
+    let result = sqlx::query(
+        "INSERT INTO teachers (user_id, subject, grades) VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE subject = VALUES(subject), grades = VALUES(grades)"
+    )
+    .bind(res.claims.subject as i32)
+    .bind(&user.subject)
+    .bind(&user.grades)
+    .execute(pool.get_ref())
+    .await;
+
+    match result {
+        Ok(_) => HttpResponse::Created().json("Teacher updated successfully"),
+        Err(err) => {
+            eprintln!("Database error: {:?}", err);
+            HttpResponse::InternalServerError().json("Failed to update teacher")
         }
-        else {
-            return HttpResponse::Unauthorized().finish();
-        }
-    }else {
-        HttpResponse::Unauthorized().finish()
     }
 }

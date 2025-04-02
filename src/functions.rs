@@ -8,8 +8,10 @@ pub async fn get_admins(pool: &web::Data<MySqlPool>) -> Result<Vec<i32>, sqlx::E
         .await?;
 
     let admins = result.into_iter()
-        .map(|row| row.get::<i32, _>("id")) // 💡 Usamos `get::<T, &str>()`
+        .map(|row| row.get::<i32, _>("id"))
         .collect();
 
     Ok(admins)
 }
+
+

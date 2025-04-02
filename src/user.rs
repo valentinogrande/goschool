@@ -27,8 +27,8 @@ pub struct Credentials{
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct StudentData {
     pub id: i32,
-    pub grade: i8,
-    pub divition: String,
+    pub user_id: i32,
+    pub grade: i32,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
@@ -40,11 +40,13 @@ pub struct NewStudentData {
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct TeacherData{
     pub id: i32,
+    pub user_id: i32,
+    pub grades: String,
     pub subject: String,
-    pub created_at: String,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct NewTeacherData{
     pub subject: String,
+    pub grades: String,
 }
