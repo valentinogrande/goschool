@@ -1,3 +1,4 @@
+use actix_web::cookie::Cookie;
 use actix_web::{post, web, HttpResponse,  Responder};
 use sqlx::mysql::MySqlPool;
 use sqlx::Row;
@@ -35,8 +36,13 @@ pub async fn login(pool: web::Data<MySqlPool>, creds: web::Json<Credentials>) ->
                 &claims,
                 &EncodingKey::from_secret(secret.as_ref()),
             );
+            let cookie = Cookie::build("jwt", token.unwrap())
+                .path("/")
+                .http_only(true)
+                .secure(false)
+                .finish();
 
-            HttpResponse::Ok().json(token.unwrap())
+            HttpResponse::Ok().cookie(cookie).json("login success")
         } else {
             HttpResponse::Unauthorized().json("Invalid credentials")
         }

@@ -1,4 +1,4 @@
-use actix_web::{web, App, HttpServer};
+use actix_web::{http::header, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
 use sqlx::mysql::MySqlPool;
 use user::NewStudentData;
@@ -6,7 +6,9 @@ use user::NewTeacherData;
 use user::NewUser;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-use env_logger::Env;
+use utoipa_swagger_ui::Config;
+use utoipa::Modify;
+
 
 mod views;
 
@@ -50,12 +52,25 @@ use creation::Grades;
     tags(
         (name = "users", description = "User management endpoints"),
         (name = "auth", description = "Authentication endpoints")
-    )
+    ),
+    modifiers(&SecurityAddon)
 )]
 struct ApiDoc;
 
+struct SecurityAddon;
 
-
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        let security_scheme = utoipa::openapi::security::SecurityScheme::ApiKey(
+            utoipa::openapi::security::ApiKey::Cookie(utoipa::openapi::security::ApiKeyValue::new("jwt"))
+        );
+        openapi
+            .components
+            .as_mut()
+            .unwrap()
+            .add_security_scheme("cookieAuth", security_scheme);
+    }
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -63,28 +78,31 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to connect to database");
 
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
-    let json_conf = json::json_config();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     
-    /*let pass = hash("admin", DEFAULT_COST).unwrap();
-    let res = sqlx::query("INSERT INTO users (email, password, is_admin) VALUES ('admin',?,1)")
-        .bind(pass)
-        .execute(&pool)
-        .await;*/
+    let json_conf = json::json_config();
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin("http://localhost")
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+            .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+            .supports_credentials(); 
+
         App::new()
+            .wrap(Logger::default())
+            .wrap(cors)
             .app_data(web::Data::new(pool.clone()))
             .app_data(json_conf.clone())
-            .wrap(Cors::default().allow_any_origin().allow_any_method().allow_any_header())
             .service(create_user)
             .service(login)
             .service(update_teachers)
             .service(update_students)
-            .service(create_grades)
+            /*.service(create_grades)*/
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")
                     .url("/api-docs/openapi.json", ApiDoc::openapi())
+                    .config(Config::default().with_credentials(true))
             )
     })
     .bind("127.0.0.1:8080")?
