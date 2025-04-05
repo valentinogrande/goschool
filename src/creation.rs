@@ -24,55 +24,69 @@ pub struct Grades{
     )
 )]
 #[post("/api/v1/create_grade/")]
-pub async fn create_grades(pool: web::Data<MySqlPool>, req: HttpRequest, grades: web::Json<Grades>) -> impl Responder {
-    let cookies = req.cookie("jwt");
-    if let Some(jwt) = cookies {
-        let val = validate(jwt.value().to_string());
-            match val {
-            Ok(res) => {
-                let admins = get_admins(&pool).await;
-               
-                if admins.unwrap().contains(&(res.claims.subject as i32)) {
-                    let result = sqlx::query("CREATE TABLE IF NOT EXISTS grades(
-                        id INT AUTO_INCREMENT,
-                        year INT NOT NULL,
-                        divition VARCHAR(25),
-                        PRIMARY KEY (id)
-                        )")
-                        .execute(pool.get_ref()).await;
-                    
-                    if let Ok(_) = result{
-                        let mut error = 0;
-                        for i in 1..=(grades.primary+grades.secondary) {             
-                            for j in 1..=grades.divitions{
-                                let result = 
-                                sqlx::query("INSERT INTO grades(year, divition)VALUES(?,?)")
-                                    .bind(i)
-                                    .bind(j)
-                                    .execute(pool.get_ref())
-                                    .await;
-                                if let Err(_) = result {
-                                    error=error+1; 
-                                }
-                            }
-                        }
-                        if error == 0 {
-                            return HttpResponse::Created().finish();
-                        }
-                        else{
-                            return HttpResponse::InternalServerError().finish();
-                        }
-                    }else {
-                        return HttpResponse::InternalServerError().finish();
-                    }
-                }else {
-                    HttpResponse::Unauthorized().finish()
-                }
-            },
-            Err(_) => {HttpResponse::Unauthorized().finish()}
+pub async fn create_grades(
+    pool: web::Data<MySqlPool>,
+    req: HttpRequest,
+    grades: web::Json<Grades>,
+) -> impl Responder {
+    // Validar JWT desde la cookie
+    let jwt_cookie = match req.cookie("jwt") {
+        Some(cookie) => cookie,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    let validation = validate(jwt_cookie.value().to_string());
+    let Ok(res) = validation else {
+        return HttpResponse::Unauthorized().finish();
+    };
+
+    // Verificar si el usuario es administrador
+    let Ok(admins) = get_admins(&pool).await else {
+        return HttpResponse::InternalServerError().finish();
+    };
+
+    if !admins.contains(&(res.claims.subject as i32)) {
+        return HttpResponse::Unauthorized().finish();
+    }
+
+    // Crear tabla grades si no existe
+    let create_table = sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS grades (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            year INT NOT NULL,
+            divition VARCHAR(25)
+        )
+        "#,
+    )
+    .execute(pool.get_ref())
+    .await;
+
+    if create_table.is_err() {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    // Insertar datos en grades
+    let mut error_count = 0;
+    let total_years = grades.primary + grades.secondary;
+
+    for year in 1..=total_years {
+        for divition in 1..=grades.divitions {
+            let insert = sqlx::query("INSERT INTO grades (year, divition) VALUES (?, ?)")
+                .bind(year)
+                .bind(divition.to_string())
+                .execute(pool.get_ref())
+                .await;
+
+            if insert.is_err() {
+                error_count += 1;
+            }
         }
     }
-    else {
-        HttpResponse::Unauthorized().finish()
+
+    if error_count == 0 {
+        HttpResponse::Created().finish()
+    } else {
+        HttpResponse::InternalServerError().finish()
     }
 }

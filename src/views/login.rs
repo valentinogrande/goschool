@@ -19,34 +19,44 @@ use crate::Claims;
         (status = 400, description = "Json parsing error"),
     )
 )]
+
 #[post("/api/v1/login/")]
-pub async fn login(pool: web::Data<MySqlPool>, creds: web::Json<Credentials>) -> impl Responder {
-    let password_from_db = sqlx::query("SELECT id,password FROM users WHERE email = ?")
-        .bind(creds.email.clone())
+pub async fn login(
+    pool: web::Data<MySqlPool>,
+    creds: web::Json<Credentials>,
+) -> impl Responder {
+    let row = match sqlx::query("SELECT id, password FROM users WHERE email = ?")
+        .bind(&creds.email)
         .fetch_one(pool.get_ref())
-        .await;
+        .await
+    {
+        Ok(record) => record,
+        Err(_) => return HttpResponse::Unauthorized().json("Invalid credentials"),
+    };
 
-    if let Ok(record) = password_from_db {
-        let password = record.get::<String, &str>("password");
-        if verify(&creds.password, &password).unwrap_or(false) {
-            let claims = Claims::new(record.get::<i32, &str>("id") as usize);
-            let secret = "prod_secret";
-            let token = encode(
-                &Header::new(Algorithm::HS256),
-                &claims,
-                &EncodingKey::from_secret(secret.as_ref()),
-            );
-            let cookie = Cookie::build("jwt", token.unwrap())
-                .path("/")
-                .http_only(true)
-                .secure(false)
-                .finish();
+    let stored_pass = row.get::<String, &str>("password");
+    let valid = verify(&creds.password, &stored_pass).unwrap_or(false);
 
-            HttpResponse::Ok().cookie(cookie).json("login success")
-        } else {
-            HttpResponse::Unauthorized().json("Invalid credentials")
-        }
-    } else {
-        HttpResponse::Unauthorized().json("Invalid credentials")
+    if !valid {
+        return HttpResponse::Unauthorized().json("Invalid credentials");
     }
+
+    let user_id = row.get::<i32, &str>("id");
+    let claims = Claims::new(user_id as usize);
+    let token = match encode(
+        &Header::new(Algorithm::HS256),
+        &claims,
+        &EncodingKey::from_secret("prod_secret".as_ref()),
+    ) {
+        Ok(t) => t,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let cookie = Cookie::build("jwt", token)
+        .path("/")
+        .http_only(true)
+        .secure(false)
+        .finish();
+
+    HttpResponse::Ok().cookie(cookie).json("login success")
 }

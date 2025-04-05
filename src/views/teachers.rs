@@ -13,51 +13,66 @@ use crate::jwt::validate;
         (status = 500, description = "Internal server error")
     )
 )]
+
 #[post("/api/v1/update_teachers/")]
 pub async fn update_teachers(
     pool: web::Data<MySqlPool>,
     user: web::Json<NewTeacherData>,
     req: HttpRequest,
 ) -> impl Responder {
-    let jwt = req.cookie("jtk");
-    
-    if jwt.is_none() {
-        return HttpResponse::Unauthorized().json("No JWT provided");
-    }
+    let jwt = match req.cookie("jtk") {
+        Some(cookie) => cookie,
+        None => return HttpResponse::Unauthorized().json("No JWT provided"),
+    };
 
-    // Validar el JWT
-    let validate = validate(jwt.unwrap().value().to_string());
-    if let Err(err) = validate {
-        eprintln!("JWT validation failed: {:?}", err);
-        return HttpResponse::Unauthorized().json("Invalid JWT");
-    }
+    let token = match validate(jwt.value().to_string()) {
+        Ok(t) => t,
+        Err(err) => {
+            eprintln!("JWT validation failed: {:?}", err);
+            return HttpResponse::Unauthorized().json("Invalid JWT");
+        }
+    };
 
-    let res = validate.unwrap();
+    let user_id = token.claims.subject;
 
-    let exists: (bool,) = sqlx::query_as("SELECT EXISTS(SELECT 1 FROM teachers WHERE user_id = ?)")
-        .bind(res.claims.subject as i32)
-        .fetch_one(pool.get_ref())
-        .await
-        .unwrap_or((false,));
-
-    if !exists.0 {
-        return HttpResponse::Unauthorized().json("User is not a teacher");
-    }
-
-    let result = sqlx::query(
-        "INSERT INTO teachers (user_id, subject, grades) VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE subject = VALUES(subject), grades = VALUES(grades)"
+    let roles = sqlx::query_as::<_, (bool, bool)>(
+        "SELECT is_teacher, is_admin FROM users WHERE id = ?",
     )
-    .bind(res.claims.subject as i32)
+    .bind(user_id as i32)
+    .fetch_one(pool.get_ref())
+    .await;
+
+    let (is_teacher, is_admin) = match roles {
+        Ok(role) => role,
+        Err(err) => {
+            eprintln!("DB error while checking roles: {:?}", err);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    if !is_teacher && !is_admin {
+        return HttpResponse::Unauthorized().json("Not authorized");
+    }
+
+    let update_result = sqlx::query(
+        r#"
+        INSERT INTO teachers (user_id, subject, grades)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            subject = VALUES(subject),
+            grades = VALUES(grades)
+        "#,
+    )
+    .bind(user_id as i32)
     .bind(&user.subject)
     .bind(&user.grades)
     .execute(pool.get_ref())
     .await;
 
-    match result {
+    match update_result {
         Ok(_) => HttpResponse::Created().json("Teacher updated successfully"),
         Err(err) => {
-            eprintln!("Database error: {:?}", err);
+            eprintln!("Database error while updating teacher: {:?}", err);
             HttpResponse::InternalServerError().json("Failed to update teacher")
         }
     }

@@ -3,8 +3,6 @@ use serde::{Serialize, Deserialize};
 use utoipa::ToSchema;
 
 
-
-
 #[derive(Serialize, Deserialize,ToSchema)]
 pub struct Claims{
     pub subject: usize,
