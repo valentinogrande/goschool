@@ -25,6 +25,7 @@ struct Task{
         (status = 500, description = "InternalServerError"),
     )
 )]
+
 #[post("/api/v1/create_submission/")]
 pub async fn create_submission(
     req: HttpRequest,
@@ -41,14 +42,15 @@ pub async fn create_submission(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
 
-    let user = token.claims.subject;
+    let user_id = token.claims.subject;
 
-    let result = sqlx::query_as::<_, (i32,)>("SELECT grade_id FROM students WHERE user_id = ?")
-        .bind(user as i32)
-        .fetch_one(pool.get_ref())
-        .await;
-
-    let user_grade = match result {
+    let user_grade = match sqlx::query_as::<_, (i32,)>(
+        "SELECT grade_id FROM students WHERE user_id = ?"
+    )
+    .bind(user_id as i32)
+    .fetch_one(pool.get_ref())
+    .await
+    {
         Ok((g,)) => g,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
@@ -81,9 +83,6 @@ pub async fn create_submission(
                     Err(_) => return HttpResponse::BadRequest().finish(),
                 }
             }
-            _ => {},
-        }
-        match field.name(){
             Some("task") => {
                 let filename = field
                     .content_disposition()
@@ -114,7 +113,6 @@ pub async fn create_submission(
 
                 saved_file_name = Some(unique_name);
             }
-
             Some("task_id") => {
                 let mut data = Vec::new();
                 while let Some(chunk) = field.next().await {
@@ -127,19 +125,40 @@ pub async fn create_submission(
                     Err(_) => return HttpResponse::BadRequest().body("Invalid task ID"),
                 }
             }
-
             _ => {}
         }
     }
 
-    match (parsed_grade, saved_file_name, task_id) {
-        (Some(_), Some(path), Some(task_id)) => {
-            let result = sqlx::query("INSERT INTO submissions (path, student, task) VALUES (?, ?, ?)")
-                .bind(path)
-                .bind(user as i32)
-                .bind(task_id)
-                .execute(pool.get_ref())
-                .await;
+    // Verifica si task_id ya está presente antes del query EXISTS
+    let task_id = match task_id {
+        Some(id) => id,
+        None => return HttpResponse::BadRequest().body("Missing task_id"),
+    };
+
+    let already_exists = sqlx::query_scalar::<_, bool>(
+        "SELECT EXISTS(SELECT 1 FROM submissions WHERE student = ? AND task = ?)"
+    )
+    .bind(user_id as i32)
+    .bind(task_id)
+    .fetch_one(pool.get_ref())
+    .await;
+
+    match already_exists {
+        Ok(true) => return HttpResponse::BadRequest().body("You already submitted this task"),
+        Ok(false) => {}
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    }
+
+    match (parsed_grade, saved_file_name) {
+        (Some(_), Some(path)) => {
+            let result = sqlx::query(
+                "INSERT INTO submissions (path, student, task) VALUES (?, ?, ?)"
+            )
+            .bind(path)
+            .bind(user_id as i32)
+            .bind(task_id)
+            .execute(pool.get_ref())
+            .await;
 
             if result.is_err() {
                 return HttpResponse::InternalServerError().finish();
