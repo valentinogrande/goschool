@@ -136,7 +136,7 @@ pub async fn create_submission(
     };
 
     let already_exists = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM submissions WHERE student = ? AND task = ?)"
+        "SELECT EXISTS(SELECT 1 FROM task_submissions WHERE student = ? AND task = ?)"
     )
     .bind(user_id as i32)
     .bind(task_id)
@@ -152,7 +152,7 @@ pub async fn create_submission(
     match (parsed_grade, saved_file_name) {
         (Some(_), Some(path)) => {
             let result = sqlx::query(
-                "INSERT INTO submissions (path, student, task) VALUES (?, ?, ?)"
+                "INSERT INTO task_submissions (path, student, task) VALUES (?, ?, ?)"
             )
             .bind(path)
             .bind(user_id as i32)
