@@ -2,8 +2,10 @@ use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 use actix_multipart::Multipart;
 use futures_util::StreamExt;
-use std::{fs::File, io::Write};
+use std::io::Write;
+use tempfile::NamedTempFile;
 use uuid::Uuid;
+use std::fs;
 
 use crate::jwt::validate;
 
@@ -25,6 +27,13 @@ struct Task{
         (status = 500, description = "InternalServerError"),
     )
 )]
+
+
+fn cleanup_temp(path: &Option<String>) {
+    if let Some(p) = path {
+        let _ = std::fs::remove_file(p);
+    }
+}
 
 #[post("/api/v1/create_submission/")]
 pub async fn create_submission(
@@ -57,8 +66,8 @@ pub async fn create_submission(
 
     let mut saved_file_name: Option<String> = None;
     let mut task_id: Option<i32> = None;
-    let mut path: Option<String> = None;
-    let mut content_file: Vec<u8> = Vec::new();
+    let mut final_path: Option<String> = None;
+    let mut temp_path: Option<String> = None;
 
     while let Some(item) = task_submission.next().await {
         let mut field = match item {
@@ -84,20 +93,48 @@ pub async fn create_submission(
 
                 let extension = filename.split('.').last().unwrap_or("docx");
                 let unique_name = format!("{}.{}", Uuid::new_v4(), extension);
-                path = Some(format!("./uploads/submissions/{}", unique_name));
-                let mut total_size = 0;
+                saved_file_name = Some(unique_name.clone());
+                let upload_path = format!("./uploads/submissions/{}", unique_name);
+                final_path = Some(upload_path);
 
+                let mut temp_file = match NamedTempFile::new() {
+                    Ok(f) => f,
+                    Err(_) => return HttpResponse::InternalServerError().finish(),
+                };
+
+                let mut total_size = 0;
                 while let Some(chunk) = field.next().await {
-                    let chunk = chunk.unwrap();
+                    let chunk = match chunk {
+                        Ok(c) => c,
+                        Err(_) => {
+                            cleanup_temp(&temp_path);
+                            return HttpResponse::InternalServerError().finish();
+                        },
+                    };
+
                     total_size += chunk.len();
                     if total_size > 10 * 1024 * 1024 {
-                        return HttpResponse::BadRequest().body("file too large");
+                        cleanup_temp(&temp_path);
+                        return HttpResponse::BadRequest().body("File too large");
                     }
-                    content_file.extend_from_slice(&chunk);
+
+                    if let Err(_) = temp_file.write_all(&chunk) {
+                        cleanup_temp(&temp_path);
+                        return HttpResponse::InternalServerError().finish();
+                    }
                 }
 
-                saved_file_name = Some(unique_name);
+                let temp = match temp_file.into_temp_path().keep() {
+                    Ok(pathbuf) => pathbuf,
+                    Err(_) => {
+                        cleanup_temp(&temp_path);
+                        return HttpResponse::InternalServerError().finish();
+                    },
+                };
+
+                temp_path = Some(temp.to_string_lossy().to_string());
             }
+
             Some("task_id") => {
                 let mut data = Vec::new();
                 while let Some(chunk) = field.next().await {
@@ -107,28 +144,39 @@ pub async fn create_submission(
                 let text = String::from_utf8(data).unwrap_or_default();
                 match text.trim().parse::<i32>() {
                     Ok(id) => task_id = Some(id),
-                    Err(_) => return HttpResponse::BadRequest().body("Invalid task ID"),
+                    Err(_) => {
+                        cleanup_temp(&temp_path);
+                        return HttpResponse::BadRequest().body("Invalid task ID");
+                    }
                 }
             }
+
             _ => {}
         }
     }
 
     let task_id = match task_id {
         Some(id) => id,
-        None => return HttpResponse::BadRequest().body("Missing task_id"),
+        None => {
+            cleanup_temp(&temp_path);
+            return HttpResponse::BadRequest().body("Missing task_id");
+        }
     };
 
-    let task_grade = match sqlx::query_scalar::<_, i32>("SELECT grade FROM tasks where id = ?")
+    let task_grade = match sqlx::query_scalar::<_, i32>("SELECT grade FROM tasks WHERE id = ?")
         .bind(task_id)
         .fetch_one(pool.get_ref())
-        .await{
+        .await
+    {
         Ok(g) => g,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(_) => {
+            cleanup_temp(&temp_path);
+            return HttpResponse::InternalServerError().finish();
+        }
     };
-    
 
     if task_grade != user_grade {
+        cleanup_temp(&temp_path);
         return HttpResponse::Unauthorized().finish();
     }
 
@@ -141,20 +189,25 @@ pub async fn create_submission(
     .await;
 
     match already_exists {
-        Ok(true) => return HttpResponse::BadRequest().body("You already submitted this task"),
+        Ok(true) => {
+            cleanup_temp(&temp_path);
+            return HttpResponse::BadRequest().body("You already submitted this task");
+        }
         Ok(false) => {}
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(_) => {
+            cleanup_temp(&temp_path);
+            return HttpResponse::InternalServerError().finish();
+        }
     }
 
-    let mut file = match File::create(path.as_ref().unwrap()) {
-        Ok(f) => f,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
-    if let Err(_) = file.write_all(&content_file) {
-        return HttpResponse::InternalServerError().finish();
-    }
-    if let Err(_) = file.flush() {
-        return HttpResponse::InternalServerError().finish();
+    if let (Some(temp), Some(final_path)) = (&temp_path, &final_path) {
+        if let Err(_) = fs::rename(temp, final_path) {
+            cleanup_temp(&temp_path);
+            return HttpResponse::InternalServerError().body("Failed to store file");
+        }
+    } else {
+        cleanup_temp(&temp_path);
+        return HttpResponse::BadRequest().body("Missing file data");
     }
 
     match saved_file_name {
@@ -169,11 +222,15 @@ pub async fn create_submission(
             .await;
 
             if result.is_err() {
+                cleanup_temp(&temp_path);
                 return HttpResponse::InternalServerError().finish();
             }
 
             HttpResponse::Ok().body("Submission created")
         }
-        _ => HttpResponse::BadRequest().body("Missing data"),
+        None => {
+            cleanup_temp(&temp_path);
+            HttpResponse::BadRequest().body("Missing data")
+        }
     }
 }
