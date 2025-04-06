@@ -53,6 +53,17 @@ pub async fn create_task(
     if !is_teacher && !is_admin {
         return HttpResponse::Unauthorized().finish();
     }
+    let grades: Result<String, sqlx::Error> = sqlx::query_scalar("SELECT grades FROM teachers WHERE user_id = ?")
+        .bind(user_id as i32)
+        .fetch_one(pool.get_ref())
+        .await;
+    let grades: String = match grades {
+        Ok(g) => g,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+    if !grades.contains(&task.grade.to_string()) {
+        return HttpResponse::Unauthorized().finish();
+    }
 
     let insert_result = sqlx::query("INSERT INTO tasks (task, grade, teacher) VALUES (?, ?, ?)")
         .bind(&task.task)

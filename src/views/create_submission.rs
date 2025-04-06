@@ -55,9 +55,10 @@ pub async fn create_submission(
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
-    let mut parsed_grade: Option<i32> = None;
     let mut saved_file_name: Option<String> = None;
     let mut task_id: Option<i32> = None;
+    let mut path: Option<String> = None;
+    let mut content_file: Vec<u8> = Vec::new();
 
     while let Some(item) = task_submission.next().await {
         let mut field = match item {
@@ -66,23 +67,6 @@ pub async fn create_submission(
         };
 
         match field.name() {
-            Some("task_grade") => {
-                let mut bytes = Vec::new();
-                while let Some(chunk) = field.next().await {
-                    bytes.extend_from_slice(&chunk.unwrap());
-                }
-
-                let text = String::from_utf8(bytes).unwrap_or_default();
-                match text.trim().parse::<i32>() {
-                    Ok(grade) => {
-                        if grade != user_grade {
-                            return HttpResponse::Unauthorized().finish();
-                        }
-                        parsed_grade = Some(grade);
-                    }
-                    Err(_) => return HttpResponse::BadRequest().finish(),
-                }
-            }
             Some("task") => {
                 let filename = field
                     .content_disposition()
@@ -98,17 +82,18 @@ pub async fn create_submission(
                     None => return HttpResponse::BadRequest().body("Missing filename"),
                 };
 
-                let extension = filename.split('.').last().unwrap_or("bin");
+                let extension = filename.split('.').last().unwrap_or("docx");
                 let unique_name = format!("{}.{}", Uuid::new_v4(), extension);
-                let path = format!("../uploads/submissions/{}", unique_name);
-
-                let mut file = match File::create(&path) {
-                    Ok(f) => f,
-                    Err(_) => return HttpResponse::InternalServerError().finish(),
-                };
+                path = Some(format!("./uploads/submissions/{}", unique_name));
+                let mut total_size = 0;
 
                 while let Some(chunk) = field.next().await {
-                    file.write_all(&chunk.unwrap()).unwrap();
+                    let chunk = chunk.unwrap();
+                    total_size += chunk.len();
+                    if total_size > 10 * 1024 * 1024 {
+                        return HttpResponse::BadRequest().body("file too large");
+                    }
+                    content_file.extend_from_slice(&chunk);
                 }
 
                 saved_file_name = Some(unique_name);
@@ -129,11 +114,23 @@ pub async fn create_submission(
         }
     }
 
-    // Verifica si task_id ya está presente antes del query EXISTS
     let task_id = match task_id {
         Some(id) => id,
         None => return HttpResponse::BadRequest().body("Missing task_id"),
     };
+
+    let task_grade = match sqlx::query_scalar::<_, i32>("SELECT grade FROM tasks where id = ?")
+        .bind(task_id)
+        .fetch_one(pool.get_ref())
+        .await{
+        Ok(g) => g,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+    
+
+    if task_grade != user_grade {
+        return HttpResponse::Unauthorized().finish();
+    }
 
     let already_exists = sqlx::query_scalar::<_, bool>(
         "SELECT EXISTS(SELECT 1 FROM task_submissions WHERE student = ? AND task = ?)"
@@ -149,8 +146,19 @@ pub async fn create_submission(
         Err(_) => return HttpResponse::InternalServerError().finish(),
     }
 
-    match (parsed_grade, saved_file_name) {
-        (Some(_), Some(path)) => {
+    let mut file = match File::create(path.as_ref().unwrap()) {
+        Ok(f) => f,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+    if let Err(_) = file.write_all(&content_file) {
+        return HttpResponse::InternalServerError().finish();
+    }
+    if let Err(_) = file.flush() {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    match saved_file_name {
+        Some(path) => {
             let result = sqlx::query(
                 "INSERT INTO task_submissions (path, student, task) VALUES (?, ?, ?)"
             )

@@ -20,7 +20,7 @@ pub async fn update_teachers(
     user: web::Json<NewTeacherData>,
     req: HttpRequest,
 ) -> impl Responder {
-    let jwt = match req.cookie("jtk") {
+    let jwt = match req.cookie("jwt") {
         Some(cookie) => cookie,
         None => return HttpResponse::Unauthorized().json("No JWT provided"),
     };
