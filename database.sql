@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS grades (
   student_id BIGINT NOT NULL,
   subject_id BIGINT NOT NULL,
   reference_id BIGINT NOT NULL,
-  note_type ENUM('numerical','conceptual','percentage',) DEFAULT 'numerical',
+  note_type ENUM('numerical','conceptual','percentage') DEFAULT 'numerical',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (student_id) REFERENCES users(id),
   FOREIGN KEY (subject_id) REFERENCES subjects(id),
