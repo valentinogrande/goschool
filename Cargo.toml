@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 
 actix-web = "4"
+chrono = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sqlx = { version = "0.8", features = ["mysql", "runtime-tokio"] }
@@ -14,7 +15,6 @@ dotenv = "0.15"
 actix-cors = "0.7"
 bcrypt = "0.17"
 jsonwebtoken="9.3"
-chrono = "0.4"
 utoipa = { version = "3.5", features = ["actix_extras"] }
 utoipa-swagger-ui = { version = "3.1.5", features = ["actix-web"] }
 log = "0.4"

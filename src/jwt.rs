@@ -30,8 +30,7 @@ fn get_validation() -> Validation{
 
 pub fn validate(jwt: String) -> Result<TokenData<Claims>, jsonwebtoken::errors::Error> {
     let validation = get_validation();
-    let secret = "prod_secret";
-
+    let secret = std::env::var("JWT_SECRET").expect("JWT_SECTRET should be setted");
     let decode = decode::<Claims>(
         jwt.as_str(),
         &DecodingKey::from_secret(secret.as_ref()),

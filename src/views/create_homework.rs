@@ -11,7 +11,7 @@ pub struct NewTask {
 
 #[utoipa::path(
     post,
-    path = "/api/v1/create_task/",
+    path = "/api/v1/create_homework/",
     request_body(content = NewTask, description = "task creation data", content_type = "application/json"),
     responses(
         (status = 201, description = "task created successfully"),
@@ -20,8 +20,8 @@ pub struct NewTask {
 
     )
 )]
-#[post("/api/v1/create_task/")]
-pub async fn create_task(
+#[post("/api/v1/create_homework/")]
+pub async fn create_homework(
     req: HttpRequest,
     pool: web::Data<MySqlPool>,
     task: web::Json<NewTask>,
@@ -65,7 +65,7 @@ pub async fn create_task(
         return HttpResponse::Unauthorized().finish();
     }
 
-    let insert_result = sqlx::query("INSERT INTO tasks (task, grade, teacher) VALUES (?, ?, ?)")
+    let insert_result = sqlx::query("INSERT INTO assessments (task, grade, subject,) VALUES (?, ?, ?)")
         .bind(&task.task)
         .bind(task.grade)
         .bind(user_id as i32)

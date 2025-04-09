@@ -43,12 +43,21 @@ pub async fn login(
 
     let user_id = row.get::<i32, &str>("id");
     let claims = Claims::new(user_id as usize);
+    let secret = std::env::var("JWT_SECRET").expect("JWT_SECTRET should be setted");
     let token = match encode(
         &Header::new(Algorithm::HS256),
         &claims,
-        &EncodingKey::from_secret("prod_secret".as_ref()),
+        &EncodingKey::from_secret(secret.as_ref()),
     ) {
         Ok(t) => t,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let _ = match sqlx::query("UPDATE users SET last_login = NOW() WHERE id = ?")
+        .bind(user_id)
+        .execute(pool.get_ref())
+        .await{
+        Ok(_) => 0,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 

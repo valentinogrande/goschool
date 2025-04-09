@@ -1,4 +1,3 @@
-
 use actix_web::{http::header, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
 use sqlx::mysql::MySqlPool;
@@ -6,22 +5,18 @@ use env_logger;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Config};
 use utoipa::Modify;
+use chrono::Datelike;
 
 mod views;
 mod user;
 mod jwt;
 mod json;
-mod creation;
-mod functions;
 
-use views::create_submission::{create_submission, __path_create_submission};
-use views::create_task::{create_task, __path_create_task, NewTask};
 use views::login::{login, __path_login};
 use views::register::{create_user, __path_create_user};
-use views::students::{update_students, __path_update_students};
-use views::teachers::{update_teachers, __path_update_teachers};
-use creation::{__path_create_grades, Grades};
-use user::{User, Credentials, TeacherData, StudentData, NewUser, NewTeacherData, NewStudentData};
+use views::create_homework::{create_homework, __path_create_homework};
+use views::create_submission::{create_submission, __path_create_submission};
+use user::{User, Credentials, NewUser};
 use jwt::Claims;
 
 #[derive(OpenApi)]
@@ -29,24 +24,15 @@ use jwt::Claims;
     paths(
         login,
         create_user,
-        update_students,
-        update_teachers,
-        create_grades,
-        create_task,
+        create_homework,
         create_submission,
     ),
     components(
         schemas(
             User,
-            Grades,
             Credentials,
             Claims,
-            TeacherData,
-            StudentData,
             NewUser,
-            NewTeacherData,
-            NewStudentData,
-            NewTask,
         )
     ),
     tags(
@@ -76,17 +62,19 @@ impl Modify for SecurityAddon {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // Crear pool de conexión a MySQL
-    let pool = MySqlPool::connect("mysql://root:mili2009@localhost/goschool")
+    
+    dotenv::dotenv().ok();
+    let mut db_url = std::env::var("DATABASE_URL").expect("database url should be setted");
+    let actual_year = chrono::Utc::now().year();
+    db_url.push_str(actual_year.to_string().as_str());
+
+    let pool = MySqlPool::connect(&db_url)
         .await
         .expect("Failed to connect to database");
 
-    // Inicializar logger
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-    
-    // Config JSON (deserialización, payload size, etc.)
     let json_conf = json::json_config();
-
+    
     HttpServer::new(move || {
         let cors = Cors::default()
             .allowed_origin("http://localhost")
@@ -101,10 +89,8 @@ async fn main() -> std::io::Result<()> {
             .app_data(json_conf.clone())
             .service(create_user)
             .service(login)
-            .service(update_teachers)
-            .service(update_students)
             .service(create_submission)
-            .service(create_task)
+            .service(create_homework)
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")
                     .url("/api-docs/openapi.json", ApiDoc::openapi())
