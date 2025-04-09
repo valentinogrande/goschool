@@ -16,6 +16,12 @@ struct Task{
 }
 
 
+
+fn cleanup_temp(path: &Option<String>) {
+    if let Some(p) = path {
+        let _ = std::fs::remove_file(p);
+    }
+}
 #[utoipa::path(
     post,
     path = "/api/v1/create_submission/",
@@ -28,12 +34,6 @@ struct Task{
     )
 )]
 
-
-fn cleanup_temp(path: &Option<String>) {
-    if let Some(p) = path {
-        let _ = std::fs::remove_file(p);
-    }
-}
 
 #[post("/api/v1/create_submission/")]
 pub async fn create_submission(
