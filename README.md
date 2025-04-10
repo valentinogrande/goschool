@@ -3,10 +3,25 @@
 # como usar el ./create_database.py
 <code>python3 create_database.py comando</code>
 remplazar comando por:
-    create_courses
-    delete_tables
-    create_tables
-    create_users
+<br>
+create_courses
+<br>
+delete_tables
+<br>
+create_tables
+<br>
+create_users
+
+## usuarios
+admin: admin
+<br>
+student: student
+<br>
+father: father
+<br>
+teacher: teacher
+<br>
+preceptor: preceptor
 
 # !! imporatante
 el create_courses no es relevante ahora.
