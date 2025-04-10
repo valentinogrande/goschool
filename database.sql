@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS users (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'teacher', 'student', 'preceptor') DEFAULT 'student',
+  role ENUM('admin', 'teacher', 'student', 'preceptor', 'father') DEFAULT 'student',
+  photo VARCHAR(255),
   last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -19,6 +20,14 @@ CREATE TABLE IF NOT EXISTS personal_data (
   address VARCHAR(255) NOT NULL,
   phone_number VARCHAR(20) NOT NULL,
   FOREIGN KEY (user) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS families (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  student BIGINT NOT NULL,
+  father BIGINT NOT NULL,
+  FOREIGN KEY (student) REFERENCES users(id),
+  FOREIGN KEY (father) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS courses (
@@ -73,20 +82,6 @@ CREATE TABLE IF NOT EXISTS timetables (
   FOREIGN KEY (subject) REFERENCES subjects(id)
 );
 
-CREATE TABLE IF NOT EXISTS grades (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  desciption TEXT,
-  grade DECIMAL(5,2) NOT NULL,
-  student_id BIGINT NOT NULL,
-  subject_id BIGINT NOT NULL,
-  reference_id BIGINT NOT NULL,
-  note_type ENUM('numerical','conceptual','percentage') DEFAULT 'numerical',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (student_id) REFERENCES users(id),
-  FOREIGN KEY (subject_id) REFERENCES subjects(id),
-  FOREIGN KEY (reference_id) REFERENCES assessments(id)
-);
- 
 CREATE TABLE IF NOT EXISTS assessments (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   type ENUM('exam','homework','project') DEFAULT 'exam',
@@ -96,7 +91,21 @@ CREATE TABLE IF NOT EXISTS assessments (
   subject_id BIGINT NOT NULL,
   FOREIGN KEY (subject_id) REFERENCES subjects(id)
 );
- 
+
+CREATE TABLE IF NOT EXISTS grades (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  description TEXT,
+  grade DECIMAL(5,2) NOT NULL,
+  student_id BIGINT NOT NULL,
+  subject_id BIGINT NOT NULL,
+  reference_id BIGINT,
+  note_type ENUM('numerical','conceptual','percentage') DEFAULT 'numerical',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (student_id) REFERENCES users(id),
+  FOREIGN KEY (subject_id) REFERENCES subjects(id),
+  FOREIGN KEY (reference_id) REFERENCES assessments(id)
+);
+
 CREATE TABLE IF NOT EXISTS homework_submissions (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   task_id BIGINT NOT NULL,

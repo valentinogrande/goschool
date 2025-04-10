@@ -16,6 +16,7 @@ use views::login::{login, __path_login};
 use views::register::{create_user, __path_create_user};
 use views::create_homework::{create_homework, __path_create_homework};
 use views::create_submission::{create_submission, __path_create_submission};
+use views::register_testing_users::register_users;
 use user::{User, Credentials, NewUser};
 use jwt::Claims;
 
@@ -91,6 +92,7 @@ async fn main() -> std::io::Result<()> {
             .service(login)
             .service(create_submission)
             .service(create_homework)
+            .service(register_users) // for creating testing users.
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")
                     .url("/api-docs/openapi.json", ApiDoc::openapi())
