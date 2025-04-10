@@ -6,6 +6,7 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::{SwaggerUi, Config};
 use utoipa::Modify;
 use chrono::Datelike;
+use actix_files::Files;
 
 mod views;
 mod user;
@@ -16,6 +17,8 @@ use views::login::{login, __path_login};
 use views::register::{create_user, __path_create_user};
 use views::create_homework::{create_homework, __path_create_homework};
 use views::create_submission::{create_submission, __path_create_submission};
+use views::upload_profile_picture::upload_profile_picture;
+use views::get_profile_picture::get_profile_picture;
 use views::register_testing_users::register_users;
 use user::{User, Credentials, NewUser};
 use jwt::Claims;
@@ -88,10 +91,13 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .app_data(web::Data::new(pool.clone()))
             .app_data(json_conf.clone())
+            .service(Files::new("/uploads/profile_pictures", "./uploads/profile_pictures").index_file("404"))
             .service(create_user)
             .service(login)
             .service(create_submission)
             .service(create_homework)
+            .service(upload_profile_picture)
+            .service(get_profile_picture)
             .service(register_users) // for creating testing users.
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")
