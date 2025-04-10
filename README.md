@@ -1,8 +1,25 @@
 # goschool
 
+# como usar el ./create_database.py
+<code>python3 create_database.py comando</code>
+remplazar comando por:
+    create_courses
+    delete_tables
+    create_tables
+    create_users
 
-### mensaje para fran 😎​😎
-actualizalo aca el front desp
+# !! imporatante
+el create_courses no es relevante ahora.
+para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a crear.}
+<code>python3 create_database.py delete_tables ;python3 create_database.py create_tables ;python3 create_database.py create_users</code>
+
+
+subir la foto de perfil: 
+<code>curl -v -X POST "http://localhost:8080/api/v1/upload_profile_picture/" -b "jwt={json web token}" -F "image=@{image.path}"</code>
+
+obtener link de la foto:
+<code>curl -v -X GET "http://localhost:8080/api/v1/get_profile_picture" -b "jwt={jwt}"</code>
+
 
 ## importtante!!!!
 como ver la documentacion de la api??
