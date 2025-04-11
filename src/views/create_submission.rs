@@ -9,37 +9,17 @@ use std::fs;
 
 use crate::jwt::validate;
 
-#[derive(serde::Deserialize, serde::Serialize,utoipa::ToSchema)]
-struct Task{
-    id: i32,
-    grade: i32,
-}
-
-
-
 fn cleanup_temp(path: &Option<String>) {
     if let Some(p) = path {
         let _ = std::fs::remove_file(p);
     }
 }
-#[utoipa::path(
-    post,
-    path = "/api/v1/create_submission/",
-    request_body(content = Task, description = "task submission data", content_type = "multipart//form-data"),
-    responses(
-        (status = 200, description = "submission created successfully"),
-        (status = 401, description = "Unauthorized"),
-        (status = 400, description = "bad request"),
-        (status = 500, description = "InternalServerError"),
-    )
-)]
-
 
 #[post("/api/v1/create_submission/")]
 pub async fn create_submission(
     req: HttpRequest,
     pool: web::Data<MySqlPool>,
-    mut task_submission: Multipart,
+    mut homework_submission: Multipart,
 ) -> impl Responder {
     let cookie = match req.cookie("jwt") {
         Some(c) => c,
@@ -53,8 +33,8 @@ pub async fn create_submission(
 
     let user_id = token.claims.subject;
 
-    let user_grade = match sqlx::query_as::<_, (i32,)>(
-        "SELECT grade_id FROM students WHERE user_id = ?"
+    let user_course = match sqlx::query_as::<_, (i64,)>(
+        "SELECT course_id FROM users WHERE id = ?"
     )
     .bind(user_id as i32)
     .fetch_one(pool.get_ref())
@@ -65,18 +45,18 @@ pub async fn create_submission(
     };
 
     let mut saved_file_name: Option<String> = None;
-    let mut task_id: Option<i32> = None;
+    let mut homework_id: Option<i32> = None;
     let mut final_path: Option<String> = None;
     let mut temp_path: Option<String> = None;
 
-    while let Some(item) = task_submission.next().await {
+    while let Some(item) = homework_submission.next().await {
         let mut field = match item {
             Ok(f) => f,
             Err(_) => return HttpResponse::BadRequest().finish(),
         };
 
         match field.name() {
-            Some("task") => {
+            Some("homework") => {
                 let filename = field
                     .content_disposition()
                     .and_then(|cd| cd.get_filename().map(sanitize_filename::sanitize));
@@ -135,7 +115,7 @@ pub async fn create_submission(
                 temp_path = Some(temp.to_string_lossy().to_string());
             }
 
-            Some("task_id") => {
+            Some("homework_id") => {
                 let mut data = Vec::new();
                 while let Some(chunk) = field.next().await {
                     data.extend_from_slice(&chunk.unwrap());
@@ -143,10 +123,10 @@ pub async fn create_submission(
 
                 let text = String::from_utf8(data).unwrap_or_default();
                 match text.trim().parse::<i32>() {
-                    Ok(id) => task_id = Some(id),
+                    Ok(id) => homework_id = Some(id),
                     Err(_) => {
                         cleanup_temp(&temp_path);
-                        return HttpResponse::BadRequest().body("Invalid task ID");
+                        return HttpResponse::BadRequest().body("Invalid homework ID");
                     }
                 }
             }
@@ -155,19 +135,18 @@ pub async fn create_submission(
         }
     }
 
-    let task_id = match task_id {
+    let homework_id = match homework_id {
         Some(id) => id,
         None => {
             cleanup_temp(&temp_path);
-            return HttpResponse::BadRequest().body("Missing task_id");
+            return HttpResponse::BadRequest().body("Missing homework_id");
         }
     };
 
-    let task_grade = match sqlx::query_scalar::<_, i32>("SELECT grade FROM tasks WHERE id = ?")
-        .bind(task_id)
+    let res: (String, i64) = match sqlx::query_as("SELECT type, subject_id FROM assessments WHERE id = ?")
+        .bind(homework_id)
         .fetch_one(pool.get_ref())
-        .await
-    {
+        .await{
         Ok(g) => g,
         Err(_) => {
             cleanup_temp(&temp_path);
@@ -175,23 +154,40 @@ pub async fn create_submission(
         }
     };
 
-    if task_grade != user_grade {
+    if res.0 != "homework" {
+        cleanup_temp(&temp_path);
+        return HttpResponse::BadRequest().body("submission are only valid for homeworks");
+    }
+    let task_course = match sqlx::query_scalar::<_, i64>(
+        "SELECT course_id FROM subjects WHERE id = ?"
+    )
+    .bind(res.1)
+    .fetch_one(pool.get_ref())
+    .await{
+        Ok(g) => g,
+        Err(_) => {
+            cleanup_temp(&temp_path);
+            return HttpResponse::InternalServerError().finish();
+        }
+    };
+
+    if task_course != user_course {
         cleanup_temp(&temp_path);
         return HttpResponse::Unauthorized().finish();
     }
 
     let already_exists = sqlx::query_scalar::<_, bool>(
-        "SELECT EXISTS(SELECT 1 FROM task_submissions WHERE student = ? AND task = ?)"
+        "SELECT EXISTS(SELECT 1 FROM homework_submissions WHERE student_id = ? AND task_id = ?)"
     )
     .bind(user_id as i32)
-    .bind(task_id)
+    .bind(homework_id)
     .fetch_one(pool.get_ref())
     .await;
 
     match already_exists {
         Ok(true) => {
             cleanup_temp(&temp_path);
-            return HttpResponse::BadRequest().body("You already submitted this task");
+            return HttpResponse::BadRequest().body("You already submitted this homework");
         }
         Ok(false) => {}
         Err(_) => {
@@ -213,11 +209,11 @@ pub async fn create_submission(
     match saved_file_name {
         Some(path) => {
             let result = sqlx::query(
-                "INSERT INTO task_submissions (path, student, task) VALUES (?, ?, ?)"
+                "INSERT INTO homework_submissions (path, student_id, task_id) VALUES (?, ?, ?)"
             )
             .bind(path)
-            .bind(user_id as i32)
-            .bind(task_id)
+            .bind(user_id as i64)
+            .bind(homework_id)
             .execute(pool.get_ref())
             .await;
 

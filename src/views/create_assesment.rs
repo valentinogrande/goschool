@@ -5,13 +5,15 @@ use crate::jwt::validate;
 
 #[derive(serde::Deserialize, serde::Serialize, utoipa::ToSchema)]
 pub struct NewTask {
+    subject: i64,
     task: String,
-    grade: i32,
+    due_date: String,
+    type_: String,
 }
 
 #[utoipa::path(
     post,
-    path = "/api/v1/create_homework/",
+    path = "/api/v1/create_assessment/",
     request_body(content = NewTask, description = "task creation data", content_type = "application/json"),
     responses(
         (status = 201, description = "task created successfully"),
@@ -20,12 +22,13 @@ pub struct NewTask {
 
     )
 )]
-#[post("/api/v1/create_homework/")]
-pub async fn create_homework(
+#[post("/api/v1/create_assessment/")]
+pub async fn create_assessment(
     req: HttpRequest,
     pool: web::Data<MySqlPool>,
     task: web::Json<NewTask>,
 ) -> impl Responder {
+    //verify jwt
     let jwt = match req.cookie("jwt") {
         Some(c) => c,
         None => return HttpResponse::Unauthorized().finish(),
@@ -38,42 +41,40 @@ pub async fn create_homework(
 
     let user_id = token.claims.subject;
 
-    let roles = sqlx::query_as::<_, (bool, bool)>(
-        "SELECT is_teacher, is_admin FROM users WHERE id = ?",
-    )
-    .bind(user_id as i32)
-    .fetch_one(pool.get_ref())
-    .await;
-
-    let (is_teacher, is_admin) = match roles {
-        Ok(r) => r,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
-
-    if !is_teacher && !is_admin {
-        return HttpResponse::Unauthorized().finish();
-    }
-    let grades: Result<String, sqlx::Error> = sqlx::query_scalar("SELECT grades FROM teachers WHERE user_id = ?")
+    // verify role as  a teacher
+    let role = match sqlx::query_scalar::<_, String>("SELECT role FROM users WHERE id = ?")
         .bind(user_id as i32)
         .fetch_one(pool.get_ref())
-        .await;
-    let grades: String = match grades {
-        Ok(g) => g,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        .await{
+        Ok(r) => r,
+        Err(_) => return HttpResponse::InternalServerError().finish()
     };
-    if !grades.contains(&task.grade.to_string()) {
+    if  role != "teacher" {
         return HttpResponse::Unauthorized().finish();
     }
 
-    let insert_result = sqlx::query("INSERT INTO assessments (task, grade, subject,) VALUES (?, ?, ?)")
+    let teacher_subject: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)")
+        .bind(user_id as i64)
+        .bind(task.subject)
+        .fetch_one(pool.get_ref())
+        .await {
+        Ok(s) => s,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+    if !teacher_subject {
+        return HttpResponse::Unauthorized().finish();
+    }
+
+    let insert_result = sqlx::query("INSERT INTO assessments (task, subject_id, type, due_date) VALUES (?, ?, ?, ?)")
         .bind(&task.task)
-        .bind(task.grade)
-        .bind(user_id as i32)
+        .bind(task.subject)
+        .bind(&task.type_)
+        .bind(&task.due_date)
         .execute(pool.get_ref())
         .await;
 
     match insert_result {
         Ok(_) => HttpResponse::Created().finish(),
-        Err(_) => HttpResponse::InternalServerError().finish(),
+        Err(_) => HttpResponse::BadRequest().finish(),
     }
 }

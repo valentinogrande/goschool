@@ -15,8 +15,8 @@ mod json;
 
 use views::login::{login, __path_login};
 use views::register::{create_user, __path_create_user};
-use views::create_homework::{create_homework, __path_create_homework};
-use views::create_submission::{create_submission, __path_create_submission};
+use views::create_assesment::{create_assessment, __path_create_assessment};
+use views::create_submission::create_submission;
 use views::upload_profile_picture::upload_profile_picture;
 use views::get_profile_picture::get_profile_picture;
 use views::register_testing_users::register_users;
@@ -28,8 +28,7 @@ use jwt::Claims;
     paths(
         login,
         create_user,
-        create_homework,
-        create_submission,
+        create_assessment,
     ),
     components(
         schemas(
@@ -95,7 +94,7 @@ async fn main() -> std::io::Result<()> {
             .service(create_user)
             .service(login)
             .service(create_submission)
-            .service(create_homework)
+            .service(create_assessment)
             .service(upload_profile_picture)
             .service(get_profile_picture)
             .service(register_users) // for creating testing users.
