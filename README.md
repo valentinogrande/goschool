@@ -51,22 +51,10 @@ crear una evaluacion:
 }'</code>
 
 
-## importtante!!!!
-como ver la documentacion de la api??
+subir una tarea:
+<code>curl -v http://localhost:8080/api/v1/create_submission/ \                                 
+  -H "Cookie: jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWJqZWN0IjoyLCJleHAiOjE3NDQ0MDY3NDV9.4AdkkX-4oxopHU-Vm7j5fTDS_zp9hyGDfbFUeN1TX2g" \
+  -F "homework=@test.pdf" \
+  -F "homework_id=1"</code>
 
-entra a: <u>http://127.0.0.1:8080/swagger-ui/<u/>
 
-## esto no deberia estar en prod(aviso)
-
-# como ejecutar
-
-te pones en el directorio goscgool y ejectutas:
-
-<code>cargo run</code>
-
-obiamente tenes q tener instalado cargo
-
-# como subir un archivo
-<code>curl -v -X POST http://localhost:8080/api/v1/create_submission/ -b "jwt={json web token}" -F "task_id={task id}" -F "task=@{file name}"</code>
-
-### la api esta en <u>http://127.0.0.1/api/v1/</u>
