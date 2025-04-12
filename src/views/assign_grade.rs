@@ -39,7 +39,7 @@ pub async fn assign_grade(
         None => return HttpResponse::Unauthorized().finish(),
     };
 
-    let token = match validate(jwt.value().to_string()) {
+    let token = match validate(jwt.value()) {
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };

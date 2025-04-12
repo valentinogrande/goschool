@@ -1,21 +1,17 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
-use bcrypt::{hash, DEFAULT_COST};
 
-use crate::{jwt::validate, user::NewUser};
+use crate::jwt::validate;
 
-#[post("/api/v1/register/")]
-pub async fn register(
-    pool: web::Data<MySqlPool>,
-    user: web::Json<NewUser>,
-    req: HttpRequest,
-) -> impl Responder {
-    let hashed_pass = match hash(&user.password, DEFAULT_COST) {
-        Ok(h) => h,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
+#[derive(serde::Serialize, serde::Deserialize)]
+struct NewFamily {
+    student_id: i64,
+    father_id: i64,
+}
 
-    let jwt = match req.cookie("jwt") {
+#[post("/api/v1/post_families/")]
+pub async fn post_families(pool: web::Data<MySqlPool>, req: HttpRequest, family: web::Json<NewFamily>) -> impl Responder{
+        let jwt = match req.cookie("jwt") {
         Some(c) => c,
         None => return HttpResponse::Unauthorized().finish(),
     };
@@ -30,18 +26,21 @@ pub async fn register(
         Ok(r) => r == "admin",
         Err(_) => return HttpResponse:: InternalServerError().body("role is invalid"),
     };
-    
-    let query = if is_admin {
-        sqlx::query("INSERT INTO users (password, email, role) VALUES (?, ?, ?)")
-            .bind(&hashed_pass)
-            .bind(&user.email)
-            .bind(&user.role)
-    } else {
-        return HttpResponse::Unauthorized().finish();
-    };
 
-    match query.execute(pool.get_ref()).await {
+    if !is_admin {
+        return HttpResponse::Unauthorized().finish();
+    }
+    
+    let query = sqlx::query("INSERT INTO families (student_id, father_id) VALUES (? ,?)")
+        .bind(family.student_id)
+        .bind(family.father_id)
+        .execute(pool.get_ref())
+        .await;
+    
+    match query {
         Ok(_) => HttpResponse::Created().finish(),
         Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
     }
 }
+
+

@@ -34,7 +34,7 @@ pub async fn upload_profile_picture(
         None => return HttpResponse::Unauthorized().finish(),
     };
 
-    let token = match validate(cookie.value().to_string()) {
+    let token = match validate(cookie.value()) {
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };

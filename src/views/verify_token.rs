@@ -11,7 +11,7 @@ pub async fn veridy_token(
         Some(c) => c,
         None => return HttpResponse::Unauthorized().finish(),
     };
-    let _token = match validate(jwt.value().to_string()) {
+    let _token = match validate(jwt.value()) {
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
