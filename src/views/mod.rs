@@ -6,3 +6,4 @@ pub mod register_testing_users;
 pub mod upload_profile_picture;
 pub mod get_profile_picture;
 pub mod assign_grade;
+pub mod verify_token;

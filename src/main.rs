@@ -11,13 +11,15 @@ mod jwt;
 mod json;
 
 use views::login::login;
-use views::register::create_user;
+use views::register::register;
 use views::create_assesment::create_assessment;
 use views::assign_grade::assign_grade;
 use views::create_submission::create_submission;
 use views::upload_profile_picture::upload_profile_picture;
 use views::get_profile_picture::get_profile_picture;
 use views::register_testing_users::register_users;
+use views::verify_token::veridy_token;
+
 use user::Credentials;
 use jwt::Claims;
 
@@ -49,7 +51,8 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(pool.clone()))
             .app_data(json_conf.clone())
             .service(Files::new("/uploads/profile_pictures", "./uploads/profile_pictures").index_file("404"))
-            .service(create_user)
+            .service(register)
+            .service(veridy_token)
             .service(login)
             .service(create_submission)
             .service(create_assessment)

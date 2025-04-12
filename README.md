@@ -32,6 +32,9 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 
 # endpoints
 
+### verify token 
+<code>curl -v -X GET "http://localhost:8080/api/v1/verify_token/" -b "jwt={json web token}"<code>
+
 ### login:
 <code>curl -v -X POST "http://localhost:8080/api/v1/login/" -H "Content-Type: application/json" -d '{"email": "teacher", "password": "teacher"}'</code>
 

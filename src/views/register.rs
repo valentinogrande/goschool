@@ -5,7 +5,7 @@ use bcrypt::{hash, DEFAULT_COST};
 use crate::{jwt::validate, user::NewUser};
 
 #[post("/api/v1/register/")]
-pub async fn create_user(
+pub async fn register(
     pool: web::Data<MySqlPool>,
     user: web::Json<NewUser>,
     req: HttpRequest,
