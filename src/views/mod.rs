@@ -10,3 +10,4 @@ pub mod assign_grade;
 pub mod verify_token;
 pub mod get_assessmets;
 pub mod get_grades;
+pub mod get_role;

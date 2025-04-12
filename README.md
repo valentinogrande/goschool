@@ -42,6 +42,9 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 ## logout:
 <code>curl -v -X POST "http://localhost:8080/api/v1/logout/"</code>
 
+## obtener el role:
+<code>curl -v -X GET "http://localhost:8080/api/v1/get_role/"</code>
+
 ## register:
 <code>curl -X POST http://localhost:8080/api/v1/register/ -H "Content-Type: application/json" -b "jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." -d '{
     "name": "Juan Pérez",
