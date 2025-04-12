@@ -39,6 +39,9 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 ## login:
 <code>curl -v -X POST "http://localhost:8080/api/v1/login/" -H "Content-Type: application/json" -d '{"email": "teacher", "password": "teacher"}'</code>
 
+## logout:
+<code>curl -v -X POST "http://localhost:8080/api/v1/logout/"</code>
+
 ## register:
 <code>curl -X POST http://localhost:8080/api/v1/register/ -H "Content-Type: application/json" -b "jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." -d '{
     "name": "Juan Pérez",

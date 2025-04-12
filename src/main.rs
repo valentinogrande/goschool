@@ -19,6 +19,7 @@ use views::upload_profile_picture::upload_profile_picture;
 use views::get_profile_picture::get_profile_picture;
 use views::register_testing_users::register_users;
 use views::verify_token::veridy_token;
+use views::logout::logout;
 
 use user::Credentials;
 use jwt::Claims;
@@ -54,6 +55,7 @@ async fn main() -> std::io::Result<()> {
             .service(register)
             .service(veridy_token)
             .service(login)
+            .service(logout)
             .service(create_submission)
             .service(create_assessment)
             .service(upload_profile_picture)
