@@ -18,7 +18,7 @@ use views::create_submission::create_submission;
 use views::upload_profile_picture::upload_profile_picture;
 use views::get_profile_picture::get_profile_picture;
 use views::register_testing_users::register_users;
-use views::verify_token::veridy_token;
+use views::verify_token::verify_token;
 use views::get_assessmets::{get_assessments, get_assessments_by_id};
 use views::get_grades::{get_grades, get_grades_by_id};
 use views::logout::logout;
@@ -55,7 +55,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(json_conf.clone())
             .service(Files::new("/uploads/profile_pictures", "./uploads/profile_pictures").index_file("404"))
             .service(register)
-            .service(veridy_token)
+            .service(verify_token)
             .service(login)
             .service(logout)
             .service(create_submission)

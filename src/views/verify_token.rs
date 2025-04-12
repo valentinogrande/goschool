@@ -2,8 +2,8 @@ use actix_web::{get, HttpRequest, HttpResponse, Responder};
 
 use crate::jwt::validate;
 
-#[get("/api/v1/veriy_token/")]
-pub async fn veridy_token(
+#[get("/api/v1/verify_token/")]
+pub async fn verify_token(
     req: HttpRequest,
 ) -> impl Responder {
     
