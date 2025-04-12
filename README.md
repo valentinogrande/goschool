@@ -30,7 +30,8 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 
 
 
-# endpoints
+## endpoints
+
 
 ### verify token 
 <code>curl -v -X GET "http://localhost:8080/api/v1/verify_token/" -b "jwt={json web token}"<code>
