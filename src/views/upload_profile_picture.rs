@@ -9,7 +9,7 @@ use std::fs;
 
 use crate::jwt::validate;
 
-#[derive(serde::Deserialize, serde::Serialize,utoipa::ToSchema)]
+#[derive(serde::Deserialize, serde::Serialize)]
 struct Task{
     id: i32,
     grade: i32,

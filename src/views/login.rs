@@ -8,18 +8,6 @@ use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use crate::Credentials;
 use crate::Claims;
 
-
-#[utoipa::path(
-    post,
-    path = "/api/v1/login/",
-    request_body(content = Credentials, description = "User credentials", content_type = "application/json"),
-    responses(
-        (status = 200, description = "Login successful", body = String),
-        (status = 401, description = "Invalid credentials"),
-        (status = 400, description = "Json parsing error"),
-    )
-)]
-
 #[post("/api/v1/login/")]
 pub async fn login(
     pool: web::Data<MySqlPool>,

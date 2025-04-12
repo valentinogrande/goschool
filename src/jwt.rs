@@ -1,9 +1,8 @@
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use serde::{Serialize, Deserialize};
-use utoipa::ToSchema;
 
 
-#[derive(Serialize, Deserialize,ToSchema)]
+#[derive(Serialize, Deserialize)]
 pub struct Claims{
     pub subject: usize,
     pub exp: usize,

@@ -4,17 +4,6 @@ use bcrypt::{hash, DEFAULT_COST};
 
 use crate::{jwt::validate, user::NewUser};
 
-
-#[utoipa::path(
-    post,
-    path = "/api/v1/register/",
-    request_body(content = NewUser, description = "User registration data", content_type = "application/json"),
-    responses(
-        (status = 201, description = "User created successfully"),
-        (status = 500, description = "Internal server error")
-    )
-)]
-
 #[post("/api/v1/register/")]
 pub async fn create_user(
     pool: web::Data<MySqlPool>,

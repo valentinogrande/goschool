@@ -2,9 +2,6 @@ use actix_web::{http::header, middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
 use sqlx::mysql::MySqlPool;
 use env_logger;
-use utoipa::OpenApi;
-use utoipa_swagger_ui::{SwaggerUi, Config};
-use utoipa::Modify;
 use chrono::Datelike;
 use actix_files::Files;
 
@@ -13,56 +10,16 @@ mod user;
 mod jwt;
 mod json;
 
-use views::login::{login, __path_login};
-use views::register::{create_user, __path_create_user};
-use views::create_assesment::{create_assessment, __path_create_assessment};
+use views::login::login;
+use views::register::create_user;
+use views::create_assesment::create_assessment;
 use views::assign_grade::assign_grade;
 use views::create_submission::create_submission;
 use views::upload_profile_picture::upload_profile_picture;
 use views::get_profile_picture::get_profile_picture;
 use views::register_testing_users::register_users;
-use user::{User, Credentials, NewUser};
+use user::Credentials;
 use jwt::Claims;
-
-#[derive(OpenApi)]
-#[openapi(
-    paths(
-        login,
-        create_user,
-        create_assessment,
-    ),
-    components(
-        schemas(
-            User,
-            Credentials,
-            Claims,
-            NewUser,
-        )
-    ),
-    tags(
-        (name = "users", description = "User management endpoints"),
-        (name = "auth", description = "Authentication endpoints")
-    ),
-    modifiers(&SecurityAddon)
-)]
-struct ApiDoc;
-
-struct SecurityAddon;
-
-impl Modify for SecurityAddon {
-    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
-        let security_scheme = utoipa::openapi::security::SecurityScheme::ApiKey(
-            utoipa::openapi::security::ApiKey::Cookie(
-                utoipa::openapi::security::ApiKeyValue::new("jwt")
-            )
-        );
-        openapi
-            .components
-            .as_mut()
-            .unwrap()
-            .add_security_scheme("cookieAuth", security_scheme);
-    }
-}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -100,11 +57,6 @@ async fn main() -> std::io::Result<()> {
             .service(get_profile_picture)
             .service(assign_grade)
             .service(register_users) // for creating testing users.
-            .service(
-                SwaggerUi::new("/swagger-ui/{_:.*}")
-                    .url("/api-docs/openapi.json", ApiDoc::openapi())
-                    .config(Config::default().with_credentials(true))
-            )
     })
     .bind("127.0.0.1:8080")?
     .run()

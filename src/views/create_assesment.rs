@@ -13,27 +13,16 @@ pub enum AssessmentType {
     Project,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, utoipa::ToSchema)]
+#[derive(serde::Deserialize, serde::Serialize)]
 pub struct NewTask {
     subject: i64,
     task: String,
     due_date: String,
     #[serde(rename = "type")]
-    #[schema(rename = "type")]
     type_: AssessmentType,
 }
 
-#[utoipa::path(
-    post,
-    path = "/api/v1/create_assessment/",
-    request_body(content = NewTask, description = "task creation data", content_type = "application/json"),
-    responses(
-        (status = 201, description = "task created successfully"),
-        (status = 401, description = "Unauthorized"),
-        (status = 400, description = "bad request"),
 
-    )
-)]
 #[post("/api/v1/create_assessment/")]
 pub async fn create_assessment(
     req: HttpRequest,
