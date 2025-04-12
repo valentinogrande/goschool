@@ -80,3 +80,6 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 
 ## obtener las evaluaciones de un alumno:
 <code>curl -v -X GET http://localhost:8080/api/v1/get_student_assessments/{student_id}/ -H "Content-Type: application/json" -b "jwt={json web token}"</code>
+
+## obtener las notas de un alumno:
+<code>curl -v -X GET http://localhost:8080/api/v1/get_student_grades/2/ -H "Content-Type: application/json" -b "jwt={json web token}"</code>

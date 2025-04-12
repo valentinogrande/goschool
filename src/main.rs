@@ -21,6 +21,7 @@ use views::register_testing_users::register_users;
 use views::verify_token::veridy_token;
 use views::post_families::post_families;
 use views::get_assessmets::get_assessments;
+use views::get_grades::get_grades;
 use views::logout::logout;
 
 use user::Credentials;
@@ -60,6 +61,7 @@ async fn main() -> std::io::Result<()> {
             .service(logout)
             .service(create_submission)
             .service(get_assessments)
+            .service(get_grades)
             .service(create_assessment)
             .service(upload_profile_picture)
             .service(post_families)
