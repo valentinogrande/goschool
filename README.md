@@ -54,7 +54,7 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 <code>curl -v -X POST "http://localhost:8080/api/v1/upload_profile_picture/" -b "jwt={json web token}" -F "image=@{image.path}"</code>
 
 ## obtener link de la foto:
-<code>curl -v -X GET "http://localhost:8080/api/v1/get_profile_picture/{user_id}/" -b "jwt={json web token}"</code>
+<code>curl -v -X GET "http://localhost:8080/api/v1/get_profile_picture/" -b "jwt={json web token}"</code>
 
 ## crear una evaluacion:
 <code>curl -v -X POST http://localhost:8080/api/v1/create_assessment/ -H "Content-Type: application/json" -H "Cookie: jwt={json web token}" -d '{
