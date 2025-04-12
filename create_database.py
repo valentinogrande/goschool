@@ -65,7 +65,7 @@ with open('database.sql', 'r') as file:
             res=__import__("requests").get("http://localhost:8080/api/v1/register_testing_users/")
             if res.status_code == 201:
                 print("users created succesfully")
-                
+            cursor.execute("INSERT INTO families (student_id, father_id) VALUES (%s,%s)",(2,4))
 
 conn.commit()
 cursor.close()
