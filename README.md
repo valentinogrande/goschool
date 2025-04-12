@@ -39,6 +39,14 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 ## login:
 <code>curl -v -X POST "http://localhost:8080/api/v1/login/" -H "Content-Type: application/json" -d '{"email": "teacher", "password": "teacher"}'</code>
 
+## register:
+<code>curl -X POST http://localhost:8080/api/v1/register/ -H "Content-Type: application/json" -b "jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." -d '{
+    "name": "Juan Pérez",
+    "email": "juan@example.com",
+    "password": "superseguro123",
+    "role": "teacher"
+  }'</code>
+
 ## subir la foto de perfil: 
 <code>curl -v -X POST "http://localhost:8080/api/v1/upload_profile_picture/" -b "jwt={json web token}" -F "image=@{image.path}"</code>
 
