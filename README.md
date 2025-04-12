@@ -38,7 +38,7 @@ subir la foto de perfil:
 <code>curl -v -X POST "http://localhost:8080/api/v1/upload_profile_picture/" -b "jwt={json web token}" -F "image=@{image.path}"</code>
 
 obtener link de la foto:
-<code>curl -v -X GET "http://localhost:8080/api/v1/get_profile_picture" -b "jwt={jwt}"</code>
+<code>curl -v -X GET "http://localhost:8080/api/v1/get_profile_picture" -b "jwt={json web token}"</code>
 
 crear una evaluacion:
 <code>curl -v -X POST http://localhost:8080/api/v1/create_assessment/ \                               -H "Content-Type: application/json" \
@@ -53,8 +53,19 @@ crear una evaluacion:
 
 subir una tarea:
 <code>curl -v http://localhost:8080/api/v1/create_submission/ \                                 
-  -H "Cookie: jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWJqZWN0IjoyLCJleHAiOjE3NDQ0MDY3NDV9.4AdkkX-4oxopHU-Vm7j5fTDS_zp9hyGDfbFUeN1TX2g" \
+  -H "Cookie: jwt={json web token}" \
   -F "homework=@test.pdf" \
   -F "homework_id=1"</code>
 
+subir una nota:
+<code>curl -v -X POST http://localhost:8080/api/v1/assign_grade/ \  -H "Content-Type: application/json" \
+  -b "jwt={json web token}" \
+  -d '{
+    "subject": 1,
+    "assessment_id": 1, # en caso de no tener una evauliacion de referencia usar "null", ejemplo nota de comportamineto
+    "student_id": 2,
+    "grade_type": "numerical",
+    "description": "prueba de integrales y derivadas",
+    "grade": 4.5
+  }'</code>
 

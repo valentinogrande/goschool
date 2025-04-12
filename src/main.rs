@@ -16,6 +16,7 @@ mod json;
 use views::login::{login, __path_login};
 use views::register::{create_user, __path_create_user};
 use views::create_assesment::{create_assessment, __path_create_assessment};
+use views::assign_grade::assign_grade;
 use views::create_submission::create_submission;
 use views::upload_profile_picture::upload_profile_picture;
 use views::get_profile_picture::get_profile_picture;
@@ -97,6 +98,7 @@ async fn main() -> std::io::Result<()> {
             .service(create_assessment)
             .service(upload_profile_picture)
             .service(get_profile_picture)
+            .service(assign_grade)
             .service(register_users) // for creating testing users.
             .service(
                 SwaggerUi::new("/swagger-ui/{_:.*}")

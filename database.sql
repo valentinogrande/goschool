@@ -2,6 +2,7 @@
 
 --USE colegio_stella_maris_2025;
 
+
 CREATE TABLE IF NOT EXISTS courses (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   year INT NOT NULL,
@@ -23,20 +24,20 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS personal_data (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  user BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
   full_name VARCHAR(255) NOT NULL,
   birth_date DATE NOT NULL,
   address VARCHAR(255) NOT NULL,
   phone_number VARCHAR(20) NOT NULL,
-  FOREIGN KEY (user) REFERENCES users(id)
+  FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS families (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
-  student BIGINT NOT NULL,
-  father BIGINT NOT NULL,
-  FOREIGN KEY (student) REFERENCES users(id),
-  FOREIGN KEY (father) REFERENCES users(id)
+  student_id BIGINT NOT NULL,
+  father_id BIGINT NOT NULL,
+  FOREIGN KEY (student_id) REFERENCES users(id),
+  FOREIGN KEY (father_id) REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS subjects (
@@ -51,12 +52,12 @@ CREATE TABLE IF NOT EXISTS subjects (
 CREATE TABLE IF NOT EXISTS timetables (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   course_id BIGINT NOT NULL,
-  subject BIGINT NOT NULL,
+  subject_id BIGINT NOT NULL,
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
   day ENUM('Monday','Tuesday','Wednesday','Thursday','Friday') NOT NULL,
   FOREIGN KEY (course_id) REFERENCES courses(id),
-  FOREIGN KEY (subject) REFERENCES subjects(id)
+  FOREIGN KEY (subject_id) REFERENCES subjects(id)
 );
 
 CREATE TABLE IF NOT EXISTS assessments (
@@ -75,12 +76,12 @@ CREATE TABLE IF NOT EXISTS grades (
   grade DECIMAL(5,2) NOT NULL,
   student_id BIGINT NOT NULL,
   subject_id BIGINT NOT NULL,
-  reference_id BIGINT,
-  note_type ENUM('numerical','conceptual','percentage') DEFAULT 'numerical',
+  assessment_id BIGINT,
+  grade_type ENUM('numerical','conceptual','percentage') DEFAULT 'numerical',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (student_id) REFERENCES users(id),
   FOREIGN KEY (subject_id) REFERENCES subjects(id),
-  FOREIGN KEY (reference_id) REFERENCES assessments(id)
+  FOREIGN KEY (assessment_id) REFERENCES assessments(id)
 );
 
 CREATE TABLE IF NOT EXISTS homework_submissions (
@@ -89,5 +90,23 @@ CREATE TABLE IF NOT EXISTS homework_submissions (
   student_id BIGINT NOT NULL,
   path VARCHAR(255) NOT NULL,
   FOREIGN KEY (task_id) REFERENCES assessments(id),
+  FOREIGN KEY (student_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS assistance (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  student_id BIGINT NOT NULL,
+  presence ENUM('present','absent','excused') DEFAULT 'present',
+  date DATE NOT NULL,
+  FOREIGN KEY (student_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS disciplinary_sanctions (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  student_id BIGINT NOT NULL,
+  sanction_type ENUM('admonition','warning','free'),
+  quantity INT DEFAULT 1,
+  description TEXT,
+  date DATE NOT NULL,
   FOREIGN KEY (student_id) REFERENCES users(id)
 );

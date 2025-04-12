@@ -3,12 +3,24 @@ use sqlx::mysql::MySqlPool;
 
 use crate::jwt::validate;
 
+
+#[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]
+#[sqlx(type_name = "ENUM('exam','homework','project')")]
+#[serde(rename_all = "lowercase")]
+pub enum AssessmentType {
+    Exam,
+    Homework,
+    Project,
+}
+
 #[derive(serde::Deserialize, serde::Serialize, utoipa::ToSchema)]
 pub struct NewTask {
     subject: i64,
     task: String,
     due_date: String,
-    type_: String,
+    #[serde(rename = "type")]
+    #[schema(rename = "type")]
+    type_: AssessmentType,
 }
 
 #[utoipa::path(
