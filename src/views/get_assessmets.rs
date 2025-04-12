@@ -29,8 +29,8 @@ struct Assessment {
     type_: AssessmentType,
 }
 
-#[get("/api/v1/get_student_assessments/{student_id}/")]
-pub async fn get_assessments(
+#[get("/api/v1/get_student_assessments_by_id/{student_id}/")]
+pub async fn get_assessments_by_id(
     pool: web::Data<MySqlPool>,
     req: HttpRequest,
     student_id: web::Path<i64>,
@@ -76,6 +76,75 @@ pub async fn get_assessments(
     
     let course_id = match sqlx::query_scalar::<_, i64>("SELECT course_id FROM users WHERE id = ?")
         .bind(student_id)
+        .fetch_one(pool.get_ref())
+        .await
+    {
+        Ok(c) => c,
+        Err(_) => return HttpResponse::BadRequest().json("Invalid student id"),
+    };
+    
+    let subjects: Vec<i64> = match sqlx::query_scalar("SELECT id FROM subjects WHERE course_id = ?")
+        .bind(course_id)
+        .fetch_all(pool.get_ref())
+        .await
+    {
+        Ok(s) => s,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    if subjects.is_empty() {
+        return HttpResponse::BadRequest().json("No subjects found on this course")
+    }
+
+    let mut builder = QueryBuilder::new("SELECT * FROM assessments WHERE subject_id IN (");
+    let mut separated = builder.separated(", ");
+    for id in &subjects {
+        separated.push_bind(id);
+    }
+    builder.push(")");
+
+    let assessments = match builder.build_query_as::<Assessment>()
+        .fetch_all(pool.get_ref())
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
+    };
+
+    HttpResponse::Ok().json(assessments)
+}
+
+#[get("/api/v1/get_student_assessments/")]
+pub async fn get_assessments(
+    pool: web::Data<MySqlPool>,
+    req: HttpRequest,
+) -> impl Responder {
+    let cookie = match req.cookie("jwt") {
+        Some(cookie) => cookie,
+        None => return HttpResponse::Unauthorized().json("Missing JWT cookie"),
+    };
+
+    let token = match validate(cookie.value()) {
+        Ok(t) => t,
+        Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
+    };
+
+    let user_id = token.claims.subject as i64;
+    
+    let role = match sqlx::query_scalar::<_, String>("SELECT role FROM users WHERE id = ?")
+        .bind(user_id)
+        .fetch_one(pool.get_ref())
+        .await
+    {
+        Ok(r) => r,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+    if role != "student" {
+        return HttpResponse::Unauthorized().json("Not authorized");
+    }
+    
+    let course_id = match sqlx::query_scalar::<_, i64>("SELECT course_id FROM users WHERE id = ?")
+        .bind(user_id)
         .fetch_one(pool.get_ref())
         .await
     {
