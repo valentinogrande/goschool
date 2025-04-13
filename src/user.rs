@@ -11,9 +11,20 @@ pub enum Role {
     Father,
 }
 
+#[derive(serde::Serialize, serde::Deserialize, sqlx::FromRow, PartialEq, Eq, Clone)]
+pub struct Roles {
+    pub role: String,
+}
+
+impl Roles {
+    pub fn new(role: String) -> Self {
+        Roles {role }
+    }
+}
+
 #[derive(Serialize,Deserialize)]
 pub struct User{
-    pub id: i32,
+    pub id: u64,
     pub password: String,
     pub email: String,
     pub role: Role,

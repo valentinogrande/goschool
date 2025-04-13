@@ -2,7 +2,7 @@ use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 
 use crate::jwt::validate;
-
+use crate::user::Roles;
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]
 #[sqlx(type_name = "ENUM('exam','homework','project')")]
@@ -15,7 +15,7 @@ pub enum AssessmentType {
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct NewTask {
-    subject: i64,
+    subject: u64,
     task: String,
     due_date: String,
     #[serde(rename = "type")]
@@ -29,7 +29,6 @@ pub async fn create_assessment(
     pool: web::Data<MySqlPool>,
     task: web::Json<NewTask>,
 ) -> impl Responder {
-    //verify jwt
     let jwt = match req.cookie("jwt") {
         Some(c) => c,
         None => return HttpResponse::Unauthorized().finish(),
@@ -40,22 +39,19 @@ pub async fn create_assessment(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
 
-    let user_id = token.claims.subject;
+    let user_id = token.claims.subject as u64;
 
-    // verify role as  a teacher
-    let role = match sqlx::query_scalar::<_, String>("SELECT role FROM users WHERE id = ?")
-        .bind(user_id as i32)
-        .fetch_one(pool.get_ref())
-        .await{
+    let roles = match crate::sqlx_fn::get_roles(&pool, user_id).await {
         Ok(r) => r,
-        Err(_) => return HttpResponse::InternalServerError().finish()
+        Err(_) => return HttpResponse::InternalServerError().finish(),
     };
-    if  role != "teacher" {
-        return HttpResponse::Unauthorized().finish();
+    if !(roles.contains(&Roles::new("teacher".to_string())) || roles.contains(&Roles::new("admin".to_string()))) {
+        return HttpResponse::BadRequest().finish();
     }
 
+    // checking that the teacher is the owner of the subject
     let teacher_subject: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)")
-        .bind(user_id as i64)
+        .bind(user_id)
         .bind(task.subject)
         .fetch_one(pool.get_ref())
         .await {
@@ -65,8 +61,7 @@ pub async fn create_assessment(
     if !teacher_subject {
         return HttpResponse::Unauthorized().finish();
     }
-
-    let insert_result = sqlx::query("INSERT INTO assessments (task, subject_id, type, due_date) VALUES (?, ?, ?, ?)")
+        let insert_result = sqlx::query("INSERT INTO assessments (task, subject_id, type, due_date) VALUES (?, ?, ?, ?)")
         .bind(&task.task)
         .bind(task.subject)
         .bind(&task.type_)

@@ -63,7 +63,7 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 <code>curl -v -X POST http://localhost:8080/api/v1/create_assessment/ -H "Content-Type: application/json" -H "Cookie: jwt={json web token}" -d '{
     "task": "upload 2+2",
     "subject": 1,
-    "type_": "homework",
+    "type": "homework",
     "due_date": "2026-04-15"
 }'</code>
 
@@ -88,7 +88,7 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 <code>curl -v -X GET http://localhost:8080/api/v1/get_student_assessments/ -H "Content-Type: application/json" -b "jwt={json web token}"</code>
 
 ## obtener las notas de un alumno:
-<code>curl -v -X GET http://localhost:8080/api/v1/get_student_gradesby_id/{student_id}/ -H "Content-Type: application/json" -b "jwt={json web token}"</code>
+<code>curl -v -X GET http://localhost:8080/api/v1/get_student_grades_by_id/{student_id}/ -H "Content-Type: application/json" -b "jwt={json web token}"</code>
 
 
 ## obtener las notas de un alumno sin id(sse usa el id del jwt):

@@ -9,6 +9,7 @@ mod views;
 mod user;
 mod jwt;
 mod json;
+mod sqlx_fn;
 
 use views::login::login;
 use views::register::register;

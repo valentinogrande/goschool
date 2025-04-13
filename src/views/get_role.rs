@@ -3,6 +3,7 @@ use sqlx::mysql::MySqlPool;
 
 use crate::jwt::validate;
 
+
 #[get("/api/v1/get_role/")]
 pub async fn get_role(
     pool: web::Data<MySqlPool>,
@@ -18,15 +19,13 @@ pub async fn get_role(
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
 
-    let user_id = token.claims.subject as i64;
+    let user_id = token.claims.subject as u64;
     
-    let role = match sqlx::query_scalar::<_, String>("SELECT role FROM users WHERE id = ?")
-        .bind(user_id)
-        .fetch_one(pool.get_ref())
-        .await
-    {
+    
+   let roles = match crate::sqlx_fn::get_roles(&pool, user_id).await{
         Ok(r) => r,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
-    HttpResponse::Ok().json(role)   
+
+    HttpResponse::Ok().json(roles)   
 }

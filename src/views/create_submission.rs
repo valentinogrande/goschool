@@ -7,7 +7,9 @@ use tempfile::NamedTempFile;
 use uuid::Uuid;
 use std::fs;
 
+use crate::user::Roles;
 use crate::jwt::validate;
+
 
 fn cleanup_temp(path: &Option<String>) {
     if let Some(p) = path {
@@ -31,12 +33,12 @@ pub async fn create_submission(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
 
-    let user_id = token.claims.subject;
+    let user_id = token.claims.subject as u64;
 
-    let user_course = match sqlx::query_as::<_, (i64,)>(
+    let user_course = match sqlx::query_as::<_, (u64,)>(
         "SELECT course_id FROM users WHERE id = ?"
     )
-    .bind(user_id as i32)
+    .bind(user_id)
     .fetch_one(pool.get_ref())
     .await
     {
@@ -45,7 +47,7 @@ pub async fn create_submission(
     };
 
     let mut saved_file_name: Option<String> = None;
-    let mut homework_id: Option<i32> = None;
+    let mut homework_id: Option<u64> = None;
     let mut final_path: Option<String> = None;
     let mut temp_path: Option<String> = None;
 
@@ -122,7 +124,7 @@ pub async fn create_submission(
                 }
 
                 let text = String::from_utf8(data).unwrap_or_default();
-                match text.trim().parse::<i32>() {
+                match text.trim().parse::<u64>() {
                     Ok(id) => homework_id = Some(id),
                     Err(_) => {
                         cleanup_temp(&temp_path);
@@ -135,6 +137,18 @@ pub async fn create_submission(
         }
     }
 
+    let roles = match crate::sqlx_fn::get_roles(&pool, user_id).await {
+        Ok(r) => r,
+        Err(_) => {
+            cleanup_temp(&temp_path);
+            return HttpResponse::Unauthorized().finish();
+        }
+    };
+    if !(roles.contains(&Roles::new("student".to_string()))){
+        cleanup_temp(&temp_path);
+        return HttpResponse::Unauthorized().finish();
+    }
+
     let homework_id = match homework_id {
         Some(id) => id,
         None => {
@@ -143,7 +157,7 @@ pub async fn create_submission(
         }
     };
 
-    let res: (String, i64) = match sqlx::query_as("SELECT type, subject_id FROM assessments WHERE id = ?")
+    let res: (String, u64) = match sqlx::query_as("SELECT type, subject_id FROM assessments WHERE id = ?")
         .bind(homework_id)
         .fetch_one(pool.get_ref())
         .await{
@@ -158,7 +172,7 @@ pub async fn create_submission(
         cleanup_temp(&temp_path);
         return HttpResponse::BadRequest().body("submission are only valid for homeworks");
     }
-    let task_course = match sqlx::query_scalar::<_, i64>(
+    let task_course = match sqlx::query_scalar::<_, u64>(
         "SELECT course_id FROM subjects WHERE id = ?"
     )
     .bind(res.1)
@@ -179,7 +193,7 @@ pub async fn create_submission(
     let already_exists = sqlx::query_scalar::<_, bool>(
         "SELECT EXISTS(SELECT 1 FROM homework_submissions WHERE student_id = ? AND task_id = ?)"
     )
-    .bind(user_id as i32)
+    .bind(user_id as u64)
     .bind(homework_id)
     .fetch_one(pool.get_ref())
     .await;
@@ -212,7 +226,7 @@ pub async fn create_submission(
                 "INSERT INTO homework_submissions (path, student_id, task_id) VALUES (?, ?, ?)"
             )
             .bind(path)
-            .bind(user_id as i64)
+            .bind(user_id as u64)
             .bind(homework_id)
             .execute(pool.get_ref())
             .await;

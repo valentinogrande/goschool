@@ -1,7 +1,6 @@
 use actix_web::cookie::Cookie;
 use actix_web::{post, web, HttpResponse,  Responder};
 use sqlx::mysql::MySqlPool;
-use sqlx::Row;
 use bcrypt::verify;
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 
@@ -13,7 +12,7 @@ pub async fn login(
     pool: web::Data<MySqlPool>,
     creds: web::Json<Credentials>,
 ) -> impl Responder {
-    let row = match sqlx::query("SELECT id, password FROM users WHERE email = ?")
+    let result: (u64,String) = match sqlx::query_as("SELECT id, password FROM users WHERE email = ?")
         .bind(&creds.email)
         .fetch_one(pool.get_ref())
         .await
@@ -22,14 +21,14 @@ pub async fn login(
         Err(_) => return HttpResponse::Unauthorized().json("Invalid credentials"),
     };
 
-    let stored_pass = row.get::<String, &str>("password");
-    let valid = verify(&creds.password, &stored_pass).unwrap_or(false);
+    let hashed_pass = result.1;
+    let valid = verify(&creds.password, &hashed_pass).unwrap_or(false);
 
     if !valid {
         return HttpResponse::Unauthorized().json("Invalid credentials");
     }
 
-    let user_id = row.get::<i32, &str>("id");
+    let user_id = result.0;
     let claims = Claims::new(user_id as usize);
     let secret = std::env::var("JWT_SECRET").expect("JWT_SECTRET should be setted");
     let token = match encode(

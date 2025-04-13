@@ -25,7 +25,7 @@ pub async fn get_profile_picture(req: HttpRequest, pool: web::Data<MySqlPool>) -
 
     let user_id = token.claims.subject;
     let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ?")
-        .bind(user_id as i64)
+        .bind(user_id as u64)
         .fetch_optional(pool.get_ref())
         .await
     {

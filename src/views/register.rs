@@ -2,7 +2,7 @@ use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 use bcrypt::{hash, DEFAULT_COST};
 
-use crate::{jwt::validate, user::NewUser};
+use crate::{jwt::validate, user::NewUser, user::Roles};
 
 #[post("/api/v1/register/")]
 pub async fn register(
@@ -23,25 +23,27 @@ pub async fn register(
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
-    let is_admin = match sqlx::query_scalar::<_, String>("SELECT role FROM users WHERE id = ?")
-        .bind(token.claims.subject as i32)
-        .fetch_one(pool.get_ref())
-        .await{
-        Ok(r) => r == "admin",
-        Err(_) => return HttpResponse:: InternalServerError().body("role is invalid"),
-    };
     
-    let query = if is_admin {
-        sqlx::query("INSERT INTO users (password, email, role) VALUES (?, ?, ?)")
+    let user_id = token.claims.subject as u64;
+
+    let roles = match crate::sqlx_fn::get_roles(&pool, user_id).await {
+        Ok(r) => r,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+        
+    };
+    if !(roles.contains(&Roles::new("admin".to_string()))){
+        return HttpResponse::Unauthorized().finish();
+    }
+
+    let query = match sqlx::query("INSERT INTO users (password, email, role) VALUES (?, ?, ?)")
             .bind(&hashed_pass)
             .bind(&user.email)
             .bind(&user.role)
-    } else {
-        return HttpResponse::Unauthorized().finish();
+        .execute(pool.get_ref())
+        .await {
+        Ok(g) => g,
+        Err(_) => return HttpResponse::InternalServerError().finish()
     };
 
-    match query.execute(pool.get_ref()).await {
-        Ok(_) => HttpResponse::Created().finish(),
-        Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
-    }
+    HttpResponse::Created().finish()
 }

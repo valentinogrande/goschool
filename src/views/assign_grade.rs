@@ -1,8 +1,8 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 use serde::{Deserialize, Serialize};
-
 use crate::jwt::validate;
+use crate::user::Roles;
 
 
 #[derive(Deserialize, Serialize, sqlx::Type)]
@@ -19,9 +19,9 @@ pub enum GradeType {
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct NewGrade {
-    subject: i64,
-    assessment_id: Option<i64>,
-    student_id: i64,
+    subject: u64,
+    assessment_id: Option<u64>,
+    student_id: u64,
     grade_type: GradeType,
     description: String,
     grade: f32,
@@ -33,7 +33,6 @@ pub async fn assign_grade(
     pool: web::Data<MySqlPool>,
     grade: web::Json<NewGrade>,
 ) -> impl Responder {
-    //verify jwt
     let jwt = match req.cookie("jwt") {
         Some(c) => c,
         None => return HttpResponse::Unauthorized().finish(),
@@ -44,21 +43,18 @@ pub async fn assign_grade(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
 
-    let user_id = token.claims.subject;
+    let user_id = token.claims.subject as u64;
 
-    let role = match sqlx::query_scalar::<_, String>("SELECT role FROM users WHERE id = ?")
-        .bind(user_id as i32)
-        .fetch_one(pool.get_ref())
-        .await{
+     let roles = match crate::sqlx_fn::get_roles(&pool, user_id).await {
         Ok(r) => r,
-        Err(_) => return HttpResponse::InternalServerError().finish()
+        Err(_) => return HttpResponse::InternalServerError().finish(),
     };
-    if  role  != "teacher" {
+    if  !(roles.contains(&Roles::new("teacher".to_string())) || roles.contains(&Roles::new("admin".to_string()))) {
         return HttpResponse::Unauthorized().finish();
     }
 
     let teacher_subject: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)")
-        .bind(user_id as i64)
+        .bind(user_id as u64)
         .bind(grade.subject)
         .fetch_one(pool.get_ref())
         .await {
@@ -69,7 +65,7 @@ pub async fn assign_grade(
         return HttpResponse::Unauthorized().finish();
     }
 
-    let course = match sqlx::query_scalar::<_, i64>("SELECT course_id FROM subjects WHERE id = ?")
+    let course = match sqlx::query_scalar::<_, u64>("SELECT course_id FROM subjects WHERE id = ?")
     .bind(grade.subject)
         .fetch_one(pool.get_ref())
         .await{

@@ -11,8 +11,8 @@ use crate::jwt::validate;
 
 #[derive(serde::Deserialize, serde::Serialize)]
 struct Task{
-    id: i32,
-    grade: i32,
+    id: u64,
+    grade: u64,
 }
 
 
