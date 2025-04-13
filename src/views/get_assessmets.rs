@@ -1,7 +1,8 @@
 use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 use chrono::{DateTime, Utc};
+use sqlx::QueryBuilder;
 
 use crate::sqlx_fn;
 use crate::user::Roles;
@@ -28,12 +29,19 @@ struct Assessment {
     #[serde(rename = "type")]
     type_: AssessmentType,
 }
+#[derive(serde::Serialize, serde::Deserialize)]
+struct AssessmentFilter{
+    subject_id: Option<u64>,
+    task: Option<String>,
+    due: Option<bool>,
+}
 
 #[get("/api/v1/get_student_assessments_by_id/{student_id}/")]
 pub async fn get_assessments_by_id(
     pool: web::Data<MySqlPool>,
     req: HttpRequest,
     student_id: web::Path<u64>,
+    filter: web::Query<AssessmentFilter>,
 ) -> impl Responder {
     let cookie = match req.cookie("jwt") {
         Some(cookie) => cookie,
@@ -72,31 +80,49 @@ pub async fn get_assessments_by_id(
         }
     }
     
-    
-    let assessments = match sqlx::query_as::<_, Assessment>(
-        r#"
-        SELECT a.* 
-        FROM assessments a
-        JOIN subjects s ON a.subject_id = s.id
-        JOIN users u ON s.course_id = u.course_id
-        WHERE u.id = ?
-        "#
-    )
-    .bind(student_id)
+   let mut builder = QueryBuilder::new(
+    r#"
+    SELECT a.* 
+    FROM assessments a
+    JOIN subjects s ON a.subject_id = s.id
+    JOIN users u ON s.course_id = u.course_id
+    WHERE u.id = "#,
+);
+
+builder.push_bind(user_id);
+
+if let Some(subject_id) = filter.subject_id {
+    builder.push(" AND a.subject_id = ");
+    builder.push_bind(subject_id);
+}
+if let Some(task) = &filter.task {
+    builder.push(" AND a.task LIKE ");
+    builder.push_bind(format!("%{}%", task));
+}
+if let Some(due) = filter.due {
+    if due {
+        builder.push(" AND a.due_date >= ");
+        builder.push_bind(NaiveDate::from_ymd_opt(Utc::now().year(), Utc::now().month(), Utc::now().day()).unwrap());
+    }
+}
+
+let query = builder.build_query_as::<Assessment>();
+
+let assessments: Vec<Assessment> = match query
     .fetch_all(pool.get_ref())
-    .await
-    {
+    .await {
         Ok(r) => r,
         Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
-    };
-
+};
     HttpResponse::Ok().json(assessments)
+
 }
 
 #[get("/api/v1/get_student_assessments/")]
 pub async fn get_assessments(
     pool: web::Data<MySqlPool>,
     req: HttpRequest,
+    filter: web::Query<AssessmentFilter>,
 ) -> impl Responder {
     let cookie = match req.cookie("jwt") {
         Some(cookie) => cookie,
@@ -118,22 +144,39 @@ pub async fn get_assessments(
         return HttpResponse::Unauthorized().finish();
     }
         
-    let assessments = match sqlx::query_as::<_, Assessment>(
-        r#"
-        SELECT a.* 
-        FROM assessments a
-        JOIN subjects s ON a.subject_id = s.id
-        JOIN users u ON s.course_id = u.course_id
-        WHERE u.id = ?
-        "#
-    )
-    .bind(user_id)
+let mut builder = QueryBuilder::new(
+    r#"
+    SELECT a.* 
+    FROM assessments a
+    JOIN subjects s ON a.subject_id = s.id
+    JOIN users u ON s.course_id = u.course_id
+    WHERE u.id = "#,
+);
+
+builder.push_bind(user_id);
+
+if let Some(subject_id) = filter.subject_id {
+    builder.push(" AND a.subject_id = ");
+    builder.push_bind(subject_id);
+}
+if let Some(task) = &filter.task {
+    builder.push(" AND a.task LIKE ");
+    builder.push_bind(format!("%{}%", task));
+}
+if let Some(due) = filter.due {
+    if due {
+        builder.push(" AND a.due_date >= ");
+        builder.push_bind(NaiveDate::from_ymd_opt(Utc::now().year(), Utc::now().month(), Utc::now().day()).unwrap());
+    }
+}
+
+let query = builder.build_query_as::<Assessment>();
+
+let assessments: Vec<Assessment> = match query
     .fetch_all(pool.get_ref())
-    .await
-    {
+    .await {
         Ok(r) => r,
         Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
-    };
-
+};
     HttpResponse::Ok().json(assessments)
 }

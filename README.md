@@ -82,14 +82,15 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
   }'</code>
 
 ## obtener las evaluaciones de un alumno con id:
-<code>curl -v -X GET http://localhost:8080/api/v1/get_student_assessments_by_id/{student_id}/ -H "Content-Type: application/json" -b "jwt={json web token}"</code>
+<code>curl -v http://localhost:8080/api/v1/get_student_assessments_by_id/{user_id}/ -G --data-urlencode "subject_id=1" --data-urlencode "task=2+2" --data-urlencode "due=true"</code>
+importante en caso de no querer filtar eliminar el parametro de la url
 
 ## obtener las evaluaciones de un alumno sin id(se uza el user id del jwt):
-<code>curl -v -X GET http://localhost:8080/api/v1/get_student_assessments/ -H "Content-Type: application/json" -b "jwt={json web token}"</code>
+<code>curl -v http://localhost:8080/api/v1/get_student_assessments/ -G --data-urlencode "subject_id=1" --data-urlencode "task=2+2" --data-urlencode "due=true"</code>
 
 ## obtener las notas de un alumno:
-<code>curl -v -X GET http://localhost:8080/api/v1/get_student_grades_by_id/{student_id}/ -H "Content-Type: application/json" -b "jwt={json web token}"</code>
+<code>curl -v -G "http://localhost:8080/api/v1/get_student_grades_by_id/{user_id}/" --data-urlencode "subject_id=1" --data-urlencode "description=prueba" -b "jwt={json web token}"</code>
 
 
 ## obtener las notas de un alumno sin id(sse usa el id del jwt):
-<code>curl -v -X GET http://localhost:8080/api/v1/get_student_grades/ -H "Content-Type: application/json" -b "jwt={json web token}"</code>
+<code>curl -v -G "http://localhost:8080/api/v1/get_student_grades/" --data-urlencode "subject_id=1" --data-urlencode "description=prueba" -b "jwt={json web token}"</code>
