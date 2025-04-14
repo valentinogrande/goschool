@@ -64,8 +64,10 @@ pub async fn create_submission(
                     .and_then(|cd| cd.get_filename().map(sanitize_filename::sanitize));
 
                 let filename = match filename {
-                    Some(name) => {
-                        if !(name.ends_with(".pdf") || name.ends_with(".docx")) {
+                    Some(mut name) => {
+                        let supported_extensions = [".pdf",".docx"];
+                        name = name.to_lowercase();
+                        if !(supported_extensions.iter().any(|&ext| name.ends_with(ext))) {
                             return HttpResponse::BadRequest().body("Invalid file type");
                         }
                         name

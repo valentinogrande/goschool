@@ -59,8 +59,10 @@ pub async fn upload_profile_picture(
                     .and_then(|cd| cd.get_filename().map(sanitize_filename::sanitize));
 
                 let filename = match filename {
-                    Some(name) => {
-                        if !(name.ends_with(".png") || name.ends_with(".jpg") || name.ends_with(".jpeg")) {
+                    Some(mut name) => {
+                        let supported_extensions = [".png",".jpg",".jpeg",".webp"];
+                        name = name.to_lowercase();
+                        if !(supported_extensions.iter().any(|&ext| name.ends_with(ext))) {
                             return HttpResponse::BadRequest().body("Invalid file type");
                         }
                         name

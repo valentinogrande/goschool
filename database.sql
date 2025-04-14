@@ -117,3 +117,13 @@ CREATE TABLE IF NOT EXISTS disciplinary_sanctions (
   date DATE NOT NULL,
   FOREIGN KEY (student_id) REFERENCES users(id)
 );
+
+CREATE TABLE messages (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY(a)
+  sender_id BINGINT UNSIGNED NOT NULL,
+  courses_id BIGINT UNSIGNED NOT NULL,
+  messages TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (sender_id) REFERENCES users(id),
+  FOREIGN KEY (courses_id) REFERENCES courses(id) 
+);
