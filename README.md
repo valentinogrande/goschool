@@ -38,8 +38,7 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 
 
 ## get roles for login usa credenciales:
-<code></code>
-curl -X POST http://localhost:8000/api/v1/get_roles/ -H "Content-Type: application/json" -d '{"email": "admin", "password": "admin"}'
+<code>curl -X POST http://localhost:8000/api/v1/get_roles/ -H "Content-Type: application/json" -d '{"email": "admin", "password": "admin"}'</code>
 
 ## login:
 <code>curl -v -X POST http://localhost:8080/api/v1/login/ -H "Content-Type: application/json" -d '{"email": "father", "password": "father", "role": "father"}'</code>
