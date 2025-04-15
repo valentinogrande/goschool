@@ -4,13 +4,13 @@ use sqlx::mysql::MySqlPool;
 use bcrypt::verify;
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 
-use crate::Credentials;
+use crate::user::CredentialsRole;
 use crate::Claims;
 
 #[post("/api/v1/login/")]
 pub async fn login(
     pool: web::Data<MySqlPool>,
-    creds: web::Json<Credentials>,
+    creds: web::Json<CredentialsRole>,
 ) -> impl Responder {
     let result: (u64,String) = match sqlx::query_as("SELECT id, password FROM users WHERE email = ?")
         .bind(&creds.email)
@@ -19,7 +19,7 @@ pub async fn login(
     {
         Ok(record) => record,
         Err(_) => return HttpResponse::Unauthorized().json("Invalid credentials"),
-    };
+    }; 
 
     let hashed_pass = result.1;
     let valid = verify(&creds.password, &hashed_pass).unwrap_or(false);
@@ -29,7 +29,21 @@ pub async fn login(
     }
 
     let user_id = result.0;
-    let claims = Claims::new(user_id as usize);
+    
+    let role_existance: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM roles WHERE user_id = ? AND role = ?)")
+        .bind(user_id)
+        .bind(&creds.role)
+        .fetch_one(pool.get_ref())
+        .await {
+        Ok(r) => r,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+    if !role_existance {
+        return HttpResponse::Unauthorized().finish();
+    }
+
+
+    let claims = Claims::new(user_id as usize, creds.role.clone());
     let secret = std::env::var("JWT_SECRET").expect("JWT_SECTRET should be setted");
     let token = match encode(
         &Header::new(Algorithm::HS256),

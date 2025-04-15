@@ -1,12 +1,10 @@
-use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
-use sqlx::mysql::MySqlPool;
+use actix_web::{get, HttpRequest, HttpResponse, Responder};
 
 use crate::jwt::validate;
 
 
 #[get("/api/v1/get_role/")]
 pub async fn get_role(
-    pool: web::Data<MySqlPool>,
     req: HttpRequest,
 ) -> impl Responder {
     let cookie = match req.cookie("jwt") {
@@ -19,13 +17,7 @@ pub async fn get_role(
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
 
-    let user_id = token.claims.subject as u64;
-    
-    
-   let roles = match crate::sqlx_fn::get_roles(&pool, user_id).await{
-        Ok(r) => r,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
+    let role = token.claims.role;
 
-    HttpResponse::Ok().json(roles)   
+    HttpResponse::Ok().json(role)   
 }

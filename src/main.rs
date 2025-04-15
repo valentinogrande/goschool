@@ -1,4 +1,4 @@
-use actix_web::{http::header, middleware::Logger, web, App, HttpServer};
+use actix_web::{middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
 use sqlx::mysql::MySqlPool;
 use env_logger;
@@ -23,9 +23,9 @@ use views::verify_token::verify_token;
 use views::get_assessmets::{get_assessments, get_assessments_by_id};
 use views::get_grades::{get_grades, get_grades_by_id};
 use views::get_role::get_role;
+use views::get_roles::get_roles;
 use views::logout::logout;
 
-use user::Credentials;
 use jwt::Claims;
 
 #[actix_web::main]
@@ -68,6 +68,7 @@ async fn main() -> std::io::Result<()> {
             .service(upload_profile_picture)
             .service(get_profile_picture)
             .service(get_role)
+            .service(get_roles)
             .service(assign_grade)
             .service(register_users) // for creating testing users.
     })

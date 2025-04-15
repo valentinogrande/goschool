@@ -1,16 +1,19 @@
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use serde::{Serialize, Deserialize};
+use crate::user::Role;
 
 
 #[derive(Serialize, Deserialize)]
 pub struct Claims{
     pub subject: usize,
     pub exp: usize,
+    pub role: Role
 }
 
 impl Claims{
-    pub fn new(subject: usize) -> Claims {
+    pub fn new(subject: usize,role: Role) -> Claims {
         Claims{
+            role,
             subject,
             exp: (chrono::Utc::now().timestamp() + 3600) as usize,
         }

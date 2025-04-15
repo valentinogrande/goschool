@@ -4,11 +4,11 @@ use serde::{Serialize, Deserialize};
 #[sqlx(type_name = "ENUM('admin', 'teacher', 'student', 'preceptor', 'father')")]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
-    Admin,
-    Teacher,
-    Student,
-    Preceptor,
-    Father,
+    admin,
+    teacher,
+    student,
+    preceptor,
+    father,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, sqlx::FromRow, PartialEq, Eq, Clone)]
@@ -42,4 +42,11 @@ pub struct NewUser{
 pub struct Credentials{
     pub email: String,
     pub password: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CredentialsRole{
+    pub email: String,
+    pub password: String,
+    pub role: Role,
 }

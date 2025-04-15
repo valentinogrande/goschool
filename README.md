@@ -36,13 +36,18 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 ## verify token 
 <code>curl -v -X GET "http://localhost:8080/api/v1/verify_token/" -b "jwt={json web token}"</code>
 
+
+## get roles for login usa credenciales:
+<code></code>
+curl -X POST http://localhost:8000/api/v1/get_roles/ -H "Content-Type: application/json" -d '{"email": "admin", "password": "admin"}'
+
 ## login:
-<code>curl -v -X POST "http://localhost:8080/api/v1/login/" -H "Content-Type: application/json" -d '{"email": "teacher", "password": "teacher"}'</code>
+<code>curl -v -X POST http://localhost:8080/api/v1/login/ -H "Content-Type: application/json" -d '{"email": "father", "password": "father", "role": "father"}'</code>
 
 ## logout:
 <code>curl -v -X POST "http://localhost:8080/api/v1/logout/"</code>
 
-## obtener el role:
+## obtener el role usa jwt:
 <code>curl -v -X GET "http://localhost:8080/api/v1/get_role/"</code>
 
 ## register:
