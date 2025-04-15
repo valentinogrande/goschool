@@ -2,7 +2,7 @@ use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 use serde::{Deserialize, Serialize};
 use crate::jwt::validate;
-use crate::user::Roles;
+use crate::user::Role;
 
 
 #[derive(Deserialize, Serialize, sqlx::Type)]
@@ -45,13 +45,10 @@ pub async fn assign_grade(
 
     let user_id = token.claims.subject as u64;
 
-     let roles = match crate::sqlx_fn::get_roles(&pool, user_id).await {
-        Ok(r) => r,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
-    if  !(roles.contains(&Roles::new("teacher".to_string())) || roles.contains(&Roles::new("admin".to_string()))) {
-        return HttpResponse::Unauthorized().finish();
-    }
+    let role = token.claims.role;
+    if  role != Role::teacher && role != Role::admin {
+            return HttpResponse::Unauthorized().finish();
+        }
 
     let teacher_subject: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)")
         .bind(user_id as u64)

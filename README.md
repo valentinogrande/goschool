@@ -86,16 +86,10 @@ curl -X POST http://localhost:8000/api/v1/get_roles/ -H "Content-Type: applicati
     "grade": 4.5
   }'</code>
 
-## obtener las evaluaciones de un alumno con id:
+## obtener las evaluaciones de un alumno (en caso de no tener id osea referenciarse a uno mismo poner 0 en el id):
 <code>curl -v http://localhost:8080/api/v1/get_student_assessments_by_id/{user_id}/ -G --data-urlencode "subject_id=1" --data-urlencode "task=2+2" --data-urlencode "due=true"</code>
 importante en caso de no querer filtar eliminar el parametro de la url
 
-## obtener las evaluaciones de un alumno sin id(se uza el user id del jwt):
-<code>curl -v http://localhost:8080/api/v1/get_student_assessments/ -G --data-urlencode "subject_id=1" --data-urlencode "task=2+2" --data-urlencode "due=true"</code>
-
-## obtener las notas de un alumno:
+## obtener las notas de un alumno (en caso de no tener id osea referenciarse a uno mismo poner 0 en el id):
 <code>curl -v -G "http://localhost:8080/api/v1/get_student_grades_by_id/{user_id}/" --data-urlencode "subject_id=1" --data-urlencode "description=prueba" -b "jwt={json web token}"</code>
 
-
-## obtener las notas de un alumno sin id(sse usa el id del jwt):
-<code>curl -v -G "http://localhost:8080/api/v1/get_student_grades/" --data-urlencode "subject_id=1" --data-urlencode "description=prueba" -b "jwt={json web token}"</code>

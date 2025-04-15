@@ -2,7 +2,7 @@ use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 use bcrypt::{hash, DEFAULT_COST};
 
-use crate::{jwt::validate, user::NewUser, user::Roles};
+use crate::{jwt::validate, user::NewUser, user::Role};
 
 #[post("/api/v1/register/")]
 pub async fn register(
@@ -24,18 +24,13 @@ pub async fn register(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
     
-    let user_id = token.claims.subject as u64;
-
-    let roles = match crate::sqlx_fn::get_roles(&pool, user_id).await {
-        Ok(r) => r,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-        
-    };
-    if !(roles.contains(&Roles::new("admin".to_string()))){
+    let role = token.claims.role;
+    
+    if role != Role::admin {
         return HttpResponse::Unauthorized().finish();
     }
 
-    let query = match sqlx::query("INSERT INTO users (password, email, role) VALUES (?, ?, ?)")
+    let _query = match sqlx::query("INSERT INTO users (password, email, role) VALUES (?, ?, ?)")
             .bind(&hashed_pass)
             .bind(&user.email)
             .bind(&user.role)

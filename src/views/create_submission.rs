@@ -7,7 +7,7 @@ use tempfile::NamedTempFile;
 use uuid::Uuid;
 use std::fs;
 
-use crate::user::Roles;
+use crate::user::Role;
 use crate::jwt::validate;
 
 
@@ -139,14 +139,9 @@ pub async fn create_submission(
         }
     }
 
-    let roles = match crate::sqlx_fn::get_roles(&pool, user_id).await {
-        Ok(r) => r,
-        Err(_) => {
-            cleanup_temp(&temp_path);
-            return HttpResponse::Unauthorized().finish();
-        }
-    };
-    if !(roles.contains(&Roles::new("student".to_string()))){
+ 
+    let role = token.claims.role;
+    if role != Role::student {
         cleanup_temp(&temp_path);
         return HttpResponse::Unauthorized().finish();
     }

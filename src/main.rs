@@ -9,7 +9,6 @@ mod views;
 mod user;
 mod jwt;
 mod json;
-mod sqlx_fn;
 
 use views::login::login;
 use views::register::register;
@@ -20,8 +19,8 @@ use views::upload_profile_picture::upload_profile_picture;
 use views::get_profile_picture::get_profile_picture;
 use views::register_testing_users::register_users;
 use views::verify_token::verify_token;
-use views::get_assessmets::{get_assessments, get_assessments_by_id};
-use views::get_grades::{get_grades, get_grades_by_id};
+use views::get_assessmets::get_assessments;
+use views::get_grades::get_grades;
 use views::get_role::get_role;
 use views::get_roles::get_roles;
 use views::logout::logout;
@@ -61,9 +60,7 @@ async fn main() -> std::io::Result<()> {
             .service(logout)
             .service(create_submission)
             .service(get_assessments)
-            .service(get_assessments_by_id)
             .service(get_grades)
-            .service(get_grades_by_id)
             .service(create_assessment)
             .service(upload_profile_picture)
             .service(get_profile_picture)

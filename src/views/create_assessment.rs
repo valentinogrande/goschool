@@ -2,7 +2,7 @@ use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 
 use crate::jwt::validate;
-use crate::user::Roles;
+use crate::user::Role;
 
 #[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]
 #[sqlx(type_name = "ENUM('exam','homework','project')")]
@@ -41,26 +41,27 @@ pub async fn create_assessment(
 
     let user_id = token.claims.subject as u64;
 
-    let roles = match crate::sqlx_fn::get_roles(&pool, user_id).await {
-        Ok(r) => r,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
-    if !(roles.contains(&Roles::new("teacher".to_string())) || roles.contains(&Roles::new("admin".to_string()))) {
+    let role = token.claims.role;
+
+    if role == Role::teacher {
+        let teacher_subject: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)")
+            .bind(user_id)
+            .bind(task.subject)
+            .fetch_one(pool.get_ref())
+            .await {
+            Ok(s) => s,
+            Err(_) => return HttpResponse::InternalServerError().finish(),
+        };
+        if !teacher_subject {
+            return HttpResponse::Unauthorized().finish();
+        }
+    }
+    else if role == Role::admin{}
+    else {
         return HttpResponse::BadRequest().finish();
     }
 
-    // checking that the teacher is the owner of the subject
-    let teacher_subject: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)")
-        .bind(user_id)
-        .bind(task.subject)
-        .fetch_one(pool.get_ref())
-        .await {
-        Ok(s) => s,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
-    };
-    if !teacher_subject {
-        return HttpResponse::Unauthorized().finish();
-    }
+    
         let insert_result = sqlx::query("INSERT INTO assessments (task, subject_id, type, due_date) VALUES (?, ?, ?, ?)")
         .bind(&task.task)
         .bind(task.subject)

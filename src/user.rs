@@ -1,5 +1,6 @@
 use serde::{Serialize, Deserialize};
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, sqlx::Type)]
 #[sqlx(type_name = "ENUM('admin', 'teacher', 'student', 'preceptor', 'father')")]
 #[serde(rename_all = "lowercase")]
@@ -11,16 +12,7 @@ pub enum Role {
     father,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, sqlx::FromRow, PartialEq, Eq, Clone)]
-pub struct Roles {
-    pub role: String,
-}
 
-impl Roles {
-    pub fn new(role: String) -> Self {
-        Roles {role }
-    }
-}
 
 #[derive(Serialize,Deserialize)]
 pub struct User{
