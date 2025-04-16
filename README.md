@@ -17,11 +17,6 @@ teacher: teacher
 <br>
 preceptor: preceptor
 
-# !! imporatante
-el create_courses no es relevante ahora.
-para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a crear.}
-<code>python3 create_database.py delete_tables ;python3 create_database.py create_tables ;python3 create_database.py create_users</code>
-
 
 # endpoints
 
