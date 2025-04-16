@@ -13,3 +13,5 @@ pub mod get_grades;
 pub mod get_role;
 pub mod get_roles;
 pub mod get_personal_data;
+pub mod post_message;
+pub mod get_messages;

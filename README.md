@@ -82,3 +82,13 @@ importante en caso de no querer filtar eliminar el parametro de la url
 
 ## obtener la informacion personal (full_name, birth_date, address, phone_number)
 <code>curl -v -X GET "http://localhost:8080/api/v1/get_personal_data/" -b "jwt={json web token}"</code>
+
+## crear un mensaje:
+<code>curl -v -X POST "http://localhost:8080/api/v1/post_message/" -H "Content-Type: application/json" -H "Cookie: jwt={json web token}"-d '{
+    "title": "title",
+    "message": "message",
+    "courses": "34,35,36"
+}'</code>
+
+## obtener los mensajes: 
+<code>curl -v -X GET "http://localhost:8080/api/v1/get_messages/0/" -b "jwt={json web token}"</code>

@@ -25,6 +25,9 @@ use views::get_role::get_role;
 use views::get_roles::get_roles;
 use views::get_personal_data::get_personal_data;
 use views::logout::logout;
+use views::post_message::post_message;
+use views::get_messages::get_messages;
+
 
 use jwt::Claims;
 
@@ -68,6 +71,8 @@ async fn main() -> std::io::Result<()> {
             .service(get_profile_picture)
             .service(get_role)
             .service(get_roles)
+            .service(post_message)
+            .service(get_messages)
             .service(assign_grade)
             .service(register_users) // for creating testing users.
     })
