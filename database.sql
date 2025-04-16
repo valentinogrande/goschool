@@ -3,13 +3,6 @@
 --USE colegio_stella_maris_2025;
 
 
-CREATE TABLE IF NOT EXISTS courses (
-  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  year INT NOT NULL,
-  division CHAR(1) NOT NULL,
-  level ENUM('primary', 'secondary') NOT NULL DEFAULT 'secondary',
-  shift ENUM('morning', 'afternoon') NOT NULL DEFAULT 'morning'
-);
 
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -17,9 +10,21 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(255) NOT NULL,
   course_id BIGINT UNSIGNED,
   photo VARCHAR(255),
-  last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (course_id) REFERENCES courses(id)
+  last_login TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS courses (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  year INT NOT NULL,
+  division CHAR(1) NOT NULL,
+  level ENUM('primary', 'secondary') NOT NULL DEFAULT 'secondary',
+  shift ENUM('morning', 'afternoon') NOT NULL DEFAULT 'morning',
+  preceptor_id BIGINT UNSIGNED,
+  FOREIGN KEY (preceptor_id) REFERENCES users(id)
+);
+
+ALTER TABLE users ADD CONSTRAINT fk_course FOREIGN KEY (course_id) REFERENCES courses(id);
+
 
 CREATE TABLE IF NOT EXISTS roles (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
