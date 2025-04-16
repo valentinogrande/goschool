@@ -29,7 +29,6 @@ para actualizar la db poner los comandos {esto va a eliminar todo y lo vuelve a 
 <code>python3 create_database.py delete_tables ;python3 create_database.py create_tables ;python3 create_database.py create_users</code>
 
 
-
 # endpoints
 
 
@@ -92,3 +91,5 @@ importante en caso de no querer filtar eliminar el parametro de la url
 ## obtener las notas de un alumno (en caso de no tener id osea referenciarse a uno mismo poner 0 en el id):
 <code>curl -v -G "http://localhost:8080/api/v1/get_student_grades_by_id/{user_id}/" --data-urlencode "subject_id=1" --data-urlencode "description=prueba" -b "jwt={json web token}"</code>
 
+## obtener la informacion personal (full_name, birth_date, address, phone_number)
+<code>curl -v -X GET "http://localhost:8080/api/v1/get_personal_data/" -b "jwt={json web token}"</code>

@@ -23,6 +23,7 @@ use views::get_assessmets::get_assessments;
 use views::get_grades::get_grades;
 use views::get_role::get_role;
 use views::get_roles::get_roles;
+use views::get_personal_data::get_personal_data;
 use views::logout::logout;
 
 use jwt::Claims;
@@ -61,6 +62,7 @@ async fn main() -> std::io::Result<()> {
             .service(create_submission)
             .service(get_assessments)
             .service(get_grades)
+            .service(get_personal_data)
             .service(create_assessment)
             .service(upload_profile_picture)
             .service(get_profile_picture)
