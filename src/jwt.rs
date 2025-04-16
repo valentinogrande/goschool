@@ -1,6 +1,7 @@
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use serde::{Serialize, Deserialize};
 use crate::user::Role;
+use std::fs;
 
 
 #[derive(Serialize, Deserialize)]
@@ -20,22 +21,24 @@ impl Claims{
     }
 }
 
-
 fn get_validation() -> Validation{
     let mut validation = Validation::default();
-
     validation.validate_exp = true;
     validation.leeway = 0;
-    validation.algorithms = vec![Algorithm::HS256];
+    validation.algorithms = vec![Algorithm::RS256];
     validation
 }
 
 pub fn validate(jwt: &str) -> Result<TokenData<Claims>, jsonwebtoken::errors::Error> {
     let validation = get_validation();
-    let secret = std::env::var("JWT_SECRET").expect("JWT_SECTRET should be setted");
+    let public_key_pem = fs::read("public_key.pem")
+        .expect("public_key.pem not found");
+
+    let decoding_key = DecodingKey::from_rsa_pem(&public_key_pem)?;
+
     let decode = decode::<Claims>(
         jwt,
-        &DecodingKey::from_secret(secret.as_ref()),
+        &decoding_key,
         &validation,
     );
     decode

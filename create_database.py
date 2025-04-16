@@ -2,6 +2,42 @@ import mysql.connector
 import sys
 from datetime import datetime
 import requests
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+import os
+
+def generate_key_pair():
+    try: 
+        os.remove("private_key.pem")
+        os.remove("public_key.pem")
+    except:
+        pass
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+
+    with open("private_key.pem", "wb") as f:
+        f.write(
+            private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption(), 
+            )
+        )
+
+    public_key = private_key.public_key()
+
+    with open("public_key.pem", "wb") as f:
+        f.write(
+            public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+        )
+    
+    print("\033[92mrsa keys were created\033[0m")
+
 
 current_year = datetime.now().year
 
@@ -111,7 +147,10 @@ with open('database.sql', 'r') as file:
             create_users()
         if command == "create_preceptors":
             create_preceptors()
+        if command == "generate_rsa":
+            generate_key_pair()
         if command == "create_all":
+            generate_key_pair()
             create_tables(file)
             create_courses()
             create_users()

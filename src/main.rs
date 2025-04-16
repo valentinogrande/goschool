@@ -42,7 +42,7 @@ async fn main() -> std::io::Result<()> {
 
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let json_conf = json::json_config();
-    
+
     HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin() 

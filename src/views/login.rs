@@ -3,6 +3,7 @@ use actix_web::{post, web, HttpResponse,  Responder};
 use sqlx::mysql::MySqlPool;
 use bcrypt::verify;
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
+use std::fs;
 
 use crate::user::CredentialsRole;
 use crate::Claims;
@@ -44,11 +45,21 @@ pub async fn login(
 
 
     let claims = Claims::new(user_id as usize, creds.role.clone());
-    let secret = std::env::var("JWT_SECRET").expect("JWT_SECTRET should be setted");
+    
+    let private_key_pem = match fs::read("private_key.pem") {
+        Ok(k) => k,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    let encoding_key = match EncodingKey::from_rsa_pem(&private_key_pem) {
+        Ok(k) => k,
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
     let token = match encode(
-        &Header::new(Algorithm::HS256),
+        &Header::new(Algorithm::RS256),
         &claims,
-        &EncodingKey::from_secret(secret.as_ref()),
+        &encoding_key,
     ) {
         Ok(t) => t,
         Err(_) => return HttpResponse::InternalServerError().finish(),

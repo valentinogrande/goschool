@@ -1,16 +1,10 @@
 # goschool
 
 # como usar el ./create_database.py
-<code>python3 create_database.py comando</code>
-remplazar comando por:
-<br>
-create_courses
-<br>
-delete_tables
-<br>
-create_tables
-<br>
-create_users
+<code>python3 create_database.py delete_tables</code>
+<code>python3 create_database.py create_all</code>
+
+el create_all tambien crea la clave rsa para el jwt
 
 ## usuarios
 admin: admin
