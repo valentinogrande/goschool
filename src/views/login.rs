@@ -44,26 +44,28 @@ pub async fn login(
     }
 
 
-    let claims = Claims::new(user_id as usize, creds.role.clone());
     
-    let private_key_pem = match fs::read("private_key.pem") {
+    let claims = Claims::new(user_id as usize, creds.role.clone());
+
+    let private_key_pem = match fs::read("ecc_private_key.pem") {
         Ok(k) => k,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
-    let encoding_key = match EncodingKey::from_rsa_pem(&private_key_pem) {
+    let encoding_key = match EncodingKey::from_ec_pem(&private_key_pem) {
         Ok(k) => k,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
 
     let token = match encode(
-        &Header::new(Algorithm::RS256),
+        &Header::new(Algorithm::ES256),
         &claims,
         &encoding_key,
     ) {
         Ok(t) => t,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
+
 
     let _ = match sqlx::query("UPDATE users SET last_login = NOW() WHERE id = ?")
         .bind(user_id)
