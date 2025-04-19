@@ -9,27 +9,12 @@ mod views;
 mod user;
 mod jwt;
 mod json;
-
-use views::login::login;
-use views::register::register;
-use views::create_assessment::create_assessment;
-use views::assign_grade::assign_grade;
-use views::create_submission::create_submission;
-use views::upload_profile_picture::upload_profile_picture;
-use views::get_profile_picture::get_profile_picture;
-use views::register_testing_users::register_users;
-use views::verify_token::verify_token;
-use views::get_assessmets::get_assessments;
-use views::get_grades::get_grades;
-use views::get_role::get_role;
-use views::get_roles::get_roles;
-use views::get_personal_data::get_personal_data;
-use views::logout::logout;
-use views::post_message::post_message;
-use views::get_messages::get_messages;
+mod routes;
 
 
 use jwt::Claims;
+
+use routes::register_services;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -52,30 +37,15 @@ async fn main() -> std::io::Result<()> {
             .allow_any_method() 
             .allow_any_header()
             .supports_credentials();
+        
         App::new()
             .wrap(Logger::default())
             .wrap(cors)
             .app_data(web::Data::new(pool.clone()))
             .app_data(json_conf.clone())
             .service(Files::new("/uploads/profile_pictures", "./uploads/profile_pictures").index_file("404"))
-            .service(register)
-            .service(verify_token)
-            .service(login)
-            .service(logout)
-            .service(create_submission)
-            .service(get_assessments)
-            .service(get_grades)
-            .service(get_personal_data)
-            .service(create_assessment)
-            .service(upload_profile_picture)
-            .service(get_profile_picture)
-            .service(get_role)
-            .service(get_roles)
-            .service(post_message)
-            .service(get_messages)
-            .service(assign_grade)
-            .service(register_users) // for creating testing users.
-    })
+            .configure(register_services)
+   })
     .bind("127.0.0.1:8080")?
     .run()
     .await
