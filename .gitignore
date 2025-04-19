@@ -1,4 +1,4 @@
 /uploads
 /target
-private_key.pem
-public_key.pem
+ecc_public_key.pem
+ecc_private_key.pem
