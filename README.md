@@ -37,14 +37,6 @@ preceptor: preceptor
 ## obtener el role usa jwt:
 <code>curl -v -X GET "http://localhost:8080/api/v1/get_role/"</code>
 
-## register:
-<code>curl -X POST http://localhost:8080/api/v1/register/ -H "Content-Type: application/json" -b "jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." -d '{
-    "name": "Juan Pérez",
-    "email": "juan@example.com",
-    "password": "superseguro123",
-    "role": "teacher"
-  }'</code>
-
 ## subir la foto de perfil: 
 <code>curl -v -X POST "http://localhost:8080/api/v1/upload_profile_picture/" -b "jwt={json web token}" -F "image=@{image.path}"</code>
 
