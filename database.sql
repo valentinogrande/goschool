@@ -2,8 +2,6 @@
 
 --USE colegio_stella_maris_2025;
 
-
-
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   email VARCHAR(255) NOT NULL UNIQUE,
@@ -74,7 +72,7 @@ CREATE TABLE IF NOT EXISTS timetables (
 
 CREATE TABLE IF NOT EXISTS assessments (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  type ENUM('exam','homework','project') DEFAULT 'exam',
+  type ENUM('exam','homework','project','oral','remedial','selfassessable') DEFAULT 'exam',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   due_date DATE NOT NULL,
   task TEXT NOT NULL,
@@ -102,6 +100,33 @@ CREATE TABLE IF NOT EXISTS homework_submissions (
   student_id BIGINT UNSIGNED NOT NULL,
   path VARCHAR(255) NOT NULL,
   FOREIGN KEY (task_id) REFERENCES assessments(id),
+  FOREIGN KEY (student_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS selfassessables (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  assessment_id BIGINT UNSIGNED NOT NULL,
+  FOREIGN KEY (assessment_id) REFERENCES assessments(id)
+);
+
+CREATE TABLE IF NOT EXISTS selfassessable_tasks (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  selfassessable_id BIGINT UNSIGNED NOT NULL,
+  question VARCHAR(255) NOT NULL,
+  correct VARCHAR(255) NOT NULL,
+  incorrect1 VARCHAR(255) NOT NULL,
+  incorrect2 VARCHAR(255),
+  incorrect3 VARCHAR(255),
+  incorrect4 VARCHAR(255),
+  FOREIGN KEY (selfassessable_id) REFERENCES selfassessables(id)
+);
+
+CREATE TABLE IF NOT EXISTS selfassessable_submissions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  selfassessable_id BIGINT UNSIGNED NOT NULL,
+  answer INT NOT NULL,
+  student_id BIGINT UNSIGNED NOT NULL,
+  FOREIGN KEY (selfassessable_id) REFERENCES selfassessables(id),
   FOREIGN KEY (student_id) REFERENCES users(id)
 );
 

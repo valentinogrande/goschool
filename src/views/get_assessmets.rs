@@ -6,16 +6,7 @@ use sqlx::QueryBuilder;
 
 use crate::user::Role;
 use crate::jwt::validate;
-
-#[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize)]
-#[sqlx(type_name = "ENUM('exam','homework','project')")]
-#[sqlx(rename_all = "lowercase")] 
-#[serde(rename_all = "lowercase")]
-pub enum AssessmentType {
-    Exam,
-    Homework,
-    Project,
-}
+use crate::views::create_assessment::AssessmentType;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
 struct Assessment {

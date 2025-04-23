@@ -52,11 +52,33 @@ preceptor: preceptor
 <code>curl -v -X GET "http://localhost:8080/api/v1/get_profile_picture/" -b "jwt={json web token}"</code>
 
 ## crear una evaluacion:
+<code>curl -v -X POST http://localhost:8080/api/v1/create_assessment/ -H "Content-Type: application/json" H "Cookie: jwt={json web token}" -d '{
+    "newtask": {
+        "subject": 1,
+        "task": "exposicion oral",
+        "due_date": "2025-05-30",
+        "type": "oral"
+    }
+}'</code>
+
+
+## crear un autoevaluable:
+<p>se puede agregar incorrect3 e incorrect4 tamioeb se puede elimiar el incorrect2</p>
+<br>
+
 <code>curl -v -X POST http://localhost:8080/api/v1/create_assessment/ -H "Content-Type: application/json" -H "Cookie: jwt={json web token}" -d '{
-    "task": "upload 2+2",
-    "subject": 1,
-    "type": "homework",
-    "due_date": "2026-04-15"
+    "newtask": {
+        "subject": 1,
+        "task": "el autoevaluable",
+        "due_date": "2025-05-30",
+        "type": "selfassessable"
+    },
+    "newselfassessable": {
+        "questions": ["What is 2+2?", "What is the capital of France?"],
+        "correct": ["4", "Paris"],    
+        "incorrect1": ["3", "London"],
+        "incorrect2": ["5", "Berlin"]
+        }
 }'</code>
 
 
