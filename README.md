@@ -63,7 +63,7 @@ preceptor: preceptor
 
 
 ## crear un autoevaluable:
-<p>se puede agregar incorrect3 e incorrect4 tamioeb se puede elimiar el incorrect2</p>
+<p>se puede agregar incorrect3 e incorrect4 tambien se puede elimiar el incorrect2</p>
 <br>
 
 <code>curl -v -X POST http://localhost:8080/api/v1/create_assessment/ -H "Content-Type: application/json" -H "Cookie: jwt={json web token}" -d '{
