@@ -38,8 +38,6 @@ impl NewSubmissionSelfAssessable {
             .fetch_all(pool)
             .await?;
 
-        log::info!("loaded tasks: {:#?}", tasks);
-
         let mut indices = Vec::with_capacity(self.answers.len());
 
         for (task, submitted) in tasks.iter().zip(&self.answers) {
@@ -59,8 +57,6 @@ impl NewSubmissionSelfAssessable {
             };
             indices.push(idx);
         }
-
-        log::info!("mapped answer indices: {:?}", indices);
 
         let result = indices
             .iter()
