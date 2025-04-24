@@ -3,7 +3,7 @@ use actix_web::web;
 use crate::views::{
     assign_grade::assign_grade,
     create_assessment::create_assessment,
-    create_submission::create_submission,
+    create_homework_submission::create_submission,
     get_assessmets::get_assessments,
     get_grades::get_grades,
     get_personal_data::get_personal_data,
@@ -18,6 +18,7 @@ use crate::views::{
     register_testing_users::register_users,
     upload_profile_picture::upload_profile_picture,
     verify_token::verify_token,
+    create_submission_selfassable::create_selfassessable_submission,
 };
 
 
@@ -38,5 +39,6 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(post_message)
         .service(get_messages)
         .service(assign_grade)
+        .service(create_selfassessable_submission)
         .service(register_users);
 }

@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS selfassessable_tasks (
 CREATE TABLE IF NOT EXISTS selfassessable_submissions (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   selfassessable_id BIGINT UNSIGNED NOT NULL,
-  answer INT NOT NULL,
+  answers TEXT NOT NULL,
   student_id BIGINT UNSIGNED NOT NULL,
   FOREIGN KEY (selfassessable_id) REFERENCES selfassessables(id),
   FOREIGN KEY (student_id) REFERENCES users(id)

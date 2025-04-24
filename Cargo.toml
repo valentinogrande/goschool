@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 
+anyhow = "1"
 futures = "0.3"
 rust_decimal = "1.37"
 actix-web = "4"

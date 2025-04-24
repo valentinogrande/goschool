@@ -46,9 +46,13 @@ def create_courses():
     print()
     print("creating courses")
     print()
-    years = int(input("Enter the number of years: "))
-    divisions = int(input("Enter the number of divisions per year: "))
-    primary = int(input("Enter the number of primary levels: "))
+    # years = int(input("Enter the number of years: "))
+    # divisions = int(input("Enter the number of divisions per year: "))
+    # primary = int(input("Enter the number of primary levels: "))
+    #
+    years=12 
+    divisions=3
+    primary=7
 
     for i in range(years):
         for j in range(divisions):

@@ -73,6 +73,11 @@ preceptor: preceptor
         }
 }'</code>
 
+## subir una respuesta a un autoevaluable:
+<code>curl -v -X POST http://localhost:8080/api/v1/create_selfassessable_submission/ -H "Content-Type: application/json" -b "jwt={json web token}" -d '{
+    "assessment_id":1,
+    "answers": ["4","London"]
+}'</code>
 
 ## subir una respuesta a una tarea previamente creada por un profesor:
 <code>curl -v http://localhost:8080/api/v1/create_submission/ -H "Cookie: jwt={json web token}" -F "homework=@test.pdf" -F "homework_id=1"</code>
