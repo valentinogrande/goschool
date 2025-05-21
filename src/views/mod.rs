@@ -16,3 +16,6 @@ pub mod get_personal_data;
 pub mod post_message;
 pub mod get_messages;
 pub mod create_submission_selfassable;
+//pub mod get_grade_selfassessable;
+pub mod get_courses;
+pub mod get_students;

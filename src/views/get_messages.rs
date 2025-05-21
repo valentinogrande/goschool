@@ -1,21 +1,9 @@
 use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
-use serde::{Serialize, Deserialize};
-use chrono::{DateTime, Utc};
-use sqlx::FromRow;
 use sqlx::QueryBuilder;
 
 use crate::jwt::validate;
-use crate::user::Role;
-
-#[derive(Debug, FromRow, Serialize, Deserialize)]
-pub struct Message {
-    pub id: u64,
-    pub title: String,
-    pub message: String,
-    pub sender_id: u64,
-    pub created_at: Option<DateTime<Utc>>,
-}
+use crate::structs::{Role, Message};
 
 #[get("/api/v1/get_messages/{student_id}/")]
 pub async fn get_messages(
@@ -33,14 +21,14 @@ pub async fn get_messages(
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
 
-    let user_id = token.claims.subject as u64;
+    let user_id = token.claims.user.id;
     let mut student_id = student_id.into_inner();
     
     if student_id == 0{
        student_id = user_id; 
     }
 
-    let role = token.claims.role;
+    let role = token.claims.user.role;
     
     let messages_ids: Vec<u64>;    
 

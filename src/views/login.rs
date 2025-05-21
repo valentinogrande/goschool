@@ -7,6 +7,7 @@ use std::fs;
 
 use crate::user::CredentialsRole;
 use crate::Claims;
+use crate::user::MySelf;
 
 #[post("/api/v1/login/")]
 pub async fn login(
@@ -45,7 +46,7 @@ pub async fn login(
 
 
     
-    let claims = Claims::new(user_id as usize, creds.role.clone());
+    let claims = Claims::new(MySelf::new(user_id as u64, creds.role.clone()));
 
     let private_key_pem = match fs::read("ecc_private_key.pem") {
         Ok(k) => k,

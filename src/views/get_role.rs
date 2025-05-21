@@ -17,7 +17,5 @@ pub async fn get_role(
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
 
-    let role = token.claims.role;
-
-    HttpResponse::Ok().json(role)   
+    HttpResponse::Ok().json(token.claims.user.role)   
 }

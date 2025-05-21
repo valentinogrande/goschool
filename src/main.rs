@@ -10,7 +10,8 @@ mod user;
 mod jwt;
 mod json;
 mod routes;
-
+mod filters;
+mod structs;
 
 use jwt::Claims;
 

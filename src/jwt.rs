@@ -1,21 +1,19 @@
-
 use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use serde::{Serialize, Deserialize};
-use crate::user::Role;
 use std::fs;
+
+use crate::user::MySelf;
 
 #[derive(Serialize, Deserialize)]
 pub struct Claims {
-    pub subject: usize,
     pub exp: usize,
-    pub role: Role,
+    pub user: MySelf,
 }
 
 impl Claims {
-    pub fn new(subject: usize, role: Role) -> Claims {
+    pub fn new(user: MySelf) -> Claims {
         Claims {
-            role,
-            subject,
+            user,
             exp: (chrono::Utc::now().timestamp() + 3600) as usize, // 1 hour expiration
         }
     }

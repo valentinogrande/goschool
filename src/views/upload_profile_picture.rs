@@ -9,14 +9,6 @@ use std::fs;
 
 use crate::jwt::validate;
 
-#[derive(serde::Deserialize, serde::Serialize)]
-struct Task{
-    id: u64,
-    grade: u64,
-}
-
-
-
 fn cleanup_temp(path: &Option<String>) {
     if let Some(p) = path {
         let _ = std::fs::remove_file(p);
@@ -39,7 +31,7 @@ pub async fn upload_profile_picture(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
 
-    let user_id = token.claims.subject;
+    let user_id = token.claims.user.id;
 
 
     let mut saved_file_name: Option<String> = None;

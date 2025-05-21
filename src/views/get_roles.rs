@@ -2,7 +2,8 @@ use actix_web::{post, web, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 use bcrypt::verify;
 
-use crate::user::{Credentials, Role};
+use crate::user::Credentials;
+use crate::structs::Role;
 
 #[post("/api/v1/get_roles/")]
 pub async fn get_roles(

@@ -7,7 +7,7 @@ use tempfile::NamedTempFile;
 use uuid::Uuid;
 use std::fs;
 
-use crate::user::Role;
+use crate::structs::Role;
 use crate::jwt::validate;
 
 
@@ -33,7 +33,7 @@ pub async fn create_submission(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
 
-    let user_id = token.claims.subject as u64;
+    let user_id = token.claims.user.id;
 
     let user_course = match sqlx::query_as::<_, (u64,)>(
         "SELECT course_id FROM users WHERE id = ?"
@@ -140,7 +140,7 @@ pub async fn create_submission(
     }
 
  
-    let role = token.claims.role;
+    let role = token.claims.user.role;
     if role != Role::student {
         cleanup_temp(&temp_path);
         return HttpResponse::Unauthorized().finish();

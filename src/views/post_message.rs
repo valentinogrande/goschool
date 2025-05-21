@@ -2,14 +2,7 @@ use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 
 use crate::jwt::validate;
-use crate::user::Role;
-
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct NewMessage {
-    courses: String,
-    title: String,
-    message: String,
-}
+use crate::structs::{Role, NewMessage};
 
 
 #[post("/api/v1/post_message/")]
@@ -28,9 +21,9 @@ pub async fn post_message(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
 
-    let user_id = token.claims.subject as u64;
+    let user_id = token.claims.user.id;
 
-    let role = token.claims.role;
+    let role = token.claims.user.role;
 
 
     let courses: Vec<u64> = message

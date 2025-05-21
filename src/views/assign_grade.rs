@@ -1,31 +1,6 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
-use serde::{Deserialize, Serialize};
-use crate::jwt::validate;
-use crate::user::Role;
-
-
-#[derive(Deserialize, Serialize, sqlx::Type)]
-#[sqlx(type_name = "ENUM('numerical','conceptual','percentage')")]
-pub enum GradeType {
-    #[serde(rename = "numerical")]
-    Numerical,
-    #[serde(rename = "conceptual")]
-    Conceptual,
-    #[serde(rename = "percentage")]
-    Percentage,
-}
-
-
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct NewGrade {
-    subject: u64,
-    assessment_id: Option<u64>,
-    student_id: u64,
-    grade_type: GradeType,
-    description: String,
-    grade: f32,
-}
+use crate::{jwt::validate, structs::{Role, NewGrade}};
 
 #[post("/api/v1/assign_grade/")]
 pub async fn assign_grade(
@@ -43,9 +18,9 @@ pub async fn assign_grade(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
 
-    let user_id = token.claims.subject as u64;
-
-    let role = token.claims.role;
+    let user_id = token.claims.user.id;
+    let role = token.claims.user.role;
+    
     if  role != Role::teacher && role != Role::admin {
             return HttpResponse::Unauthorized().finish();
         }

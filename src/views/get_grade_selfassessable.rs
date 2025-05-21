@@ -1,12 +1,13 @@
 use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 use serde::{Serialize, Deserialize};
+use chrono::{DateTime, Utc};
+use sqlx::FromRow;
+use rust_decimal::Decimal;
 use sqlx::QueryBuilder;
 
 use crate::jwt::validate;
-use crate::structs::{Role, Grade};
-use crate::filters::{UserFilter, GradeFilter};
-
+use crate::user::Role;
 
 #[derive(Debug, sqlx::Type, Serialize, Deserialize)]
 #[sqlx(rename_all = "lowercase")]
@@ -17,17 +18,31 @@ pub enum GradeType {
     Percentage,
 }
 
-#[get("/api/v1/get_student_grades/")]
-pub async fn get_grades(
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+pub struct Grade {
+    pub id: u64,
+    pub description: Option<String>,
+    pub grade: Decimal,
+    pub student_id: u64,
+    pub subject_id: u64,
+    pub assessment_id: Option<u64>,
+    pub grade_type: Option<GradeType>,
+    pub created_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GradeFilter{
+    subject_id: Option<u64>,
+    description: Option<String>,
+}
+
+
+#[get("/api/v1/get_grade_selfassessable/{selfassessable_id}/")]
+pub async fn get_grade_selfassessable(
     pool: web::Data<MySqlPool>,
     req: HttpRequest,
-    filter: web::Query<GradeFilter>,
+    selfassessable_id: web::Path<u64>,
 ) -> impl Responder {
-
-    // importante:
-    // esto te deberia dar todas las grades disponebles por usuario, despues se 
-    // deberia poder filtar por el usuario que interesa.
-
     let cookie = match req.cookie("jwt") {
         Some(cookie) => cookie,
         None => return HttpResponse::Unauthorized().json("Missing JWT cookie"),
@@ -37,24 +52,16 @@ pub async fn get_grades(
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
-    
-    let user = token.claims.user;  
 
-    let student_id = match filter.student_id {
-        Some(id) => id,
-        None => return HttpResponse::BadRequest().json("Missing student_id"),
-    };
+    let token_id = token.claims.subject as u64;
+   
+    let role = token.claims.role;
+   
+    todo!();
+    if role == Role::father{
 
-    if user.role != Role::teacher{}
-    let students_id = match user.get_students(pool.clone(), UserFilter { course: None, name: None }).await
-        {
-            Ok(r) => r,
-            Err(_) => return HttpResponse::InternalServerError().finish(),
-        };
-    
-    if !students_id.contains(&student_id) {
-            return HttpResponse::Unauthorized().json("Not authorized to access this student's data");
     }
+
 
     let mut query = QueryBuilder::new("SELECT * FROM grades WHERE student_id = ");
     query.push_bind(student_id);

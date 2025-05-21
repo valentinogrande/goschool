@@ -1,30 +1,13 @@
 use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 use chrono::{Datelike, NaiveDate};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use sqlx::QueryBuilder;
 
-use crate::user::Role;
+use crate::structs::{Role, Assessment};
 use crate::jwt::validate;
-use crate::views::create_assessment::AssessmentType;
+use crate::filters::AssessmentFilter;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, sqlx::FromRow)]
-struct Assessment {
-    id: u64,
-    subject_id: u64,
-    task: String,
-    due_date: NaiveDate,  
-    created_at: DateTime<Utc>,
-    #[sqlx(rename = "type")] 
-    #[serde(rename = "type")]
-    type_: AssessmentType,
-}
-#[derive(serde::Serialize, serde::Deserialize)]
-struct AssessmentFilter{
-    subject_id: Option<u64>,
-    task: Option<String>,
-    due: Option<bool>,
-}
 
 #[get("/api/v1/get_student_assessments/{student_id}/")]
 pub async fn get_assessments(
@@ -43,13 +26,13 @@ pub async fn get_assessments(
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
 
-    let token_id = token.claims.subject as u64;
+    let token_id = token.claims.user.id;
     let mut student_id = student_id.into_inner();
     if student_id == 0 {
         student_id = token_id;
     }
 
-    let role = token.claims.role;
+    let role = token.claims.user.role;
     
     if role == Role::father {
             let students_id: Vec<u64> = match sqlx::query_scalar("SELECT student_id FROM families WHERE father_id = ?")

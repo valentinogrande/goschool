@@ -1,16 +1,9 @@
 use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
-use chrono::NaiveDate;
 
 use crate::jwt::validate;
+use crate::structs::PersonalData;
 
-#[derive(serde::Serialize, serde::Deserialize, sqlx::FromRow, sqlx::Decode)]
-struct PersonalData {
-    full_name: String,
-    phone_number: String,
-    address: String,
-    birth_date: NaiveDate,  
-}
 
 #[get("/api/v1/get_personal_data/")]
 pub async fn get_personal_data(
@@ -27,7 +20,7 @@ pub async fn get_personal_data(
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
 
-    let token_id = token.claims.subject as u64;
+    let token_id = token.claims.user.id;
     
     let personal_data = match sqlx::query_as::<_, PersonalData>("SELECT full_name, phone_number, address, birth_date FROM personal_data WHERE user_id = ?")
         .bind(token_id)

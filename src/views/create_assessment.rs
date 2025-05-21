@@ -1,130 +1,9 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
-use sqlx::QueryBuilder;
-use sqlx::MySql;
 use futures::future::join_all;
 
 use crate::jwt::validate;
-use crate::user::Role;
-
-#[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-#[sqlx(type_name = "ENUM('exam','homework','project','oral','remedial','selfassessable')")]
-#[serde(rename_all = "lowercase")]
-pub enum AssessmentType {
-    Exam,
-    Homework,
-    Project,
-    Oral,
-    Remedial,
-    Selfassessable,
-}
-
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct NewTask {
-    subject: u64,
-    task: String,
-    due_date: String,
-    #[serde(rename = "type")]
-    type_: AssessmentType,
-}
-
-
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct NewSelfassessable{
-    questions: Vec<String>,
-    correct: Vec<String>,
-    incorrect1: Vec<String>,
-    incorrect2: Option<Vec<String>>,
-    incorrect3: Option<Vec<String>>,
-    incorrect4: Option<Vec<String>>,
-}
-
-impl NewSelfassessable{
-    pub fn validate(&self) -> bool {
-        if self.correct.len() != self.incorrect1.len(){
-            return false;
-        }
-        if self.correct.len() != self.questions.len(){
-            return false;
-        }
-        if let Some(v) = &self.incorrect2{
-            if self.correct.len() != v.len() {
-                return false;
-            }
-        }
-        if let Some(v) = &self.incorrect3{
-            if self.correct.len() != v.len() {
-                return false;
-            }
-        }
-        if let Some(v) = &self.incorrect4{
-            if self.correct.len() != v.len() {
-                return false;
-            }
-        }
-        true
-    }
-   
-    pub fn generate_query(&self,assessable_id: u64) -> Vec<QueryBuilder<MySql>> {
-        let mut queries = vec![];
-
-        let count = self.correct.len();
-
-        for i in 0..count {
-            let mut query: QueryBuilder<MySql> = QueryBuilder::new(
-                "INSERT INTO selfassessable_tasks (selfassessable_id, question, correct, incorrect1"
-            );
-
-            if self.incorrect2.as_ref().map_or(false, |v| v.len() > i) {
-                query.push(", incorrect2");
-            }
-            if self.incorrect3.as_ref().map_or(false, |v| v.len() > i) {
-                query.push(", incorrect3");
-            }
-            if self.incorrect4.as_ref().map_or(false, |v| v.len() > i) {
-                query.push(", incorrect4");
-            }
-
-            query.push(") VALUES (");
-            query.push_bind(assessable_id);
-            query.push(", ");
-            query.push_bind(&self.questions[i]);
-            query.push(", ");
-            query.push_bind(&self.correct[i]);
-            query.push(", ");
-            query.push_bind(&self.incorrect1[i]);
-
-            if let Some(ref vals) = self.incorrect2 {
-                if let Some(val) = vals.get(i) {
-                    query.push(", ").push_bind(val);
-                }
-            }
-            if let Some(ref vals) = self.incorrect3 {
-                if let Some(val) = vals.get(i) {
-                    query.push(", ").push_bind(val);
-                }
-            }
-            if let Some(ref vals) = self.incorrect4 {
-                if let Some(val) = vals.get(i) {
-                    query.push(", ").push_bind(val);
-                }
-            }
-
-            query.push(")");
-
-            queries.push(query);
-        }
-
-        queries
-    }
-
-}
-
-#[derive(serde::Deserialize, serde::Serialize)]
-pub struct Payload {
-    newtask: NewTask,
-    newselfassessable: Option<NewSelfassessable>
-}
+use crate::structs::{Role, Payload, AssessmentType};
 
 
 #[post("/api/v1/create_assessment/")]
@@ -143,9 +22,9 @@ pub async fn create_assessment(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
 
-    let user_id = token.claims.subject as u64;
+    let user_id = token.claims.user.id;
 
-    let role = token.claims.role;
+    let role = token.claims.user.role;
 
     if role == Role::teacher {
         let teacher_subject: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)")

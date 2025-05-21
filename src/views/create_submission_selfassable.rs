@@ -4,7 +4,7 @@ use sqlx::FromRow;
 use serde::{Deserialize, Serialize};
 use anyhow::Result;
 
-use crate::user::Role;
+use crate::structs::Role;
 use crate::jwt::validate;
 
 
@@ -85,9 +85,9 @@ pub async fn create_selfassessable_submission(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
 
-    let user_id = token.claims.subject as u64;
+    let user_id = token.claims.user.id;
 
-    if token.claims.role != Role::student {
+    if token.claims.user.role != Role::student {
         return HttpResponse::Unauthorized().finish();
     }
 

@@ -1,14 +1,9 @@
 use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
-use serde::Serialize;
 use std::env;
 
 use crate::jwt::validate;
-
-#[derive(Serialize)]
-struct PhotoUrlResponse {
-    url: String,
-}
+use crate::structs::PhotoUrlResponse;
 
 #[get("/api/v1/get_profile_picture/")]
 pub async fn get_profile_picture(req: HttpRequest, pool: web::Data<MySqlPool>) -> impl Responder {
@@ -23,7 +18,7 @@ pub async fn get_profile_picture(req: HttpRequest, pool: web::Data<MySqlPool>) -
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
 
-    let user_id = token.claims.subject;
+    let user_id = token.claims.user.id;
     let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ?")
         .bind(user_id as u64)
         .fetch_optional(pool.get_ref())

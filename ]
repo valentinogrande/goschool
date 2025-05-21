@@ -1,0 +1,40 @@
+use serde::{Serialize, Deserialize};
+use sqlx::FromRow;
+use rust_decimal::Decimal;
+use chrono::{DateTime, Utc};
+
+
+
+#[derive(Debug, sqlx::Type, Serialize, Deserialize)]
+#[sqlx(rename_all = "lowercase")]
+#[serde(rename_all = "lowercase")]
+pub enum GradeType {
+    Numerical,
+    Conceptual,
+    Percentage,
+}
+
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+pub struct Grade {
+    pub id: u64,
+    pub description: Option<String>,
+    pub grade: Decimal,
+    pub student_id: u64,
+    pub subject_id: u64,
+    pub assessment_id: Option<u64>,
+    pub grade_type: Option<GradeType>,
+    pub created_at: Option<DateTime<Utc>>,
+}
+
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, sqlx::Type)]
+#[sqlx(type_name = "ENUM('admin', 'teacher', 'student', 'preceptor', 'father')")]
+#[serde(rename_all = "lowercase")]
+pub enum Role {
+    admin,
+    teacher,
+    student,
+    preceptor,
+    father,
+}

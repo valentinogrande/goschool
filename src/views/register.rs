@@ -2,7 +2,7 @@ use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 use bcrypt::{hash, DEFAULT_COST};
 
-use crate::{jwt::validate, user::NewUser, user::Role};
+use crate::{jwt::validate, user::NewUser, structs::Role};
 
 #[post("/api/v1/register/")]
 pub async fn register(
@@ -24,7 +24,7 @@ pub async fn register(
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
     
-    let role = token.claims.role;
+    let role = token.claims.user.role;
     
     if role != Role::admin {
         return HttpResponse::Unauthorized().finish();
