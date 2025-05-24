@@ -156,16 +156,35 @@ Role::student => {
         res
     }
     pub async fn get_subjects(&self, pool: &MySqlPool, filter: Option<SubjectFilter>) -> Result<Vec<Subject>, sqlx::Error> {
-        let mut query = QueryBuilder::new("");
+        let mut query = QueryBuilder::new("SELECT * FROM subjects s ");
         match self.role {
             Role::teacher => {
-                query.push("SELECT * FROM subjects s WHERE teacher_id =");
+                query.push("WHERE teacher_id =");
                 query.push_bind(self.id);
             }
             Role::admin => {
-                query.push("SELECT * FROM subjects s WHERE 1=1");
+                query.push("WHERE 1=1");
             }
-            _ => {}
+            Role::student => {
+                query.push(
+                "JOIN courses c ON s.course_id = c.id \
+                 JOIN users u ON c.id = u.course_id \
+                 WHERE u.id = "
+                );
+                query.push_bind(self.id);
+            }
+            Role::preceptor => {
+                query.push("JOIN courses c ON s.course_id = c.id WHERE c.preceptor_id =");
+                query.push_bind(self.id);
+            }
+            Role::father => {
+                query.push(
+                "JOIN users u ON s.course_id = u.course_id \
+                 JOIN families f ON f.student_id = u.id \
+                 WHERE f.father_id = "
+                );
+                query.push_bind(self.id);
+            }
         };
         if let Some(f) = filter {
             if let Some(c) = f.course_id {
