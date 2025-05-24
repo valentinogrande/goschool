@@ -46,7 +46,7 @@ pub async fn get_grades(
     };
 
     if user.role != Role::teacher{}
-    let students_id = match user.get_students(pool.clone(), UserFilter { course: None, name: None }).await
+    let students_id = match user.get_students(pool.clone(), None).await
         {
             Ok(r) => r,
             Err(_) => return HttpResponse::InternalServerError().finish(),

@@ -24,6 +24,16 @@ pub struct PersonalData {
     pub birth_date: NaiveDate,  
 }
 
+
+#[derive(serde::Serialize, serde::Deserialize, sqlx::FromRow, sqlx::Decode)]
+pub struct Subject {
+    pub id: u64,
+    pub name: String,
+    pub teacher_id: u64,
+    pub course_id: u64,
+}
+
+
 #[derive(Debug, Type, Serialize, Deserialize)]
 #[sqlx(rename_all = "lowercase")]
 #[serde(rename_all = "lowercase")]

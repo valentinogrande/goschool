@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct UserFilter{
     pub course: Option<u64>,
     pub name: Option<String>,
+    pub id: Option<u64>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -19,4 +20,11 @@ pub struct AssessmentFilter{
     pub subject_id: Option<u64>,
     pub task: Option<String>,
     pub due: Option<bool>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct SubjectFilter{
+    pub teacher_id: Option<u64>,
+    pub course_id: Option<u64>,
+    pub name: Option<String>,
 }

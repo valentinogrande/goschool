@@ -17,16 +17,15 @@ pub async fn assign_grade(
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
-
-    let user_id = token.claims.user.id;
-    let role = token.claims.user.role;
     
-    if  role != Role::teacher && role != Role::admin {
+    let user = token.claims.user;
+    
+    if user.role != Role::teacher && user.role != Role::admin {
             return HttpResponse::Unauthorized().finish();
         }
 
     let teacher_subject: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)")
-        .bind(user_id as u64)
+        .bind(user.id)
         .bind(grade.subject)
         .fetch_one(pool.get_ref())
         .await {
@@ -44,6 +43,7 @@ pub async fn assign_grade(
         Ok(c) => c,
         Err(_) => return HttpResponse::InternalServerError().finish(),
     };
+
     let student_course: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id = ? AND course_id = ?)")
         .bind(grade.student_id)
         .bind(course)

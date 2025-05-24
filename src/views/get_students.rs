@@ -21,7 +21,7 @@ pub async fn get_students(
     };
 
     let user = token.claims.user;
-    let users_id = user.get_students(pool, filter.into_inner());
+    let users_id = user.get_students(pool, Some(filter.into_inner()));
     if let Ok(i) = users_id.await {   
         HttpResponse::Ok().json(i)   
     }
