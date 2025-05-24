@@ -1,11 +1,9 @@
 use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 use serde::{Serialize, Deserialize};
-use sqlx::QueryBuilder;
 
 use crate::jwt::validate;
-use crate::structs::{Role, Grade};
-use crate::filters::{UserFilter, GradeFilter};
+use crate::filters::GradeFilter;
 
 
 #[derive(Debug, sqlx::Type, Serialize, Deserialize)]

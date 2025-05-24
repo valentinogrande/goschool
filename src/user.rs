@@ -316,9 +316,11 @@ Role::student => {
         }
         if let Some(f) = filter {
             if let Some(due) = f.due {
-                let actual_date = Utc::now();
-                query.push(" AND a.due_date >= ?");
-                query.push_bind(actual_date);
+                if due {
+                    let actual_date = Utc::now();
+                    query.push(" AND a.due_date >= ?");
+                    query.push_bind(actual_date);
+                }
             }
             if let Some(t) = f.task {
                 query.push(" AND a.task LIKE ");
