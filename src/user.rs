@@ -3,9 +3,10 @@ use sqlx::prelude::FromRow;
 use sqlx::{MySqlPool, QueryBuilder};
 use actix_web::web;
 use chrono::Utc;
+use std::env;
 
 use crate::filters::{GradeFilter, UserFilter, SubjectFilter, AssessmentFilter};
-use crate::structs::{Assessment, Grade, Role, Subject};
+use crate::structs::{Assessment, Grade, Role, Subject, PersonalData};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MySelf{
@@ -356,6 +357,29 @@ Role::student => {
             .await;
 
         res
+    }
+    pub async fn get_personal_data(&self, pool: &MySqlPool) -> Result<PersonalData, sqlx::Error> {
+        let res = sqlx::query_as("SELECT * FROM personal_data WHERE user_id = ?")
+            .bind(self.id)
+            .fetch_one(pool)
+            .await;
+        res
+    }
+    pub async fn get_profile_picture(&self, pool: &MySqlPool) -> Result<String, sqlx::Error> {
+        let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ?")
+        .bind(self.id)
+        .fetch_optional(pool)
+        .await
+    {
+        Ok(Some(path)) => path,
+        Ok(None) => "default.jpg".to_string(),
+        Err(e) => return Err(e),
+    };
+
+        let base_url = env::var("BASE_URL").expect("BASE_URL must be set");
+        let url = format!("{}/uploads/profile_pictures/{}", base_url, photo_filename);
+        Ok(url)
+
     }
 }
 

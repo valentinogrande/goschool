@@ -1,6 +1,5 @@
 use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
-use std::env;
 
 use crate::jwt::validate;
 use crate::structs::PhotoUrlResponse;
@@ -17,21 +16,12 @@ pub async fn get_profile_picture(req: HttpRequest, pool: web::Data<MySqlPool>) -
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
-
-    let user_id = token.claims.user.id;
-    let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ?")
-        .bind(user_id as u64)
-        .fetch_optional(pool.get_ref())
-        .await
-    {
-        Ok(Some(path)) => path,
-        Ok(None) => "default.jpg".to_string(),
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+    
+    let url = match token.claims.user.get_profile_picture(&pool).await {
+        Ok(a) => a,
+        Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };
-
-    let base_url = env::var("BASE_URL").expect("BASE_URL must be set");
-    let url = format!("{}/uploads/profile_pictures/{}", base_url, photo_filename);
-
+    
     HttpResponse::Ok().json(PhotoUrlResponse { url })
 }
 
