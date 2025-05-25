@@ -6,7 +6,7 @@ use chrono::Utc;
 use std::env;
 
 use crate::filters::{GradeFilter, UserFilter, SubjectFilter, AssessmentFilter, MessageFilter};
-use crate::structs::{Assessment, Grade, Role, Subject, PersonalData, Message};
+use crate::structs::{Assessment, Grade, Role, Subject, PersonalData, Message, Course};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MySelf{
@@ -68,49 +68,35 @@ Role::student => {
         res
     }
     
-    pub async fn get_courses(&self, pool: &MySqlPool) -> Result<Vec<u64>, sqlx::Error> {
+    pub async fn get_courses(&self, pool: &MySqlPool) -> Result<Vec<Course>, sqlx::Error> {
+        let mut query = QueryBuilder::new("SELECT * FROM courses c ");
         match self.role {
             Role::student => {
-                sqlx::query_scalar::<sqlx::MySql, u64>(
-                    "SELECT course_id FROM users WHERE id = ?",
-                )
-                .bind(self.id)
-                .fetch_one(pool)
-                .await
-                .map(|r| vec![r])
+                query.push("JOIN users u ON c.id = u.course_id WHERE u.id = ?");
+                query.push_bind(self.id);
             },
             Role::admin => {
-                sqlx::query_scalar::<sqlx::MySql, u64>(
-                    "SELECT id FROM courses",
-                )
-                .fetch_all(pool)
-                .await
+                query.push("WHERE 1=1");
             },
             Role::preceptor => {
-                sqlx::query_scalar::<sqlx::MySql, u64>(
-                    "SELECT id FROM courses WHERE preceptor_id = ?",
-                )
-                .bind(self.id)
-                .fetch_all(pool)
-                .await
+                query.push("WHERE preceptor_id = ?");
+                query.push_bind(self.id);
             },
             Role::father => {
-                sqlx::query_scalar::<sqlx::MySql, u64>(
-                    "SELECT u.course_id FROM users u JOIN families f ON f.student_id = u.id WHERE f.father_id = ?",
-                )
-                .bind(self.id)
-                .fetch_all(pool)
-                .await
+                query.push("JOIN users u ON c.id = u.course_id JOIN families f ON f.student_id = u.id WHERE f.father_id = ?");
+                query.push_bind(self.id);
             },
             Role::teacher => {
-                sqlx::query_scalar::<sqlx::MySql, u64>(
-                    "SELECT c.id FROM courses c JOIN subjects s ON s.course_id = c.id WHERE s.teacher_id = ?",
-                )
-                .bind(self.id)
-                .fetch_all(pool)
-                .await
+                query.push("JOIN subjects s ON c.id = s.course_id WHERE s.teacher_id = ?");
+                query.push_bind(self.id);
             },
-        }
+        };
+
+        let res = query
+            .build_query_as()
+            .fetch_all(pool)
+            .await;
+        res
     }
     pub async fn get_grades(&self, pool: web::Data<MySqlPool>, filter: 
     Option<GradeFilter>) -> Result<Vec<Grade>, sqlx::Error>{

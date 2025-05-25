@@ -1,6 +1,7 @@
 use actix_web::web;
 
 use crate::views::{
+    get_courses::get_courses,
     get_subjects::get_subjects,
     assign_grade::assign_grade,
     create_assessment::create_assessment,
@@ -42,5 +43,6 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(assign_grade)
         .service(create_selfassessable_submission)
         .service(get_subjects)
+        .service(get_courses)
         .service(register_users);
 }

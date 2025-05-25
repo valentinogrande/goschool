@@ -219,3 +219,26 @@ pub struct Message {
     pub created_at: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, FromRow, serde::Serialize)]
+pub struct Course {
+    pub id: u64,
+    pub year: i32,
+    pub division: String,
+    pub level: Level,
+    pub shift: Shift,
+    pub preceptor_id: Option<u64>,
+}
+
+#[derive(Debug, sqlx::Type, serde::Serialize)]
+#[sqlx(type_name = "enum", rename_all = "lowercase")]
+pub enum Level {
+    Primary,
+    Secondary,
+}
+
+#[derive(Debug, sqlx::Type, serde::Serialize)]
+#[sqlx(type_name = "enum", rename_all = "lowercase")]
+pub enum Shift {
+    Morning,
+    Afternoon,
+}
