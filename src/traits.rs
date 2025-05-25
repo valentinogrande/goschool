@@ -55,4 +55,3 @@ pub trait Get {
         pool: &MySqlPool)
     -> Result<String, sqlx::Error>;
 }
-
