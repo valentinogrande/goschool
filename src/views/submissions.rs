@@ -9,16 +9,12 @@ use std::fs;
 
 use crate::structs::Role;
 use crate::jwt::validate;
+use crate::functions::cleanup_temp;
 
 
-fn cleanup_temp(path: &Option<String>) {
-    if let Some(p) = path {
-        let _ = std::fs::remove_file(p);
-    }
-}
 
-#[post("/api/v1/create_submission/")]
-pub async fn create_submission(
+#[post("/api/v1/homework_submission/")]
+pub async fn post_homework_submission(
     req: HttpRequest,
     pool: web::Data<MySqlPool>,
     mut homework_submission: Multipart,

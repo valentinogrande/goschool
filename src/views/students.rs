@@ -4,7 +4,7 @@ use sqlx::MySqlPool;
 use crate::jwt::validate;
 use crate::filters::UserFilter;
 
-#[get("/api/v1/get_students/")]
+#[get("/api/v1/students/")]
 pub async fn get_students(
     req: HttpRequest,
     pool: web::Data<MySqlPool>,

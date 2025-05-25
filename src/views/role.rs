@@ -3,7 +3,7 @@ use actix_web::{get, HttpRequest, HttpResponse, Responder};
 use crate::jwt::validate;
 
 
-#[get("/api/v1/get_role/")]
+#[get("/api/v1/role/")]
 pub async fn get_role(
     req: HttpRequest,
 ) -> impl Responder {

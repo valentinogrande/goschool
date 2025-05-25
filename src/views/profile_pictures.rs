@@ -1,4 +1,4 @@
-use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
+use actix_web::{get, web, HttpRequest, HttpResponse, Responder, post};
 use sqlx::mysql::MySqlPool;
 use actix_multipart::Multipart;
 use futures_util::StreamExt;
@@ -7,16 +7,35 @@ use tempfile::NamedTempFile;
 use uuid::Uuid;
 use std::fs;
 
-use crate::jwt::validate;
 
-fn cleanup_temp(path: &Option<String>) {
-    if let Some(p) = path {
-        let _ = std::fs::remove_file(p);
-    }
+
+use crate::jwt::validate;
+use crate::structs::PhotoUrlResponse;
+use crate::functions::cleanup_temp;
+
+#[get("/api/v1/profile_pictures/")]
+pub async fn get_profile_picture(req: HttpRequest, pool: web::Data<MySqlPool>) -> impl Responder {
+    
+    let cookie = match req.cookie("jwt") {
+        Some(cookie) => cookie,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+
+    let token = match validate(cookie.value()) {
+        Ok(t) => t,
+        Err(_) => return HttpResponse::Unauthorized().finish(),
+    };
+    
+    let url = match token.claims.user.get_profile_picture(&pool).await {
+        Ok(a) => a,
+        Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+    };
+    
+    HttpResponse::Ok().json(PhotoUrlResponse { url })
 }
 
-#[post("/api/v1/upload_profile_picture/")]
-pub async fn upload_profile_picture(
+#[post("/api/v1/profile_pictures/")]
+pub async fn post_profile_picture(
     req: HttpRequest,
     pool: web::Data<MySqlPool>,
     mut task_submission: Multipart,

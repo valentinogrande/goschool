@@ -1,25 +1,15 @@
 use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
-use serde::{Serialize, Deserialize};
 
 use crate::jwt::validate;
-use crate::filters::GradeFilter;
+use crate::filters::SubjectFilter;
 
 
-#[derive(Debug, sqlx::Type, Serialize, Deserialize)]
-#[sqlx(rename_all = "lowercase")]
-#[serde(rename_all = "lowercase")]
-pub enum GradeType {
-    Numerical,
-    Conceptual,
-    Percentage,
-}
-
-#[get("/api/v1/get_student_grades/")]
-pub async fn get_grades(
+#[get("/api/v1/subjetcs/")]
+pub async fn get_subjects(
     pool: web::Data<MySqlPool>,
     req: HttpRequest,
-    filter: web::Query<GradeFilter>,
+    filter: web::Query<SubjectFilter>,
 ) -> impl Responder {
     let cookie = match req.cookie("jwt") {
         Some(cookie) => cookie,
@@ -30,13 +20,11 @@ pub async fn get_grades(
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
-    
-    let user = token.claims.user;  
-
-    let grades = match user.get_grades(pool, Some(filter.into_inner())).await { 
-        Ok(g) => g,
+    let user = token.claims.user;
+    let subjects = match user.get_subjects(&pool, Some(filter.into_inner())).await {
+        Ok(a) => a,
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };
 
-    HttpResponse::Ok().json(grades)
+    HttpResponse::Ok().json(subjects)
 }

@@ -12,6 +12,7 @@ mod json;
 mod routes;
 mod filters;
 mod structs;
+mod functions;
 
 use jwt::Claims;
 

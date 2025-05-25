@@ -1,75 +1,65 @@
-use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
+use actix_web::{get, web, HttpRequest, HttpResponse, Responder, post};
 use sqlx::mysql::MySqlPool;
-use sqlx::FromRow;
-use serde::{Deserialize, Serialize};
-use anyhow::Result;
+use sqlx::QueryBuilder;
 
-use crate::structs::Role;
+
 use crate::jwt::validate;
+use crate::structs::{Role, Grade, NewSubmissionSelfAssessable};
+use crate::filters::{GradeFilter, SubjectFilter};
 
+#[get("/api/v1/get_grade_selfassessable/{selfassessable_id}/")]
+pub async fn get_grade_selfassessable(
+    pool: web::Data<MySqlPool>,
+    req: HttpRequest,
+    selfassessable_id: web::Path<u64>,
+) -> impl Responder {
+    let cookie = match req.cookie("jwt") {
+        Some(cookie) => cookie,
+        None => return HttpResponse::Unauthorized().json("Missing JWT cookie"),
+    };
 
-#[derive(Debug, sqlx::Type, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
-pub struct NewSubmissionSelfAssessable{
-    assessment_id: u64,
-    answers: Vec<String>,
-}
+    let token = match validate(cookie.value()) {
+        Ok(t) => t,
+        Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
+    };
 
-#[derive(Deserialize, Serialize, Debug, FromRow)]
-pub struct Selfassessable {
-    pub correct: String,
-    pub incorrect1: String,
-    pub incorrect2: Option<String>,
-    pub incorrect3: Option<String>,
-    pub incorrect4: Option<String>,
-}
+    let token_id = token.claims.subject as u64;
+   
+    let role = token.claims.role;
+   
+    todo!();
+    if role == Role::father{
 
-
-
-impl NewSubmissionSelfAssessable {
-    pub async fn get_answers(&self, pool: &MySqlPool) -> Result<String, sqlx::Error> {
-        let tasks: Vec<Selfassessable> = sqlx::query_as::<_, Selfassessable>(
-                r#"
-                SELECT correct, incorrect1, incorrect2, incorrect3, incorrect4
-                  FROM selfassessable_tasks st
-                  JOIN selfassessables s ON s.id = st.selfassessable_id
-                 WHERE s.assessment_id = ?
-                "#)
-            .bind(self.assessment_id)
-            .fetch_all(pool)
-            .await?;
-
-        let mut indices = Vec::with_capacity(self.answers.len());
-
-        for (task, submitted) in tasks.iter().zip(&self.answers) {
-            let idx = if &task.correct == submitted {
-                1
-            } else if &task.incorrect1 == submitted {
-                2
-            } else if task.incorrect2.as_deref() == Some(submitted.as_str()) {
-                3
-            } else if task.incorrect3.as_deref() == Some(submitted.as_str()) {
-                4
-            } else if task.incorrect4.as_deref() == Some(submitted.as_str()) {
-                5
-            } else {
-                // You can choose to error here instead of pushing 0
-                0
-            };
-            indices.push(idx);
-        }
-
-        let result = indices
-            .iter()
-            .map(|n| n.to_string())
-            .collect::<Vec<_>>()
-            .join(",");
-
-        Ok(result)
     }
+
+
+    let mut query = QueryBuilder::new("SELECT * FROM grades WHERE student_id = ");
+    query.push_bind(student_id);
+
+    if let Some(subject_id) = filter.subject_id {
+        query.push(" AND subject_id = ");
+        query.push_bind(subject_id);
+    }
+
+    if let Some(ref description) = filter.description {
+        query.push(" AND description LIKE ");
+        query.push_bind(format!("%{}%", description));
+    }
+    
+
+    let grades: Vec<Grade> = match query
+        .build_query_as()
+        .fetch_all(pool.get_ref())
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
+    };
+
+    HttpResponse::Ok().json(grades)
 }
 
-
-#[post("/api/v1/create_selfassessable_submission/")]
+#[post("/api/v1/selfassessables/")]
 pub async fn create_selfassessable_submission(
     req: HttpRequest,
     pool: web::Data<MySqlPool>,

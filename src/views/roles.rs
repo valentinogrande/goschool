@@ -5,7 +5,7 @@ use bcrypt::verify;
 use crate::user::Credentials;
 use crate::structs::Role;
 
-#[post("/api/v1/get_roles/")]
+#[post("/api/v1/roles/")]
 pub async fn get_roles(
     pool: web::Data<MySqlPool>,
     creds: web::Json<Credentials>,
