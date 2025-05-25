@@ -6,8 +6,8 @@ use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use std::fs;
 
 use crate::Claims;
-use crate::user::MySelf;
-use crate::structs::CredentialsRole;
+use crate::structs::{CredentialsRole, MySelf};
+use crate::traits::New;
 
 #[post("/api/v1/login/")]
 pub async fn login(

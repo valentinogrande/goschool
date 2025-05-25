@@ -3,6 +3,12 @@ use sqlx::{FromRow, QueryBuilder, MySql, Type, MySqlPool, Decode};
 use rust_decimal::Decimal;
 use chrono::{DateTime, Utc, NaiveDate};
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct MySelf{
+    pub role: Role,
+    pub id: u64
+}
+
 #[derive(Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: u64,

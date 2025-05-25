@@ -3,6 +3,7 @@ use sqlx::mysql::MySqlPool;
 
 use crate::jwt::validate;
 use crate::filters::SubjectFilter;
+use crate::traits::Get;
 
 
 #[get("/api/v1/subjetcs/")]

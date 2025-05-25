@@ -3,6 +3,7 @@ use sqlx::MySqlPool;
 
 use crate::jwt::validate;
 use crate::filters::UserFilter;
+use crate::traits::Get;
 
 #[get("/api/v1/students/")]
 pub async fn get_students(

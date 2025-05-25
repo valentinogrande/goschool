@@ -2,21 +2,13 @@ use sqlx::{MySqlPool, QueryBuilder};
 use actix_web::web;
 use chrono::Utc;
 use std::env;
-
 use crate::filters::{GradeFilter, UserFilter, SubjectFilter, AssessmentFilter, MessageFilter};
-use crate::structs::{Assessment, Grade, Role, Subject, PersonalData, Message, Course};
+use crate::structs::{Assessment, Grade, Role, Subject, PersonalData, Message, Course, MySelf};
+use crate::traits::Get;
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct MySelf{
-    pub role: Role,
-    pub id: u64
-}
-
-impl MySelf{
-    pub fn new(id: u64, role: Role) -> Self{
-        Self { role, id }
-    }
-   pub async fn get_students(
+impl Get for MySelf{
+   
+   async fn get_students(
         &self,
         pool: web::Data<MySqlPool>,
         filter: Option<UserFilter>,
@@ -66,7 +58,7 @@ Role::student => {
         res
     }
     
-    pub async fn get_courses(&self, pool: &MySqlPool) -> Result<Vec<Course>, sqlx::Error> {
+    async fn get_courses(&self, pool: &MySqlPool) -> Result<Vec<Course>, sqlx::Error> {
         let mut query = QueryBuilder::new("SELECT * FROM courses c ");
         match self.role {
             Role::student => {
@@ -96,7 +88,7 @@ Role::student => {
             .await;
         res
     }
-    pub async fn get_grades(&self, pool: web::Data<MySqlPool>, filter: 
+    async fn get_grades(&self, pool: &MySqlPool, filter: 
     Option<GradeFilter>) -> Result<Vec<Grade>, sqlx::Error>{
         let mut query = QueryBuilder::new("SELECT * FROM grades ");
         match self.role {
@@ -136,11 +128,11 @@ Role::student => {
         }
         let res = query
             .build_query_as()
-            .fetch_all(pool.as_ref())
+            .fetch_all(pool)
             .await;
         res
     }
-    pub async fn get_subjects(&self, pool: &MySqlPool, filter: Option<SubjectFilter>) -> Result<Vec<Subject>, sqlx::Error> {
+    async fn get_subjects(&self, pool: &MySqlPool, filter: Option<SubjectFilter>) -> Result<Vec<Subject>, sqlx::Error> {
         let mut query = QueryBuilder::new("SELECT * FROM subjects s ");
         match self.role {
             Role::teacher => {
@@ -192,7 +184,7 @@ Role::student => {
         res
     }
    
-    pub async fn get_assessments(
+    async fn get_assessments(
         &self,
         pool: &MySqlPool,
         filter: Option<AssessmentFilter>,
@@ -342,14 +334,14 @@ Role::student => {
 
         res
     }
-    pub async fn get_personal_data(&self, pool: &MySqlPool) -> Result<PersonalData, sqlx::Error> {
+    async fn get_personal_data(&self, pool: &MySqlPool) -> Result<PersonalData, sqlx::Error> {
         let res = sqlx::query_as("SELECT * FROM personal_data WHERE user_id = ?")
             .bind(self.id)
             .fetch_one(pool)
             .await;
         res
     }
-    pub async fn get_profile_picture(&self, pool: &MySqlPool) -> Result<String, sqlx::Error> {
+    async fn get_profile_picture(&self, pool: &MySqlPool) -> Result<String, sqlx::Error> {
         let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ?")
         .bind(self.id)
         .fetch_optional(pool)
@@ -364,7 +356,7 @@ Role::student => {
         let url = format!("{}/uploads/profile_pictures/{}", base_url, photo_filename);
         Ok(url)
     }
-    pub async fn get_messages(&self, pool: &MySqlPool, filter: Option<MessageFilter>) -> Result<Vec<Message>, sqlx::Error> {
+    async fn get_messages(&self, pool: &MySqlPool, filter: Option<MessageFilter>) -> Result<Vec<Message>, sqlx::Error> {
         let mut query = QueryBuilder::new("SELECT * FROM messages m JOIN message_courses mc ON mc.message_id = m.id ");
         match self.role {
             Role::student => {

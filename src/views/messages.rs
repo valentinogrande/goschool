@@ -4,6 +4,7 @@ use sqlx::mysql::MySqlPool;
 use crate::filters::MessageFilter;
 use crate::structs::{NewMessage, Role};
 use crate::jwt::validate;
+use crate::traits::Get;
 
 #[get("/api/v1/messages/")]
 pub async fn get_messages(

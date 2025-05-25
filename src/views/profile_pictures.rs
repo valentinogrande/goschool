@@ -7,11 +7,10 @@ use tempfile::NamedTempFile;
 use uuid::Uuid;
 use std::fs;
 
-
-
 use crate::jwt::validate;
 use crate::structs::PhotoUrlResponse;
 use crate::functions::cleanup_temp;
+use crate::traits::Get;
 
 #[get("/api/v1/profile_pictures/")]
 pub async fn get_profile_picture(req: HttpRequest, pool: web::Data<MySqlPool>) -> impl Responder {

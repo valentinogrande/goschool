@@ -2,7 +2,7 @@ use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
 
 use crate::jwt::validate;
-
+use crate::traits::Get;
 
 #[get("/api/v1/courses/")]
 pub async fn get_courses(

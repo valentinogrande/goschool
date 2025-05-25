@@ -2,7 +2,7 @@ use jsonwebtoken::{decode, Algorithm, DecodingKey, TokenData, Validation};
 use serde::{Serialize, Deserialize};
 use std::fs;
 
-use crate::user::MySelf;
+use crate::structs::MySelf;
 
 #[derive(Serialize, Deserialize)]
 pub struct Claims {

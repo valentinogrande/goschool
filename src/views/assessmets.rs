@@ -2,6 +2,7 @@ use actix_web::{get, web, HttpRequest, HttpResponse, Responder, post};
 use sqlx::mysql::MySqlPool;
 
 use crate::jwt::validate;
+use crate::traits::Get;
 use crate::structs::{Role, Payload, AssessmentType};
 use crate::filters::{AssessmentFilter, SubjectFilter, UserFilter};
 use futures::future::join_all;

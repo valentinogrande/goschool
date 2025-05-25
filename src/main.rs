@@ -6,13 +6,14 @@ use chrono::Datelike;
 use actix_files::Files;
 
 mod views;
-mod user;
+mod traits;
 mod jwt;
 mod json;
 mod routes;
 mod filters;
 mod structs;
 mod functions;
+mod impls;
 
 use jwt::Claims;
 
