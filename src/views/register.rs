@@ -2,7 +2,7 @@ use actix_web::{post, web, HttpRequest, HttpResponse, Responder, get};
 use sqlx::mysql::MySqlPool;
 use bcrypt::{hash, DEFAULT_COST};
 
-use crate::{jwt::validate, user::NewUser, structs::Role};
+use crate::{jwt::validate, structs::NewUser, structs::Role};
 
 #[post("/api/v1/register/")]
 pub async fn register(

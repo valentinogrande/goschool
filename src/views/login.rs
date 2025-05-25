@@ -5,9 +5,9 @@ use bcrypt::verify;
 use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
 use std::fs;
 
-use crate::user::CredentialsRole;
 use crate::Claims;
 use crate::user::MySelf;
+use crate::structs::CredentialsRole;
 
 #[post("/api/v1/login/")]
 pub async fn login(

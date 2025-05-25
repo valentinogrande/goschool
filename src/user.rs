@@ -1,5 +1,3 @@
-use serde::{Serialize, Deserialize};
-use sqlx::prelude::FromRow;
 use sqlx::{MySqlPool, QueryBuilder};
 use actix_web::web;
 use chrono::Utc;
@@ -409,34 +407,4 @@ Role::student => {
         .await;
     res
     }
-}
-
-
-#[derive(Serialize,Deserialize, FromRow)]
-pub struct User{
-    pub id: u64,
-    pub password: String,
-    pub email: String,
-    pub role: Role,
-    pub last_login: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct NewUser{
-    pub password: String,
-    pub email: String,
-    pub role: Role,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Credentials{
-    pub email: String,
-    pub password: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CredentialsRole{
-    pub email: String,
-    pub password: String,
-    pub role: Role,
 }
