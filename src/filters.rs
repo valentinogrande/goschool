@@ -28,3 +28,11 @@ pub struct SubjectFilter{
     pub course_id: Option<u64>,
     pub name: Option<String>,
 }
+
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct MessageFilter{
+    pub sender_id: Option<u64>,
+    pub title: Option<String>,
+    pub course_id: Option<u64>,
+}

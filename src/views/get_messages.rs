@@ -1,15 +1,14 @@
 use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
 use sqlx::mysql::MySqlPool;
-use sqlx::QueryBuilder;
 
+use crate::filters::MessageFilter;
 use crate::jwt::validate;
-use crate::structs::{Role, Message};
 
-#[get("/api/v1/get_messages/{student_id}/")]
+#[get("/api/v1/get_messages/")]
 pub async fn get_messages(
     pool: web::Data<MySqlPool>,
     req: HttpRequest,
-    student_id: web::Path<u64>,
+    filter: web::Query<MessageFilter>,
 ) -> impl Responder {
     let cookie = match req.cookie("jwt") {
         Some(cookie) => cookie,
@@ -21,94 +20,11 @@ pub async fn get_messages(
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
 
-    let user_id = token.claims.user.id;
-    let mut student_id = student_id.into_inner();
+    let user = token.claims.user;
     
-    if student_id == 0{
-       student_id = user_id; 
-    }
-
-    let role = token.claims.user.role;
-    
-    let messages_ids: Vec<u64>;    
-
-    if role == Role::father {
-        let students_id: Vec<u64> = match sqlx::query_scalar("SELECT student_id FROM families WHERE father_id = ?")
-            .bind(user_id)
-            .fetch_all(pool.get_ref())
-            .await
-        {
-            Ok(r) => r,
-            Err(_) => return HttpResponse::InternalServerError().finish(),
-        };
-
-        if !students_id.contains(&student_id) {
-            return HttpResponse::Unauthorized().json("Not authorized to access this student's data");
-        }
-        let ids: Vec<u64> = match sqlx::query_scalar::<_,u64>("SELECT mc.message_id FROM message_courses mc JOIN users u ON mc.course_id = u.course_id WHERE u.id = ?")
-            .bind(student_id)
-            .fetch_all(pool.get_ref())
-            .await {
-            Ok(r) => r,
-            Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
-        };
-        messages_ids = ids;
-    }
-    else if role == Role::preceptor{
-        let ids: Vec<u64> = match sqlx::query_scalar::<_,u64>("SELECT mc.message_id FROM message_courses mc JOIN courses c ON mc.course_id = c.id WHERE c.preceptor_id = ?")
-            .bind(user_id)
-            .fetch_all(pool.get_ref())
-            .await {
-            Ok(r) => r,
-            Err(_) => return HttpResponse::InternalServerError().finish(),
-        };
-        messages_ids = ids;
-    }
-    else if role == Role::student {
-        if user_id != student_id {
-            return HttpResponse::Unauthorized().finish();
-        }
-
-        let ids: Vec<u64> = match sqlx::query_scalar::<_,u64>("SELECT mc.message_id FROM message_courses mc JOIN users u ON mc.course_id = u.course_id WHERE u.id = ?")
-            .bind(user_id)
-            .fetch_all(pool.get_ref())
-            .await {
-            Ok(r) => r,
-            Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
-        };
-        messages_ids = ids;
-    }
-    else if role == Role::admin{
-        let ids: Vec<u64> = match sqlx::query_scalar::<_,u64>("SELECT message_id FROM message_courses")
-            .fetch_all(pool.get_ref())
-            .await {
-            Ok(r) => r,
-            Err(_) => return HttpResponse::InternalServerError().finish(),
-        };
-        messages_ids = ids;
-    }
-    else {
-        return HttpResponse::Unauthorized().finish();
-    }
-
-    let mut query = QueryBuilder::new("SELECT * FROM messages WHERE id IN (");
-
-    for (index, id) in messages_ids.iter().enumerate() {
-        if index > 0 {
-            query.push(", ");
-        }
-        query.push_bind(id);
-    }
-
-    query.push(")");
-
-    let messages: Vec<Message> = match query
-        .build_query_as()
-        .fetch_all(pool.get_ref())
-        .await
-    {
-        Ok(r) => r,
-        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
+    let messages = match user.get_messages(&pool, Some(filter.into_inner())).await {
+        Ok(m) => m,
+        Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };
 
     HttpResponse::Ok().json(messages)

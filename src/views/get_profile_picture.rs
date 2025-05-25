@@ -24,4 +24,3 @@ pub async fn get_profile_picture(req: HttpRequest, pool: web::Data<MySqlPool>) -
     
     HttpResponse::Ok().json(PhotoUrlResponse { url })
 }
-

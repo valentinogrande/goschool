@@ -5,8 +5,8 @@ use actix_web::web;
 use chrono::Utc;
 use std::env;
 
-use crate::filters::{GradeFilter, UserFilter, SubjectFilter, AssessmentFilter};
-use crate::structs::{Assessment, Grade, Role, Subject, PersonalData};
+use crate::filters::{GradeFilter, UserFilter, SubjectFilter, AssessmentFilter, MessageFilter};
+use crate::structs::{Assessment, Grade, Role, Subject, PersonalData, Message};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct MySelf{
@@ -18,7 +18,7 @@ impl MySelf{
     pub fn new(id: u64, role: Role) -> Self{
         Self { role, id }
     }
-    pub async fn get_students(
+   pub async fn get_students(
         &self,
         pool: web::Data<MySqlPool>,
         filter: Option<UserFilter>,
@@ -379,10 +379,51 @@ Role::student => {
         let base_url = env::var("BASE_URL").expect("BASE_URL must be set");
         let url = format!("{}/uploads/profile_pictures/{}", base_url, photo_filename);
         Ok(url)
-
+    }
+    pub async fn get_messages(&self, pool: &MySqlPool, filter: Option<MessageFilter>) -> Result<Vec<Message>, sqlx::Error> {
+        let mut query = QueryBuilder::new("SELECT * FROM messages m JOIN message_courses mc ON mc.message_id = m.id ");
+        match self.role {
+            Role::student => {
+                query.push("JOIN users u ON u.course_id = mc.course_id WHERE u.id = ?");
+                query.push_bind(self.id);
+            }
+            Role::admin => {
+                query.push("WHERE 1=1");
+            }
+            Role::father => {
+                query.push("JOIN users u ON u.course_id = mc.course_id JOIN families f ON f.student_id = u.id WHERE f.father_id = ?");
+                query.push_bind(self.id);
+            }
+            Role::teacher => {
+                query.push("JOIN subjects s ON mc.course_id = s.course_id WHERE s.teacher_id = ?");
+                query.push_bind(self.id);
+            }
+            Role::preceptor => {
+                query.push("JOIN courses c ON mc.course_id = c.id WHERE c.preceptor_id = ?");
+                query.push_bind(self.id);
+            }
+        };
+        if let Some(f) = filter {
+            if let Some(c) = f.course_id {
+                query.push(" AND mc.course_id = ?");
+                query.push_bind(c);
+            }
+            if let Some(s) = f.sender_id {
+                query.push(" AND m.sender_id = ?");
+                query.push_bind(s);
+            }
+            if let Some(t) = f.title {
+                query.push(" AND m.title LIKE ?");
+                query.push_bind(format!("%{}%", t));
+            }
+        }
+    let res = query
+        .build_query_as()
+        .fetch_all(pool)
+        .await;
+    res
     }
 }
-
 
 
 #[derive(Serialize,Deserialize, FromRow)]
