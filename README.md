@@ -1,113 +1,190 @@
-# goschool
 
-# como usar el ./create_database.py
-<code>python3 create_database.py delete_tables</code>
-<code>python3 create_database.py create_all</code>
+# 🎓 goschool
 
-el create_all tambien crea la clave rsa para el jwt
+![Logo](https://img.icons8.com/ios-filled/100/000000/classroom.png)
 
-## usuarios
-admin: admin
-<br>
-student: student
-<br>
-father: father
-<br>
-teacher: teacher
-<br>
-preceptor: preceptor
+**goschool** es un sistema de gestión escolar que permite administrar usuarios, cursos, materias, evaluaciones, tareas, mensajes y más, todo desde una interfaz segura y práctica.
 
+---
 
-# endpoints
+## 🚀 Instalación y Base de Datos
 
+```bash
+# 🧹 Eliminar todas las tablas
+python3 create_database.py delete_tables
 
-## verify token 
-<code>curl -v -X GET "http://localhost:8080/api/v1/verify_token/" -b "jwt={json web token}"</code>
+# 🏗️ Crear todas las tablas y claves JWT
+python3 create_database.py create_all
+```
 
+---
 
-## get roles for login usa credenciales:
-<code>curl -X POST http://localhost:8080/api/v1/get_roles/ -H "Content-Type: application/json" -d '{"email": "admin", "password": "admin"}'</code>
+## 👥 Usuarios de prueba
 
-## login:
-<code>curl -v -X POST http://localhost:8080/api/v1/login/ -H "Content-Type: application/json" -d '{"email": "father", "password": "father", "role": "father"}'</code>
+| Rol        | Usuario     | Contraseña |
+|------------|-------------|------------|
+| Admin      | `admin`     | `admin`    |
+| Estudiante | `student`   | `student`  |
+| Padre      | `father`    | `father`   |
+| Profesor   | `teacher`   | `teacher`  |
+| Preceptor  | `preceptor` | `preceptor`|
 
-## logout:
-<code>curl -v -X POST "http://localhost:8080/api/v1/logout/"</code>
+---
 
-## obtener el role usa jwt:
-<code>curl -v -X GET "http://localhost:8080/api/v1/get_role/"</code>
+## 🔐 Autenticación y Roles
 
-## subir la foto de perfil: 
-<code>curl -v -X POST "http://localhost:8080/api/v1/upload_profile_picture/" -b "jwt={json web token}" -F "image=@{image.path}"</code>
+```bash
+# 🔑 Login
+curl -X POST http://localhost:8080/api/v1/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "usuario", "password": "clave", "role": "rol"}'
 
-## obtener link de la foto:
-<code>curl -v -X GET "http://localhost:8080/api/v1/get_profile_picture/" -b "jwt={json web token}"</code>
+# 🧩 Obtener roles de un usuario
+curl -X POST http://localhost:8080/api/v1/roles/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "usuario", "password": "clave"}'
+```
 
-## crear una evaluacion:
-<code>curl -v -X POST http://localhost:8080/api/v1/create_assessment/ -H "Content-Type: application/json" H "Cookie: jwt={json web token}" -d '{
+---
+
+## 🏫 Cursos y Materias
+
+```bash
+# 📖 Listar cursos
+curl -X GET http://localhost:8080/api/v1/courses/ -b "jwt={jwt}"
+
+# 📚 Listar materias
+curl -X GET http://localhost:8080/api/v1/subjetcs/ -b "jwt={jwt}"
+# (Nota: endpoint con typo: 'subjetcs' en lugar de 'subjects')
+```
+
+---
+
+## 📝 Evaluaciones
+
+```bash
+# 📋 Listar evaluaciones
+curl -X GET http://localhost:8080/api/v1/assessments/ -b "jwt={jwt}"
+
+# ➕ Crear evaluación
+curl -X POST http://localhost:8080/api/v1/assessments/ \
+  -H "Content-Type: application/json" \
+  -b "jwt={jwt}" \
+  -d '{
     "newtask": {
-        "subject": 1,
-        "task": "exposicion oral",
-        "due_date": "2025-05-30",
-        "type": "oral"
+      "subject": 1,
+      "task": "nombre de la evaluación",
+      "due_date": "2025-06-01",
+      "type": "oral"
     }
-}'</code>
+  }'
 
-
-## crear un autoevaluable:
-<p>se puede agregar incorrect3 e incorrect4 tambien se puede elimiar el incorrect2</p>
-<br>
-
-<code>curl -v -X POST http://localhost:8080/api/v1/create_assessment/ -H "Content-Type: application/json" -H "Cookie: jwt={json web token}" -d '{
+# 🤓 Crear autoevaluable
+curl -X POST http://localhost:8080/api/v1/assessments/ \
+  -H "Content-Type: application/json" \
+  -b "jwt={jwt}" \
+  -d '{
     "newtask": {
-        "subject": 1,
-        "task": "el autoevaluable",
-        "due_date": "2025-05-30",
-        "type": "selfassessable"
+      "subject": 1,
+      "task": "autoevaluable",
+      "due_date": "2025-06-01",
+      "type": "selfassessable"
     },
     "newselfassessable": {
-        "questions": ["What is 2+2?", "What is the capital of France?"],
-        "correct": ["4", "Paris"],    
-        "incorrect1": ["3", "London"],
-        "incorrect2": ["5", "Berlin"]
-        }
-}'</code>
+      "questions": ["Pregunta 1", "Pregunta 2"],
+      "correct": ["Respuesta1", "Respuesta2"],
+      "incorrect1": ["Opción1", "Opción2"],
+      "incorrect2": ["Opción3", "Opción4"]
+    }
+  }'
 
-## subir una respuesta a un autoevaluable:
-<code>curl -v -X POST http://localhost:8080/api/v1/create_selfassessable_submission/ -H "Content-Type: application/json" -b "jwt={json web token}" -d '{
-    "assessment_id":1,
-    "answers": ["4","London"]
-}'</code>
+# ✅ Responder autoevaluable
+curl -X POST http://localhost:8080/api/v1/create_selfassessable_submission/ \
+  -H "Content-Type: application/json" \
+  -b "jwt={jwt}" \
+  -d '{"assessment_id":1,"answers":["respuesta1","respuesta2"]}'
+```
 
-## subir una respuesta a una tarea previamente creada por un profesor:
-<code>curl -v http://localhost:8080/api/v1/create_submission/ -H "Cookie: jwt={json web token}" -F "homework=@test.pdf" -F "homework_id=1"</code>
+---
 
-## subir una nota:
-<code>curl -v -X POST http://localhost:8080/api/v1/assign_grade/ -H "Content-Type: application/json" -b "jwt={json web token}" -d '{
+## 🏆 Notas
+
+```bash
+# 📊 Listar notas
+curl -X GET http://localhost:8080/api/v1/grades/ -b "jwt={jwt}"
+
+# 📝 Cargar una nota
+curl -X POST http://localhost:8080/api/v1/grades/ \
+  -H "Content-Type: application/json" \
+  -b "jwt={jwt}" \
+  -d '{
     "subject": 1,
-    "assessment_id": 1, # en caso de no tener una evauliacion de referencia usar "null", ejemplo nota de comportamineto
+    "assessment_id": 1,
     "student_id": 2,
     "grade_type": "numerical",
-    "description": "prueba de integrales y derivadas",
-    "grade": 4.5
-  }'</code>
+    "description": "descripcion de la nota",
+    "grade": 7.5
+  }'
+```
 
-## obtener las evaluaciones de un alumno (en caso de no tener id osea referenciarse a uno mismo poner 0 en el id):
-<code>curl -v http://localhost:8080/api/v1/get_student_assessments_by_id/{user_id}/ -G --data-urlencode "subject_id=1" --data-urlencode "task=2+2" --data-urlencode "due=true"</code>
-importante en caso de no querer filtar eliminar el parametro de la url
+---
 
-## obtener las notas de un alumno (en caso de no tener id osea referenciarse a uno mismo poner 0 en el id):
-<code>curl -v -G "http://localhost:8080/api/v1/get_student_grades_by_id/{user_id}/" --data-urlencode "subject_id=1" --data-urlencode "description=prueba" -b "jwt={json web token}"</code>
+## 🗂️ Datos personales
 
-## obtener la informacion personal (full_name, birth_date, address, phone_number)
-<code>curl -v -X GET "http://localhost:8080/api/v1/get_personal_data/" -b "jwt={json web token}"</code>
+```bash
+# 👤 Obtener datos personales
+curl -X GET http://localhost:8080/api/v1/personal_data/ -b "jwt={jwt}"
+```
 
-## crear un mensaje:
-<code>curl -v -X POST "http://localhost:8080/api/v1/post_message/" -H "Content-Type: application/json" -H "Cookie: jwt={json web token}"-d '{
-    "title": "title",
-    "message": "message",
-    "courses": "34,35,36"
-}'</code>
+---
 
-## obtener los mensajes: 
-<code>curl -v -X GET "http://localhost:8080/api/v1/get_messages/0/" -b "jwt={json web token}"</code>
+## 📸 Foto de perfil y Archivos
+
+```bash
+# 📷 Subir foto de perfil
+curl -X POST http://localhost:8080/api/v1/upload_profile_picture/ \
+  -b "jwt={jwt}" -F "image=@ruta/imagen.jpg"
+
+# 🖼️ Obtener link de la foto de perfil
+curl -X GET http://localhost:8080/api/v1/get_profile_picture/ -b "jwt={jwt}"
+
+# 📑 Subir tarea (homework)
+curl -X POST http://localhost:8080/api/v1/create_submission/ \
+  -H "Cookie: jwt={jwt}" \
+  -F "homework=@archivo.pdf" -F "homework_id=1"
+```
+
+---
+
+## 💬 Mensajes internos
+
+```bash
+# ✉️ Crear mensaje
+curl -X POST http://localhost:8080/api/v1/post_message/ \
+  -H "Content-Type: application/json" \
+  -H "Cookie: jwt={jwt}" \
+  -d '{"title":"Título","message":"Mensaje","courses":"34,35,36"}'
+
+# 📬 Obtener mensajes
+curl -X GET http://localhost:8080/api/v1/get_messages/0/ -b "jwt={jwt}"
+```
+
+---
+
+## 🛡️ Otros Endpoints útiles
+
+```bash
+# ✔️ Verificar token JWT
+curl -X GET "http://localhost:8080/api/v1/verify_token/" -b "jwt={jwt}"
+
+# 🔍 Obtener rol actual
+curl -X GET "http://localhost:8080/api/v1/get_role/" -b "jwt={jwt}"
+```
+
+---
+
+## ℹ️ Notas importantes
+
+- 🔄 Reemplaza `{jwt}` por el token JWT recibido tras iniciar sesión.
+- 🔐 Algunos endpoints requieren un rol específico para acceder.
+- 📖 Puedes consultar el código fuente para ver más detalles internos.
