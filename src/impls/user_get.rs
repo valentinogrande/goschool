@@ -176,6 +176,10 @@ Role::student => {
                 query.push(" AND s.teacher_id = ?");
                 query.push_bind(t);
             }
+            if let Some(i) = f.id {
+                query.push(" AND s.id = ?");
+                query.push_bind(i);
+            }
         }
         let res = query
             .build_query_as()

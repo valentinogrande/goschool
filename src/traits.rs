@@ -1,8 +1,9 @@
 use sqlx::MySqlPool;
 use actix_web::web;
+use anyhow::Result;
 
 use crate::filters::{GradeFilter, UserFilter, SubjectFilter, AssessmentFilter, MessageFilter};
-use crate::structs::{Assessment, Grade, Role, Subject, PersonalData, Message, Course};
+use crate::structs::{Assessment, Grade, Role, Subject, PersonalData, Message, Course, Payload}; 
 
 pub trait New {
     fn new(id: u64, role: Role) -> Self;
@@ -54,4 +55,14 @@ pub trait Get {
         &self,
         pool: &MySqlPool)
     -> Result<String, sqlx::Error>;
+}
+
+pub trait Post  {
+    async fn post_assessment(
+        &self,
+        pool: &MySqlPool,
+        payload: Payload,
+) -> Result<String>;
+
+
 }

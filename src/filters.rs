@@ -26,6 +26,18 @@ pub struct SubjectFilter {
     pub teacher_id: Option<u64>,
     pub course_id: Option<u64>,
     pub name: Option<String>,
+    pub id: Option<u64>,
+}
+
+impl SubjectFilter {
+    pub fn new() -> Self {
+        SubjectFilter {
+            teacher_id: None,
+            course_id: None,
+            name: None,
+            id: None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize)]
