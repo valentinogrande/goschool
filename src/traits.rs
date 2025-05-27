@@ -3,7 +3,7 @@ use actix_web::web;
 use anyhow::Result;
 
 use crate::filters::{GradeFilter, UserFilter, SubjectFilter, AssessmentFilter, MessageFilter};
-use crate::structs::{Assessment, Grade, Role, Subject, PersonalData, Message, Course, Payload}; 
+use crate::structs::{Assessment, Course, Grade, Message, NewGrade, Payload, PersonalData, Role, Subject}; 
 
 pub trait New {
     fn new(id: u64, role: Role) -> Self;
@@ -64,5 +64,10 @@ pub trait Post  {
         payload: Payload,
 ) -> Result<String>;
 
+    async fn post_grade(
+        &self,
+        pool: &MySqlPool,
+        grade: NewGrade,
+    ) -> Result<String>;
 
 }

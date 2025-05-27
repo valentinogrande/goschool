@@ -2,7 +2,7 @@ use sqlx::MySqlPool;
 use anyhow::Result;
 use futures::future::join_all;
 
-use crate::structs::{MySelf, Role, AssessmentType, Payload};
+use crate::structs::{MySelf, Role, AssessmentType, Payload, NewGrade};
 use crate::filters::SubjectFilter;
 use crate::traits::{Get, Post};
 
@@ -91,6 +91,104 @@ impl Post for MySelf {
                Err(_) => Err(anyhow::Error::msg("Database error")),
             }
         
+        }
+    }
+    async fn post_grade(
+            &self,
+            pool: &MySqlPool,
+            grade: NewGrade,
+        ) -> Result<String> {
+        match self.role {
+            Role::admin => {}
+            Role::teacher => {
+                let teacher_subject: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)")
+                .bind(self.id)
+                .bind(grade.subject)
+                .fetch_one(pool)
+                .await {
+                Ok(s) => s,
+                Err(_) => return Err(anyhow::Error::msg("Database error")),
+            };
+            if !teacher_subject {
+                return Err(anyhow::Error::msg("Unauthorized"));
+            }
+        }
+            _ => {return Err(anyhow::Error::msg("Unauthorized"))}
+        };
+        
+        let course = match sqlx::query_scalar::<_, u64>("SELECT course_id FROM subjects WHERE id = ?")
+            .bind(grade.subject)
+            .fetch_one(pool)
+            .await{
+            Ok(c) => c,
+            Err(_) => return Err(anyhow::Error::msg("Database error")),
+        };
+
+        let student_course: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id = ? AND course_id = ?)")
+            .bind(grade.student_id)
+            .bind(course)
+            .fetch_one(pool)
+            .await {
+            Ok(s) => s,
+            Err(_) => return Err(anyhow::Error::msg("Database error")),
+        };
+        if !student_course{
+            return Err(anyhow::Error::msg("Unauthorized"));
+        }
+    
+        if let Some(assessment_id) = grade.assessment_id{
+        
+            let assessment_verify: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM assessments WHERE id = ? AND subject_id = ?)")
+                .bind(assessment_id)
+                .bind(grade.subject)
+                .fetch_one(pool)
+                .await{
+                Ok(s) => s,
+                Err(_) => return Err(anyhow::Error::msg("Database error")),
+            };
+            if !assessment_verify{
+                return Err(anyhow::Error::msg("Unauthorized"));
+            }
+            let assessment_already_exixts: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM grades WHERE assessment_id = ? AND student_id = ? )")
+            .bind(assessment_id)
+            .bind(grade.student_id)
+            .fetch_one(pool)
+            .await {
+                Ok(s) => s,
+                Err(_) => return Err(anyhow::Error::msg("Database error")),
+            };
+            if assessment_already_exixts{
+                return Err(anyhow::Error::msg("Already exists"));
+            }
+            let result = sqlx::query("INSERT INTO grades (assessment_id, student_id, grade_type, description, grade, subject_id) VALUES (?, ?, ?, ?, ?, ?)")
+                .bind(assessment_id)
+                .bind(grade.student_id)
+                .bind(&grade.grade_type)
+                .bind(&grade.description)
+                .bind(grade.grade)
+                .bind(grade.subject)
+                .execute(pool)
+                .await;
+            if result.is_err() {
+                return Err(anyhow::Error::msg("Database error"));
+            }
+            else {
+                return Ok("grade created".to_string());
+            }
+        }
+         let result = sqlx::query("INSERT INTO grades (student_id, grade_type, description, grade, subject_id) VALUES (?, ?, ?, ?, ?)")
+            .bind(grade.student_id)
+            .bind(&grade.grade_type)
+            .bind(&grade.description)
+            .bind(grade.grade)
+            .bind(grade.subject)
+            .execute(pool)
+            .await;
+        if result.is_err() {
+            return Err(anyhow::Error::msg("Database error"));
+        }
+        else {
+            return Ok("grade created".to_string());
         }
     }
 }
