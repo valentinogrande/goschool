@@ -9,7 +9,6 @@ use std::fs;
 
 use crate::functions::cleanup_temp;
 use crate::structs::{MySelf, Role, AssessmentType, Payload, NewGrade, NewMessage};
-use crate::filters::SubjectFilter;
 use crate::traits::{Get, Post};
 
 impl Post for MySelf {
@@ -22,16 +21,18 @@ impl Post for MySelf {
         match self.role {
             Role::teacher => {
                 
-                let mut filter = SubjectFilter::new();
-                filter.id = Some(payload.newtask.subject);
-                
-                let subjects = match self.get_subjects(pool, Some(filter)).await{
-                    Ok(s) => s,
-                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
-                };
-                if subjects.is_empty() {
-                    return HttpResponse::Unauthorized().finish();
-                }
+                let teacher_subject: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)")
+                .bind(self.id)
+                .bind(payload.newtask.subject)
+                .fetch_one(pool)
+                .await {
+                Ok(s) => s,
+                Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+            };
+            if !teacher_subject {
+                return HttpResponse::Unauthorized().finish();
+            }
+
             }
             Role::admin => {}
             _ => {return HttpResponse::Unauthorized().finish()}
