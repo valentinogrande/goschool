@@ -2,7 +2,7 @@ use sqlx::MySqlPool;
 use anyhow::Result;
 use futures::future::join_all;
 
-use crate::structs::{MySelf, Role, AssessmentType, Payload, NewGrade};
+use crate::structs::{MySelf, Role, AssessmentType, Payload, NewGrade, NewMessage};
 use crate::filters::SubjectFilter;
 use crate::traits::{Get, Post};
 
@@ -190,5 +190,56 @@ impl Post for MySelf {
         else {
             return Ok("grade created".to_string());
         }
+    }
+    async fn post_message(
+            &self,
+            pool: &MySqlPool,
+            message: NewMessage,
+        ) -> Result<String> {
+        // cheking if courses are valid
+        let courses: Vec<u64> = message
+            .courses
+            .split(',')
+            .filter_map(|s| s.trim().parse::<u64>().ok())
+            .collect();
+        for course in courses.iter() {
+            if *course <= 0 || *course > 36 {
+                return Err(anyhow::Error::msg("Invalid course"));
+            } 
+        }
+
+        match self.role {
+            Role::admin => {}
+            Role::preceptor => {
+                let preceptor_courses: Vec<u64> = match self.get_courses(pool).await {
+                    Ok(c) => c.iter().map(|c| c.id).collect(),
+                    Err(e) => return Err(e.into()),
+                };
+                if !preceptor_courses.iter().all(|&course| courses.contains(&course)) {
+                    return Err(anyhow::Error::msg("Unauthorized"));
+                }
+            }
+            _ => {}
+            
+        };
+
+
+
+        let message_id = match sqlx::query("INSERT INTO messages (message, sender_id, title) VALUES (?, ?, ?)").bind(&message.message).bind(self.id).bind(&message.title).execute(pool).await {
+            Ok(ref result) => result.last_insert_id(),
+            Err(_) => return Err(anyhow::Error::msg("Database error")),
+        };
+
+        for course in courses.iter() {
+            let _insert_result = match sqlx::query("INSERT INTO message_courses (course_id, message_id) VALUES (?,?)")
+            .bind(course)
+            .bind(message_id)
+            .execute(pool)
+            .await {
+                Ok(r) =>  r,
+                Err(_) => return Err(anyhow::Error::msg("Database error")),
+            };
+        }
+        Ok("message created".to_string())
     }
 }
