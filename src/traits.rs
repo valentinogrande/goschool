@@ -1,6 +1,7 @@
 use sqlx::MySqlPool;
 use actix_web::{web, HttpResponse};
 use anyhow::Result;
+use actix_multipart::Multipart;
 
 use crate::filters::{GradeFilter, UserFilter, SubjectFilter, AssessmentFilter, MessageFilter};
 use crate::structs::{Assessment, Course, Grade, Message, NewGrade, NewMessage, Payload, PersonalData, Role, Subject}; 
@@ -74,9 +75,9 @@ pub trait Post  {
         pool: &MySqlPool,
         message: NewMessage,
     ) -> HttpResponse;
-    //async fn post_profile_picture(
-    //    &self,
-    //    pool: &MySqlPool,
-    //    task_submission: Multipart
-    //) -> impl Responder;
+    async fn post_profile_picture(
+        &self,
+        pool: &MySqlPool,
+        task_submission: Multipart
+    ) -> HttpResponse;
 }
