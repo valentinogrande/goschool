@@ -49,9 +49,6 @@ pub async fn post_assessment(
     };
 
     let user = token.claims.user;
-
-    match user.post_assessment(&pool, payload.into_inner()).await {
-        Ok(m) => HttpResponse::Ok().json(m),
-        Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
-    }
+    
+    user.post_assessment(&pool, payload.into_inner()).await
 }

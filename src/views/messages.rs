@@ -50,8 +50,5 @@ pub async fn post_message(
 
     let user = token.claims.user;
 
-    match user.post_message(&pool, message.into_inner()).await {
-        Ok(m) => HttpResponse::Ok().json(m),
-        Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
-    }
+    user.post_message(&pool, message.into_inner()).await
 }

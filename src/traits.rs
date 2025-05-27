@@ -1,5 +1,5 @@
 use sqlx::MySqlPool;
-use actix_web::web;
+use actix_web::{web, HttpResponse};
 use anyhow::Result;
 
 use crate::filters::{GradeFilter, UserFilter, SubjectFilter, AssessmentFilter, MessageFilter};
@@ -62,16 +62,21 @@ pub trait Post  {
         &self,
         pool: &MySqlPool,
         payload: Payload,
-) -> Result<String>;
+) -> HttpResponse;
 
     async fn post_grade(
         &self,
         pool: &MySqlPool,
         grade: NewGrade,
-    ) -> Result<String>;
+    ) -> HttpResponse;
     async fn post_message(
         &self,
         pool: &MySqlPool,
         message: NewMessage,
-    ) -> Result<String>;
+    ) -> HttpResponse;
+    //async fn post_profile_picture(
+    //    &self,
+    //    pool: &MySqlPool,
+    //    task_submission: Multipart
+    //) -> impl Responder;
 }

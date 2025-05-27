@@ -51,8 +51,5 @@ pub async fn post_grade(
     
     let user = token.claims.user;
     
-    match user.post_grade(&pool, grade.into_inner()).await {
-        Ok(m) => HttpResponse::Ok().json(m),
-        Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
-    }
+    user.post_grade(&pool, grade.into_inner()).await
 }

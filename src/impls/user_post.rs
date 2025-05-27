@@ -1,5 +1,5 @@
+use actix_web::HttpResponse;
 use sqlx::MySqlPool;
-use anyhow::Result;
 use futures::future::join_all;
 
 use crate::structs::{MySelf, Role, AssessmentType, Payload, NewGrade, NewMessage};
@@ -11,7 +11,7 @@ impl Post for MySelf {
         &self,
         pool: &MySqlPool,
         payload: Payload,
-    ) -> Result<String> {
+    ) -> HttpResponse {
 
         match self.role {
             Role::teacher => {
@@ -21,14 +21,14 @@ impl Post for MySelf {
                 
                 let subjects = match self.get_subjects(pool, Some(filter)).await{
                     Ok(s) => s,
-                    Err(e) => return Err(e.into()),
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
                 };
                 if subjects.is_empty() {
-                    return Err(anyhow::Error::msg("Unauthorized"));
+                    return HttpResponse::Unauthorized().finish();
                 }
             }
             Role::admin => {}
-            _ => {return Err(anyhow::Error::msg("Unauthorized"))}
+            _ => {return HttpResponse::Unauthorized().finish()}
         };
 
 
@@ -36,11 +36,11 @@ impl Post for MySelf {
         
             let selfassessable = match &payload.newselfassessable {
                 Some(a) => a,
-                None => return Err(anyhow::Error::msg("Missing selfassessable")),
+                None => return HttpResponse::BadRequest().json("Missing selfassessable"),
             };
 
             if !(selfassessable.validate()){
-                return Err(anyhow::Error::msg("Invalid selfassessable"));
+                return HttpResponse::BadRequest().json("Invalid selfassessable");
             }
 
             let insert_result = match sqlx::query("INSERT INTO assessments (task, subject_id, type, due_date) VALUES (?, ?, ?, ?)")
@@ -52,13 +52,13 @@ impl Post for MySelf {
             .await
         {
             Ok(res) => res,
-            Err(_) => return Err(anyhow::Error::msg("Database error")),
+            Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
         };
             let assessment_id = insert_result.last_insert_id();
         
             let assessable = match sqlx::query("INSERT INTO selfassessables (assessment_id) VALUES (?)").bind(assessment_id).execute(pool).await {
                 Ok(r)=>r,
-                Err(_)=>return Err(anyhow::Error::msg("Database error")),
+                Err(e)=>return HttpResponse::InternalServerError().json(e.to_string()),
             };
             let assessable_id = assessable.last_insert_id();
             let mut queries = selfassessable.generate_query(assessable_id);
@@ -71,11 +71,11 @@ impl Post for MySelf {
             for res in results {
                 match res {
                     Ok(_) => {},
-                    Err(e) => return Err(anyhow::Error::msg(e.to_string())),
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
                 }
             }
 
-            return Ok("selfassessable created".to_string())
+            return HttpResponse::Created().finish();
         } else{
 
             let insert_result = sqlx::query("INSERT INTO assessments (task, subject_id, type, due_date) VALUES (?, ?, ?, ?)")
@@ -87,8 +87,8 @@ impl Post for MySelf {
             .await;
 
             match insert_result {
-               Ok(_) => Ok("assessment created".to_string()),
-               Err(_) => Err(anyhow::Error::msg("Database error")),
+               Ok(_) => HttpResponse::Created().finish(),
+               Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
             }
         
         }
@@ -97,7 +97,7 @@ impl Post for MySelf {
             &self,
             pool: &MySqlPool,
             grade: NewGrade,
-        ) -> Result<String> {
+        ) -> HttpResponse {
         match self.role {
             Role::admin => {}
             Role::teacher => {
@@ -107,13 +107,13 @@ impl Post for MySelf {
                 .fetch_one(pool)
                 .await {
                 Ok(s) => s,
-                Err(_) => return Err(anyhow::Error::msg("Database error")),
+                Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
             };
             if !teacher_subject {
-                return Err(anyhow::Error::msg("Unauthorized"));
+                return HttpResponse::Unauthorized().finish();
             }
         }
-            _ => {return Err(anyhow::Error::msg("Unauthorized"))}
+            _ => {return HttpResponse::Unauthorized().finish()}
         };
         
         let course = match sqlx::query_scalar::<_, u64>("SELECT course_id FROM subjects WHERE id = ?")
@@ -121,7 +121,7 @@ impl Post for MySelf {
             .fetch_one(pool)
             .await{
             Ok(c) => c,
-            Err(_) => return Err(anyhow::Error::msg("Database error")),
+            Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
         };
 
         let student_course: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id = ? AND course_id = ?)")
@@ -130,10 +130,10 @@ impl Post for MySelf {
             .fetch_one(pool)
             .await {
             Ok(s) => s,
-            Err(_) => return Err(anyhow::Error::msg("Database error")),
+            Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
         };
         if !student_course{
-            return Err(anyhow::Error::msg("Unauthorized"));
+            return HttpResponse::Unauthorized().finish();
         }
     
         if let Some(assessment_id) = grade.assessment_id{
@@ -144,10 +144,10 @@ impl Post for MySelf {
                 .fetch_one(pool)
                 .await{
                 Ok(s) => s,
-                Err(_) => return Err(anyhow::Error::msg("Database error")),
+                Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
             };
             if !assessment_verify{
-                return Err(anyhow::Error::msg("Unauthorized"));
+                return HttpResponse::Unauthorized().finish();
             }
             let assessment_already_exixts: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM grades WHERE assessment_id = ? AND student_id = ? )")
             .bind(assessment_id)
@@ -155,10 +155,10 @@ impl Post for MySelf {
             .fetch_one(pool)
             .await {
                 Ok(s) => s,
-                Err(_) => return Err(anyhow::Error::msg("Database error")),
+                Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
             };
             if assessment_already_exixts{
-                return Err(anyhow::Error::msg("Already exists"));
+                return HttpResponse::Unauthorized().finish();
             }
             let result = sqlx::query("INSERT INTO grades (assessment_id, student_id, grade_type, description, grade, subject_id) VALUES (?, ?, ?, ?, ?, ?)")
                 .bind(assessment_id)
@@ -170,10 +170,10 @@ impl Post for MySelf {
                 .execute(pool)
                 .await;
             if result.is_err() {
-                return Err(anyhow::Error::msg("Database error"));
+                return HttpResponse::InternalServerError().finish();
             }
             else {
-                return Ok("grade created".to_string());
+                return HttpResponse::Created().finish();
             }
         }
          let result = sqlx::query("INSERT INTO grades (student_id, grade_type, description, grade, subject_id) VALUES (?, ?, ?, ?, ?)")
@@ -185,17 +185,17 @@ impl Post for MySelf {
             .execute(pool)
             .await;
         if result.is_err() {
-            return Err(anyhow::Error::msg("Database error"));
+            return HttpResponse::InternalServerError().finish();
         }
         else {
-            return Ok("grade created".to_string());
+            return HttpResponse::Created().finish();
         }
     }
     async fn post_message(
             &self,
             pool: &MySqlPool,
             message: NewMessage,
-        ) -> Result<String> {
+        ) -> HttpResponse {
         // cheking if courses are valid
         let courses: Vec<u64> = message
             .courses
@@ -204,7 +204,7 @@ impl Post for MySelf {
             .collect();
         for course in courses.iter() {
             if *course <= 0 || *course > 36 {
-                return Err(anyhow::Error::msg("Invalid course"));
+                return HttpResponse::BadRequest().json("Invalid courses");
             } 
         }
 
@@ -213,21 +213,19 @@ impl Post for MySelf {
             Role::preceptor => {
                 let preceptor_courses: Vec<u64> = match self.get_courses(pool).await {
                     Ok(c) => c.iter().map(|c| c.id).collect(),
-                    Err(e) => return Err(e.into()),
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
                 };
                 if !preceptor_courses.iter().all(|&course| courses.contains(&course)) {
-                    return Err(anyhow::Error::msg("Unauthorized"));
+                    return HttpResponse::Unauthorized().finish();
                 }
             }
             _ => {}
             
         };
 
-
-
         let message_id = match sqlx::query("INSERT INTO messages (message, sender_id, title) VALUES (?, ?, ?)").bind(&message.message).bind(self.id).bind(&message.title).execute(pool).await {
             Ok(ref result) => result.last_insert_id(),
-            Err(_) => return Err(anyhow::Error::msg("Database error")),
+            Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
         };
 
         for course in courses.iter() {
@@ -237,9 +235,10 @@ impl Post for MySelf {
             .execute(pool)
             .await {
                 Ok(r) =>  r,
-                Err(_) => return Err(anyhow::Error::msg("Database error")),
+                Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
             };
         }
-        Ok("message created".to_string())
+        HttpResponse::Created().finish()
     }
+
 }
