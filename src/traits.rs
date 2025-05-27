@@ -80,4 +80,9 @@ pub trait Post  {
         pool: &MySqlPool,
         task_submission: Multipart
     ) -> HttpResponse;
+    async fn post_submission(
+        &self,
+        pool: &MySqlPool,
+        task_submission: Multipart
+    ) -> HttpResponse;
 }
