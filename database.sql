@@ -130,6 +130,15 @@ CREATE TABLE IF NOT EXISTS selfassessable_submissions (
   FOREIGN KEY (student_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS selfassessable_pending_grades (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  selfassessable_id BIGINT UNSIGNED NOT NULL,
+  student_id BIGINT UNSIGNED NOT NULL,
+  grade DECIMAL(5,2) NOT NULL,
+  FOREIGN KEY (selfassessable_id) REFERENCES selfassessables(id),
+  FOREIGN KEY (student_id) REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS assistance (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   student_id BIGINT UNSIGNED NOT NULL,

@@ -13,4 +13,4 @@ pub mod courses;
 pub mod students;
 pub mod subjects;
 pub mod submissions;
-//pub mod selfassessables;
+pub mod selfassessables;

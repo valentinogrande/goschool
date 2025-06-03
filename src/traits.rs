@@ -3,8 +3,8 @@ use actix_web::{web, HttpResponse};
 use anyhow::Result;
 use actix_multipart::Multipart;
 
-use crate::filters::{GradeFilter, UserFilter, SubjectFilter, AssessmentFilter, MessageFilter};
-use crate::structs::{Assessment, Course, Grade, Message, NewGrade, NewMessage, Payload, PersonalData, Role, Subject}; 
+use crate::filters::*;
+use crate::structs:: *;
 
 pub trait New {
     fn new(id: u64, role: Role) -> Self;
@@ -56,6 +56,16 @@ pub trait Get {
         &self,
         pool: &MySqlPool)
     -> Result<String, sqlx::Error>;
+    async fn get_selfassessables(
+        &self,
+        pool: &MySqlPool,
+        filter: Option<SelfassessableFilter>)
+    -> Result<Vec<Selfassessable>, sqlx::Error>;   
+    async fn get_selfassessables_responses(
+        &self,
+        pool: &MySqlPool,
+        filter: Option<SelfassessableFilter>)
+     -> Result<Vec<SelfassessableResponse>, sqlx::Error>;
 }
 
 pub trait Post  {
@@ -84,5 +94,10 @@ pub trait Post  {
         &self,
         pool: &MySqlPool,
         task_submission: Multipart
+    ) -> HttpResponse;
+    async fn post_submission_selfassessable(
+        &self,
+        pool: &MySqlPool,
+        task_submission: NewSubmissionSelfAssessable,
     ) -> HttpResponse;
 }

@@ -36,3 +36,8 @@ pub struct UserFilter {
     pub id: Option<u64>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub struct SelfassessableFilter {
+    pub id: Option<u64>,
+}
+

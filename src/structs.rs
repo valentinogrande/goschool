@@ -62,17 +62,25 @@ pub struct Assessment {
     pub type_: AssessmentType,
 }
 
-#[derive(Debug, Type, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+
+#[derive(sqlx::Type, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
 #[sqlx(type_name = "ENUM('exam','homework','project','oral','remedial','selfassessable')")]
 #[serde(rename_all = "lowercase")]
 pub enum AssessmentType {
+    #[sqlx(rename = "exam")]
     Exam,
+    #[sqlx(rename = "homework")]
     Homework,
+    #[sqlx(rename = "project")]
     Project,
+    #[sqlx(rename = "oral")]
     Oral,
+    #[sqlx(rename = "remedial")]
     Remedial,
+    #[sqlx(rename = "selfassessable")]
     Selfassessable,
 }
+
 
 #[derive(Debug, FromRow, Serialize)]
 pub struct Course {
@@ -124,7 +132,7 @@ pub struct NewMessage {
 
 #[derive(Debug, Type, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NewSubmissionSelfAssessable {
-    assessment_id: u64,
+    pub assessment_id: u64,
     answers: Vec<String>,
 }
 
@@ -136,6 +144,25 @@ pub struct NewSelfassessable {
     pub incorrect2: Option<Vec<String>>,
     pub incorrect3: Option<Vec<String>>,
     pub incorrect4: Option<Vec<String>>,
+}
+
+#[derive(Serialize, Deserialize, Debug, FromRow, Clone)]
+pub struct Selfassessable {
+    pub id: u64,
+    pub questions: String,
+    pub correct: String,
+    pub incorrect1: String,
+    pub incorrect2: Option<String>,
+    pub incorrect3: Option<String>,
+    pub incorrect4: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, FromRow, Clone)]
+pub struct SelfassessableResponse {
+    pub id: u64,
+    pub selfassessable_id: u64,
+    pub answers: String,
+    pub student_id:  u64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -175,15 +202,6 @@ pub struct Payload {
     pub newselfassessable: Option<NewSelfassessable>,
 }
 
-#[derive(Serialize, Deserialize, Debug, FromRow)]
-pub struct Selfassessable {
-    pub correct: String,
-    pub incorrect1: String,
-    pub incorrect2: Option<String>,
-    pub incorrect3: Option<String>,
-    pub incorrect4: Option<String>,
-}
-
 #[derive(Serialize, Deserialize, FromRow, Decode)]
 pub struct Subject {
     pub id: u64,
@@ -212,7 +230,7 @@ impl NewSubmissionSelfAssessable {
             r#"
             SELECT correct, incorrect1, incorrect2, incorrect3, incorrect4
               FROM selfassessable_tasks st
-              JOIN selfassessables s ON s.id = st.selfassessable_id
+             JOIN selfassessables s ON s.id = st.selfassessable_id
              WHERE s.assessment_id = ?
             "#,
         )

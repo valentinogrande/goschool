@@ -2,8 +2,8 @@ use sqlx::{MySqlPool, QueryBuilder};
 use actix_web::web;
 use chrono::Utc;
 use std::env;
-use crate::filters::{GradeFilter, UserFilter, SubjectFilter, AssessmentFilter, MessageFilter};
-use crate::structs::{Assessment, Grade, Role, Subject, PersonalData, Message, Course, MySelf};
+use crate::filters::{AssessmentFilter, GradeFilter, MessageFilter, SelfassessableFilter, SubjectFilter, UserFilter};
+use crate::structs::{Assessment, Course, Grade, Message, MySelf, PersonalData, Role, Selfassessable, Subject, SelfassessableResponse};
 use crate::traits::Get;
 
 impl Get for MySelf{
@@ -402,5 +402,70 @@ Role::student => {
         .fetch_all(pool)
         .await;
     res
+    }
+    async fn get_selfassessables(
+            &self,
+            pool: &MySqlPool,
+            filter: Option<SelfassessableFilter>)
+        -> anyhow::Result<Vec<crate::structs::Selfassessable>, sqlx::Error> {
+        
+        if self.role != Role::student {
+                return Err(sqlx::Error::Protocol(
+                    "Only students can get selfassessables".into(),
+                ));
+            }
+
+            let mut query_builder = QueryBuilder::new(
+                "SELECT s.* FROM selfassessables_tasks st
+                 JOIN selfassessables s ON s.id = st.selfassessable_id 
+                 JOIN assessments a ON a.id = s.assessment_id
+                 JOIN subjects sj ON sj.id = a.subject_id
+                 JOIN users u ON u.course_id = sj.course_id
+                 WHERE u.id = ? ",
+            );
+
+            query_builder.push_bind(self.id);
+            
+            if let Some(f) = filter {
+                if let Some(i) = f.id {
+                    query_builder.push(" AND s.id = ?");
+                    query_builder.push_bind(i);
+                }
+            } 
+
+            let query = query_builder.build_query_as::<Selfassessable>();
+
+            let selfassessables = query.fetch_all(pool).await?;
+
+            Ok(selfassessables)
+    }
+    async fn get_selfassessables_responses(
+            &self,
+            pool: &MySqlPool,
+            filter: Option<SelfassessableFilter>)
+         -> anyhow::Result<Vec<SelfassessableResponse>, sqlx::Error> {
+        
+        if self.role != Role::student {
+                return Err(sqlx::Error::Protocol(
+                    "Only students can get selfassessables".into(),
+                ));
+        }
+        
+        let mut query_builder = QueryBuilder::new("SELECT * FROM selfassessable_submissions WHERE student_id = ?");
+
+        query_builder.push_bind(self.id);
+
+        if let Some(f) = filter {
+            if let Some(i) = f.id {
+                query_builder.push(" AND selfassessable_id = ?");
+                query_builder.push_bind(i);
+            }
+        }
+
+        let query = query_builder.build_query_as::<SelfassessableResponse>();
+
+        let responses = query.fetch_all(pool).await?;
+
+        Ok(responses)
     }
 }

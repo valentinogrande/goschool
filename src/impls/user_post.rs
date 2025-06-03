@@ -8,7 +8,8 @@ use uuid::Uuid;
 use std::fs;
 
 use crate::functions::cleanup_temp;
-use crate::structs::{MySelf, Role, AssessmentType, Payload, NewGrade, NewMessage};
+use crate::structs::{MySelf, Role, AssessmentType, Payload, NewGrade, NewMessage, NewSubmissionSelfAssessable};
+use crate::filters::SelfassessableFilter;
 use crate::traits::{Get, Post};
 
 impl Post for MySelf {
@@ -568,6 +569,130 @@ impl Post for MySelf {
                 cleanup_temp(&temp_path);
                 return HttpResponse::BadRequest().body("Missing data");
             }
+        }
+    }
+    async fn post_submission_selfassessable(
+            &self,
+            pool: &MySqlPool,
+            task_submission: NewSubmissionSelfAssessable,
+        ) -> HttpResponse {
+        if self.role != Role::student {
+            return HttpResponse::Unauthorized().finish();
+        }
+
+        let user_course = match sqlx::query_scalar::<_, u64>(
+            "SELECT course_id FROM users WHERE id = ?"
+        )
+        .bind(self.id)
+        .fetch_one(pool)
+        .await {
+            Ok(course_id) => course_id,
+            Err(_) => return HttpResponse::InternalServerError().finish(),
+        };
+
+        let (assessment_type, subject_id): (String, u64) = match sqlx::query_as(
+            "SELECT type, subject_id FROM assessments WHERE id = ?"
+        )
+        .bind(task_submission.assessment_id)
+        .fetch_one(pool)
+        .await {
+            Ok(res) => res,
+            Err(_) => return HttpResponse::InternalServerError().finish(),
+        };
+
+        if assessment_type != "selfassessable" {
+            return HttpResponse::BadRequest().body("submission are only valid for selfassables");
+        }
+
+        let assessable_course = match sqlx::query_scalar::<_, u64>(
+            "SELECT course_id FROM subjects WHERE id = ?"
+        )
+        .bind(subject_id)
+        .fetch_one(pool)
+        .await {
+            Ok(course_id) => course_id,
+            Err(_) => return HttpResponse::InternalServerError().finish(),
+        };
+
+        if assessable_course != user_course {
+            return HttpResponse::Unauthorized().finish();
+        }
+
+        let selfassessable_id = match sqlx::query_scalar::<_, u64>(
+            "SELECT id FROM selfassessables WHERE assessment_id = ?"
+        )
+        .bind(task_submission.assessment_id)
+        .fetch_one(pool)
+        .await {
+            Ok(id) => id,
+            Err(_) => return HttpResponse::InternalServerError().finish(),
+        };
+
+        let already_exists = match sqlx::query_scalar::<_, bool>(
+            "SELECT EXISTS(SELECT 1 FROM selfassessable_submissions WHERE student_id = ? AND selfassessable_id = ?)"
+        )
+        .bind(self.id)
+        .bind(selfassessable_id)
+        .fetch_one(pool)
+        .await {
+            Ok(exists) => exists,
+            Err(_) => return HttpResponse::InternalServerError().finish(),
+        };
+
+        if already_exists {
+            return HttpResponse::BadRequest().body("You already submitted this homework");
+        }
+        
+        let answers = match task_submission.get_answers(&pool).await{
+            Ok(a) => a,
+            Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
+        };
+        
+        let filter = SelfassessableFilter {
+            id: Some(selfassessable_id),
+        };  
+
+        let assessable_task = match self.get_selfassessables(&pool, Some(filter)).await {
+            Ok(u) => u[0].clone(),
+            Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+        };
+
+        let corrects = assessable_task.correct.split(',').collect::<Vec<_>>();
+        let vec_answers = answers.split(',').collect::<Vec<_>>();
+
+        if (answers.len() != corrects.len()) || (answers.len() == 0 || corrects.len() == 0) {
+            return HttpResponse::InternalServerError().json("Invalid number of answers");
+        }
+
+        let mut grade = 0;
+
+        for (answer, correct) in vec_answers.iter().zip(corrects.iter()) {
+            if answer == correct {
+                grade += 1;
+            }
+        }
+        let percentage = grade as f64 / answers.len() as f64;
+        
+        let result = sqlx::query("INSERT INTO selfassessable_pending_grades (selfassessable_id, student_id, grade) VALUES (?, ?, ?)")
+            .bind(assessable_task.id)
+            .bind(self.id)
+            .bind(percentage)
+            .execute(pool)
+            .await;
+        if result.is_err() {
+            return HttpResponse::InternalServerError().finish();
+        }
+
+        match sqlx::query(
+            "INSERT INTO selfassessable_submissions (selfassessable_id, student_id, answers) VALUES (?, ?, ?)"
+        )
+        .bind(selfassessable_id)
+        .bind(self.id)
+        .bind(answers)
+        .execute(pool)
+        .await {
+            Ok(_) => HttpResponse::Created().finish(),
+            Err(_) => HttpResponse::InternalServerError().finish(),
         }
     }
 }
