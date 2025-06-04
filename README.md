@@ -31,7 +31,60 @@ python3 create_database.py create_all
 
 ---
 
+## 📘 Uso de Filtros en la API
+
+La mayoría de los endpoints de tipo GET aceptan filtros opcionales a través de la query string para refinar los resultados.
+🔎 Ejemplo de endpoint
+
+### Consulta de datos personales públicos:
+
+```bash
+ curl -X GET http://localhost:8080/api/v1/public_personal_data/ -b "jwt={jwt}"
+ ```
+
+### 🧰 Filtros disponibles (ejemplo en filters.rs)
+
+```rust
+ pub struct PersonalDataFilters {
+    pub course: Option<u64>,
+    pub name: Option<String>,
+    pub id: Option<u64>,
+} 
+```
+
+Puedes usarlos como parámetros en la URL.
+✅ Ejemplos de uso de filtros
+
+Filtrar por curso (course ID):
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/public_personal_data/?course=1" -b "jwt={jwt}"
+```
+
+Filtrar por curso y nombre:
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/public_personal_data/?course=1&name=pepe" -b "jwt={jwt}"
+```
+
+Filtrar por ID directamente:
+
+```bash
+curl -X GET "http://localhost:8080/api/v1/public_personal_data/?id=123" -b "jwt={jwt}"
+```
+
+## 📌 Notas
+
+    Todos los filtros son opcionales.
+
+    Puedes combinar varios filtros en una misma solicitud.
+
+    Los valores deben estar URL-encoded si contienen espacios u otros caracteres especiales.
+
+---
+
 ## 🔐 Autenticación y Roles
+
 
 ```bash
 # 🔑 Login
@@ -162,13 +215,13 @@ curl -X POST http://localhost:8080/api/v1/create_submission/ \
 
 ```bash
 # ✉️ Crear mensaje
-curl -X POST http://localhost:8080/api/v1/post_message/ \
+curl -X POST http://localhost:8080/api/v1/message/ \
   -H "Content-Type: application/json" \
   -H "Cookie: jwt={jwt}" \
   -d '{"title":"Título","message":"Mensaje","courses":"34,35,36"}'
 
 # 📬 Obtener mensajes
-curl -X GET http://localhost:8080/api/v1/get_messages/0/ -b "jwt={jwt}"
+curl -X GET http://localhost:8080/api/v1/messages/0/ -b "jwt={jwt}"
 ```
 
 ---
