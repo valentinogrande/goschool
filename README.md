@@ -45,7 +45,7 @@ La mayoría de los endpoints de tipo GET aceptan filtros opcionales a través de
 ### 🧰 Filtros disponibles (ejemplo en filters.rs)
 
 ```rust
- pub struct PersonalDataFilters {
+ pub struct UserFilters {
     pub course: Option<u64>,
     pub name: Option<String>,
     pub id: Option<u64>,
