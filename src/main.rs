@@ -14,10 +14,12 @@ mod filters;
 mod structs;
 mod functions;
 mod impls;
+mod cron;
 
 use jwt::Claims;
 
 use routes::register_services;
+use cron::start_cron_task;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -30,6 +32,11 @@ async fn main() -> std::io::Result<()> {
     let pool = MySqlPool::connect(&db_url)
         .await
         .expect("Failed to connect to database");
+
+    let pool_for_cron = pool.clone();
+    tokio::spawn(async move {
+        start_cron_task(pool_for_cron).await;
+    });
 
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let json_conf = json::json_config();

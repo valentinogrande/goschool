@@ -215,13 +215,13 @@ curl -X POST http://localhost:8080/api/v1/create_submission/ \
 
 ```bash
 # ✉️ Crear mensaje
-curl -X POST http://localhost:8080/api/v1/message/ \
+curl -X POST http://localhost:8080/api/v1/messages/ \
   -H "Content-Type: application/json" \
   -H "Cookie: jwt={jwt}" \
   -d '{"title":"Título","message":"Mensaje","courses":"34,35,36"}'
 
 # 📬 Obtener mensajes
-curl -X GET http://localhost:8080/api/v1/messages/0/ -b "jwt={jwt}"
+curl -X GET http://localhost:8080/api/v1/messages/ -b "jwt={jwt}"
 ```
 
 ---

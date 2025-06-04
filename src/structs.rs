@@ -83,6 +83,14 @@ pub enum AssessmentType {
 
 
 #[derive(Debug, FromRow, Serialize)]
+pub struct PendingSelfassessableGrade {
+    pub id: u64,
+    pub selfassessable_id: u64,
+    pub student_id: u64,
+    pub grade: Decimal,
+}
+
+#[derive(Debug, FromRow, Serialize)]
 pub struct Course {
     pub id: u64,
     pub year: i32,
@@ -133,7 +141,7 @@ pub struct NewMessage {
 #[derive(Debug, Type, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NewSubmissionSelfAssessable {
     pub assessment_id: u64,
-    answers: Vec<String>,
+    pub answers: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -149,7 +157,7 @@ pub struct NewSelfassessable {
 #[derive(Serialize, Deserialize, Debug, FromRow, Clone)]
 pub struct Selfassessable {
     pub id: u64,
-    pub questions: String,
+    pub question: String,
     pub correct: String,
     pub incorrect1: String,
     pub incorrect2: Option<String>,
@@ -224,48 +232,7 @@ pub enum Shift {
     Afternoon,
 }
 
-impl NewSubmissionSelfAssessable {
-    pub async fn get_answers(&self, pool: &MySqlPool) -> Result<String, sqlx::Error> {
-        let tasks: Vec<Selfassessable> = sqlx::query_as::<_, Selfassessable>(
-            r#"
-            SELECT correct, incorrect1, incorrect2, incorrect3, incorrect4
-              FROM selfassessable_tasks st
-             JOIN selfassessables s ON s.id = st.selfassessable_id
-             WHERE s.assessment_id = ?
-            "#,
-        )
-        .bind(self.assessment_id)
-        .fetch_all(pool)
-        .await?;
 
-        let mut indices = Vec::with_capacity(self.answers.len());
-
-        for (task, submitted) in tasks.iter().zip(&self.answers) {
-            let idx = if &task.correct == submitted {
-                1
-            } else if &task.incorrect1 == submitted {
-                2
-            } else if task.incorrect2.as_deref() == Some(submitted.as_str()) {
-                3
-            } else if task.incorrect3.as_deref() == Some(submitted.as_str()) {
-                4
-            } else if task.incorrect4.as_deref() == Some(submitted.as_str()) {
-                5
-            } else {
-                0
-            };
-            indices.push(idx);
-        }
-
-        let result = indices
-            .iter()
-            .map(|n| n.to_string())
-            .collect::<Vec<_>>()
-            .join(",");
-
-        Ok(result)
-    }
-}
 
 impl NewSelfassessable {
     pub fn validate(&self) -> bool {

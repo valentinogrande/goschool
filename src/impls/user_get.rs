@@ -3,7 +3,7 @@ use actix_web::web;
 use chrono::Utc;
 use std::env;
 use crate::filters::{AssessmentFilter, GradeFilter, MessageFilter, SelfassessableFilter, SubjectFilter, UserFilter};
-use crate::structs::{Assessment, Course, Grade, Message, MySelf, PersonalData, Role, Selfassessable, Subject, SelfassessableResponse};
+use crate::structs::{Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData, Role, Selfassessable, SelfassessableResponse, Subject};
 use crate::traits::Get;
 
 impl Get for MySelf{
@@ -19,7 +19,7 @@ impl Get for MySelf{
             Role::teacher => {
                 query.push("JOIN courses c ON users.course_id = c.id ");
                 query.push("JOIN subjects s ON s.course_id = c.id ");
-                query.push("WHERE s.teacher_id = ?");
+                query.push("WHERE s.teacher_id = ");
                 query.push_bind(self.id);
             }
 Role::student => {
@@ -27,12 +27,12 @@ Role::student => {
             }
             Role::preceptor => {
                 query.push("JOIN courses c ON users.course_id = c.id ");
-                query.push("WHERE c.preceptor_id = ?");
+                query.push("WHERE c.preceptor_id = ");
                 query.push_bind(self.id);
             }
             Role::father => {
                 query.push("JOIN families f ON f.student_id = users.id ");
-                query.push("WHERE f.father_id = ?");
+                query.push("WHERE f.father_id = ");
                 query.push_bind(self.id);
             }
             Role::admin => {
@@ -41,12 +41,12 @@ Role::student => {
         }
         if let Some(f) = filter {
             if let Some(c) = f.course {
-                query.push(" AND users.course_id = ?");
+                query.push(" AND users.course_id = ");
                 query.push_bind(c);
             }
 
             if let Some(n) = f.name {
-                query.push(" AND EXISTS (SELECT 1 FROM personal_data pd WHERE pd.user_id = users.id AND pd.full_name LIKE ?)");
+                query.push(" AND EXISTS (SELECT 1 FROM personal_data pd WHERE pd.user_id = users.id AND pd.full_name LIKE )");
                 query.push_bind(format!("%{}%", n));
             }
         }
@@ -62,22 +62,22 @@ Role::student => {
         let mut query = QueryBuilder::new("SELECT * FROM courses c ");
         match self.role {
             Role::student => {
-                query.push("JOIN users u ON c.id = u.course_id WHERE u.id = ?");
+                query.push("JOIN users u ON c.id = u.course_id WHERE u.id = ");
                 query.push_bind(self.id);
             },
             Role::admin => {
                 query.push("WHERE 1=1");
             },
             Role::preceptor => {
-                query.push("WHERE preceptor_id = ?");
+                query.push("WHERE preceptor_id = ");
                 query.push_bind(self.id);
             },
             Role::father => {
-                query.push("JOIN users u ON c.id = u.course_id JOIN families f ON f.student_id = u.id WHERE f.father_id = ?");
+                query.push("JOIN users u ON c.id = u.course_id JOIN families f ON f.student_id = u.id WHERE f.father_id = ");
                 query.push_bind(self.id);
             },
             Role::teacher => {
-                query.push("JOIN subjects s ON c.id = s.course_id WHERE s.teacher_id = ?");
+                query.push("JOIN subjects s ON c.id = s.course_id WHERE s.teacher_id = ");
                 query.push_bind(self.id);
             },
         };
@@ -114,15 +114,15 @@ Role::student => {
         };
         if let Some(f) = filter {
             if let Some(c) = f.student_id {
-                query.push(" AND student_id = ?");
+                query.push(" AND student_id = ");
                 query.push_bind(c);
             }
             if let Some(s) = f.subject_id {
-                query.push(" AND subject_id = ?");
+                query.push(" AND subject_id = ");
                 query.push_bind(s);
             }
             if let Some(d) = f.description {
-                query.push(" AND description = ?");
+                query.push(" AND description = ");
                 query.push_bind(d);
             }
         }
@@ -165,19 +165,19 @@ Role::student => {
         };
         if let Some(f) = filter {
             if let Some(c) = f.course_id {
-                query.push(" AND s.course_id = ?");
+                query.push(" AND s.course_id = ");
                 query.push_bind(c);
             }
             if let Some(n) = f.name {
-                query.push(" AND s.name LIKE ?");
+                query.push(" AND s.name LIKE ");
                 query.push_bind(n);
             }
             if let Some(t) = f.teacher_id {
-                query.push(" AND s.teacher_id = ?");
+                query.push(" AND s.teacher_id = ");
                 query.push_bind(t);
             }
             if let Some(i) = f.id {
-                query.push(" AND s.id = ?");
+                query.push(" AND s.id = ");
                 query.push_bind(i);
             }
         }
@@ -210,7 +210,7 @@ Role::student => {
                     "SELECT s.id FROM subjects s
                      JOIN users u ON s.course_id = u.course_id
                      JOIN families f ON f.student_id = u.id
-                     WHERE f.father_id = ?"
+                     WHERE f.father_id = "
                 )
                 .bind(self.id)
                 .fetch_all(pool)
@@ -231,7 +231,7 @@ Role::student => {
                 let subjects: Vec<u64> = sqlx::query_scalar(
                     "SELECT s.id FROM subjects s
                      JOIN users u ON s.course_id = u.course_id
-                     WHERE u.id = ?"
+                     WHERE u.id = "
                 )
                 .bind(self.id)
                 .fetch_all(pool)
@@ -252,7 +252,7 @@ Role::student => {
                 let subjects: Vec<u64> = sqlx::query_scalar(
                     "SELECT s.id FROM subjects s
                      JOIN courses c ON s.course_id = c.id
-                     WHERE c.preceptor_id = ?"
+                     WHERE c.preceptor_id = "
                 )
                 .bind(self.id)
                 .fetch_all(pool)
@@ -318,7 +318,7 @@ Role::student => {
             if let Some(due) = f.due {
                 if due {
                     let actual_date = Utc::now();
-                    query.push(" AND a.due_date >= ?");
+                    query.push(" AND a.due_date >= ");
                     query.push_bind(actual_date);
                 }
             }
@@ -339,7 +339,7 @@ Role::student => {
         res
     }
     async fn get_personal_data(&self, pool: &MySqlPool) -> Result<PersonalData, sqlx::Error> {
-        let res = sqlx::query_as("SELECT * FROM personal_data WHERE user_id = ?")
+        let res = sqlx::query_as("SELECT * FROM personal_data WHERE user_id = ")
             .bind(self.id)
             .fetch_one(pool)
             .await;
@@ -367,7 +367,7 @@ Role::student => {
         res
     }
     async fn get_profile_picture(&self, pool: &MySqlPool) -> Result<String, sqlx::Error> {
-        let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ?")
+        let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ")
         .bind(self.id)
         .fetch_optional(pool)
         .await
@@ -382,47 +382,50 @@ Role::student => {
         Ok(url)
     }
     async fn get_messages(&self, pool: &MySqlPool, filter: Option<MessageFilter>) -> Result<Vec<Message>, sqlx::Error> {
-        let mut query = QueryBuilder::new("SELECT * FROM messages m JOIN message_courses mc ON mc.message_id = m.id ");
+        let mut query = QueryBuilder::new(
+            "SELECT DISTINCT m.* FROM messages m
+             JOIN message_courses mc ON mc.message_id = m.id "
+        );
         match self.role {
             Role::student => {
-                query.push("JOIN users u ON u.course_id = mc.course_id WHERE u.id = ?");
+                query.push("JOIN users u ON u.course_id = mc.course_id WHERE u.id = ");
                 query.push_bind(self.id);
             }
             Role::admin => {
                 query.push("WHERE 1=1");
             }
             Role::father => {
-                query.push("JOIN users u ON u.course_id = mc.course_id JOIN families f ON f.student_id = u.id WHERE f.father_id = ?");
+                query.push("JOIN users u ON u.course_id = mc.course_id JOIN families f ON f.student_id = u.id WHERE f.father_id = ");
                 query.push_bind(self.id);
             }
             Role::teacher => {
-                query.push("JOIN subjects s ON mc.course_id = s.course_id WHERE s.teacher_id = ?");
+                query.push("JOIN subjects s ON mc.course_id = s.course_id WHERE s.teacher_id = ");
                 query.push_bind(self.id);
             }
             Role::preceptor => {
-                query.push("JOIN courses c ON mc.course_id = c.id WHERE c.preceptor_id = ?");
+                query.push("JOIN courses c ON mc.course_id = c.id WHERE c.preceptor_id = ");
                 query.push_bind(self.id);
             }
         };
         if let Some(f) = filter {
             if let Some(c) = f.course_id {
-                query.push(" AND mc.course_id = ?");
+                query.push(" AND mc.course_id = ");
                 query.push_bind(c);
             }
             if let Some(s) = f.sender_id {
-                query.push(" AND m.sender_id = ?");
+                query.push(" AND m.sender_id = ");
                 query.push_bind(s);
             }
             if let Some(t) = f.title {
-                query.push(" AND m.title LIKE ?");
+                query.push(" AND m.title LIKE ");
                 query.push_bind(format!("%{}%", t));
             }
         }
-    let res = query
-        .build_query_as()
-        .fetch_all(pool)
-        .await;
-    res
+        let res = query
+            .build_query_as()
+            .fetch_all(pool)
+            .await;
+        res
     }
     async fn get_selfassessables(
             &self,
@@ -437,19 +440,19 @@ Role::student => {
             }
 
             let mut query_builder = QueryBuilder::new(
-                "SELECT s.* FROM selfassessables_tasks st
+                "SELECT st.* FROM selfassessable_tasks st
                  JOIN selfassessables s ON s.id = st.selfassessable_id 
                  JOIN assessments a ON a.id = s.assessment_id
                  JOIN subjects sj ON sj.id = a.subject_id
                  JOIN users u ON u.course_id = sj.course_id
-                 WHERE u.id = ? ",
+                 WHERE u.id =  ",
             );
 
             query_builder.push_bind(self.id);
             
             if let Some(f) = filter {
                 if let Some(i) = f.id {
-                    query_builder.push(" AND s.id = ?");
+                    query_builder.push(" AND s.id = ");
                     query_builder.push_bind(i);
                 }
             } 
@@ -472,13 +475,13 @@ Role::student => {
                 ));
         }
         
-        let mut query_builder = QueryBuilder::new("SELECT * FROM selfassessable_submissions WHERE student_id = ?");
+        let mut query_builder = QueryBuilder::new("SELECT * FROM selfassessable_submissions WHERE student_id = ");
 
         query_builder.push_bind(self.id);
 
         if let Some(f) = filter {
             if let Some(i) = f.id {
-                query_builder.push(" AND selfassessable_id = ?");
+                query_builder.push(" AND selfassessable_id = ");
                 query_builder.push_bind(i);
             }
         }
@@ -488,5 +491,49 @@ Role::student => {
         let responses = query.fetch_all(pool).await?;
 
         Ok(responses)
+    }
+    async fn get_pending_selfassessables_grades(
+            &self,
+            pool: &MySqlPool,
+            filter: Option<SelfassessableFilter>)
+        -> anyhow::Result<Vec<PendingSelfassessableGrade>, sqlx::Error> {
+    
+        let mut query_builder = QueryBuilder::new(
+            "SELECT * FROM selfassessable_pending_grades pg"
+        );
+        match self.role {            
+            Role::student => {
+                return Err(sqlx::Error::Protocol(
+                    "Only teachers can get selfassessables grades".into(),
+                ));            }
+            Role::preceptor => {
+                return Err(sqlx::Error::Protocol(
+                    "Only teachers can get selfassessables grades".into(),
+                ));            }
+            Role::father => {
+                return Err(sqlx::Error::Protocol(
+                    "Only teachers can get selfassessables grades".into(),
+                ));            }
+            Role::teacher => {
+                query_builder.push(" JOIN selfassessables s ON s.id = pg.selfassessable_id JOIN assessments a ON a.id = s.assessment_id JOIN subjects sj ON sj.id = a.subject_id JOIN users u ON u.course_id = sj.course_id WHERE u.id = ");
+                query_builder.push_bind(self.id);
+            }
+            Role::admin => {
+                query_builder.push(" WHERE 1=1");
+            }
+        }
+
+        if let Some(f) = filter {
+            if let Some(i) = f.id {
+                query_builder.push(" AND selfassessable_id = ");
+                query_builder.push_bind(i);
+            }
+        }
+
+        let query = query_builder.build_query_as::<PendingSelfassessableGrade>();
+
+        let selfassessables = query.fetch_all(pool).await?;
+
+        Ok(selfassessables)
     }
 }

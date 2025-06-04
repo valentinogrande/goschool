@@ -643,10 +643,7 @@ impl Post for MySelf {
             return HttpResponse::BadRequest().body("You already submitted this homework");
         }
         
-        let answers = match task_submission.get_answers(&pool).await{
-            Ok(a) => a,
-            Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
-        };
+        let answers = task_submission.answers;
         
         let filter = SelfassessableFilter {
             id: Some(selfassessable_id),
@@ -658,15 +655,11 @@ impl Post for MySelf {
         };
 
         let corrects = assessable_task.correct.split(',').collect::<Vec<_>>();
-        let vec_answers = answers.split(',').collect::<Vec<_>>();
-
-        if (answers.len() != corrects.len()) || (answers.len() == 0 || corrects.len() == 0) {
-            return HttpResponse::InternalServerError().json("Invalid number of answers");
-        }
+        
 
         let mut grade = 0;
 
-        for (answer, correct) in vec_answers.iter().zip(corrects.iter()) {
+        for (answer, correct) in answers.iter().zip(corrects.iter()) {
             if answer == correct {
                 grade += 1;
             }
@@ -676,7 +669,7 @@ impl Post for MySelf {
         let result = sqlx::query("INSERT INTO selfassessable_pending_grades (selfassessable_id, student_id, grade) VALUES (?, ?, ?)")
             .bind(assessable_task.id)
             .bind(self.id)
-            .bind(percentage)
+            .bind(percentage * 10.0)
             .execute(pool)
             .await;
         if result.is_err() {
@@ -688,11 +681,12 @@ impl Post for MySelf {
         )
         .bind(selfassessable_id)
         .bind(self.id)
-        .bind(answers)
+        .bind(answers.join(","))
         .execute(pool)
         .await {
             Ok(_) => HttpResponse::Created().finish(),
             Err(_) => HttpResponse::InternalServerError().finish(),
         }
     }
+    
 }
