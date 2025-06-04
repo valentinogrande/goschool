@@ -345,6 +345,27 @@ Role::student => {
             .await;
         res
     }
+    async fn get_public_personal_data(&self, pool: &MySqlPool, filter: Option<UserFilter>) -> Result<PersonalData, sqlx::Error> {
+        let mut query = QueryBuilder::new("SELECT pd.full_name,u.photo FROM personal_data pd JOIN user u ON pd.user_id = u.id");
+        if let Some(f) = filter {
+            if let Some(n) = f.name {
+                query.push(" WHERE pd.full_name LIKE ");
+                query.push_bind(format!("%{}%", n));
+            }
+            if let Some(i) = f.id {
+                query.push(" AND pd.user_id = ");
+                query.push_bind(i);
+            }
+            if let Some(c) = f.course {
+                query.push(" AND u.course_id = ");
+                query.push_bind(c);
+            }
+        }
+
+        let res = query.build_query_as().fetch_one(pool).await;
+        
+        res
+    }
     async fn get_profile_picture(&self, pool: &MySqlPool) -> Result<String, sqlx::Error> {
         let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ?")
         .bind(self.id)

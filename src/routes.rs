@@ -7,7 +7,7 @@ use crate::views::{
     login::login,
     logout::logout,
     messages::{get_messages, post_message},
-    personal_data::get_personal_data,
+    personal_data::{get_personal_data, get_public_personal_data},
     profile_pictures::{get_profile_picture, post_profile_picture},
     register::{register, register_testing_users},
     role::get_role,
@@ -24,6 +24,7 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(get_grades)
         .service(get_messages)
         .service(get_personal_data)
+        .service(get_public_personal_data)
         .service(get_profile_picture)
         .service(get_role)
         .service(get_roles)

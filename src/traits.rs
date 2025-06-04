@@ -66,6 +66,11 @@ pub trait Get {
         pool: &MySqlPool,
         filter: Option<SelfassessableFilter>)
      -> Result<Vec<SelfassessableResponse>, sqlx::Error>;
+    async fn get_public_personal_data(
+        &self,
+        pool: &MySqlPool,
+        filter: Option<UserFilter>)
+    -> Result<PersonalData, sqlx::Error>;
 }
 
 pub trait Post  {
@@ -100,4 +105,5 @@ pub trait Post  {
         pool: &MySqlPool,
         task_submission: NewSubmissionSelfAssessable,
     ) -> HttpResponse;
+ 
 }
