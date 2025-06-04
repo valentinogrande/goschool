@@ -28,7 +28,7 @@ pub async fn get_personal_data(
     HttpResponse::Ok().json(personal_data)
 }
 
-#[get("/api/v1/personal_data/")]
+#[get("/api/v1/public_personal_data/")]
 pub async fn get_public_personal_data(
     pool: web::Data<MySqlPool>,
     req: HttpRequest,

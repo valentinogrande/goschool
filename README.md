@@ -134,8 +134,10 @@ curl -X POST http://localhost:8080/api/v1/grades/ \
 ```bash
 # 👤 Obtener datos personales
 curl -X GET http://localhost:8080/api/v1/personal_data/ -b "jwt={jwt}"
-```
 
+# 👤 Obtener datos personales de otros (nombre y foto)
+curl -X GET http://localhost:8080/api/v1/public_personal_data/ -b "jwt={jwt}"
+```
 ---
 
 ## 📸 Foto de perfil y Archivos
