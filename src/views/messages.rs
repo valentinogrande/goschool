@@ -24,7 +24,7 @@ pub async fn get_messages(
 
     let user = token.claims.user;
     
-    let messages = match user.get_messages(&pool, Some(filter.into_inner())).await {
+    let messages = match user.get_messages(&pool, filter.into_inner()).await {
         Ok(m) => m,
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };

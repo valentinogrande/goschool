@@ -10,7 +10,7 @@ use crate::traits::Post;
 pub async fn post_homework_submission(
     req: HttpRequest,
     pool: web::Data<MySqlPool>,
-    homework_submission: Multipart,
+    multipart: Multipart,
 ) -> impl Responder {
     let cookie = match req.cookie("jwt") {
         Some(c) => c,
@@ -24,5 +24,5 @@ pub async fn post_homework_submission(
 
     let user = token.claims.user;
 
-    user.post_submission(&pool, homework_submission).await
+    user.post_submission(&pool, multipart).await
 }

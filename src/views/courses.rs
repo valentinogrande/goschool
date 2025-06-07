@@ -18,7 +18,9 @@ pub async fn get_courses(
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
+    
     let user = token.claims.user;
+    
     let courses = match user.get_courses(&pool).await {
         Ok(a) => a,
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),

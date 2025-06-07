@@ -25,7 +25,7 @@ pub async fn get_grades(
     
     let user = token.claims.user;  
 
-    let grades = match user.get_grades(&pool, Some(filter.into_inner())).await { 
+    let grades = match user.get_grades(&pool, filter.into_inner()).await { 
         Ok(g) => g,
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };

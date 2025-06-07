@@ -30,6 +30,13 @@ pub struct SubjectFilter {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct SubjectMessageFilter {
+    pub id: Option<u64>,
+    pub sender_id: Option<u64>,
+    pub subject_id: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct UserFilter {
     pub course: Option<u64>,
     pub name: Option<String>,

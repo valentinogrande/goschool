@@ -46,9 +46,10 @@ pub async fn get_public_personal_data(
 
     let user = token.claims.user;
     
-    let personal_data = match user.get_public_personal_data(&pool, Some(filter.into_inner())).await {
+    let personal_data = match user.get_public_personal_data(&pool, filter.into_inner()).await {
         Ok(a) => a,
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };
+
     HttpResponse::Ok().json(personal_data)
 }

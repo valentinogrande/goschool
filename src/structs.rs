@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use sqlx::{FromRow, QueryBuilder, MySql, Type, MySqlPool, Decode};
+use sqlx::{FromRow, QueryBuilder, MySql, Type, Decode};
 use rust_decimal::Decimal;
 use chrono::{DateTime, Utc, NaiveDate};
 
@@ -129,6 +129,42 @@ pub struct NewGrade {
     pub grade_type: GradeType,
     pub description: String,
     pub grade: f32,
+}
+
+
+#[derive(Serialize, Deserialize, )]
+pub struct NewSubjectMessage {
+    pub sender_id: u64,
+    pub subject_id: u64,
+    pub title: String,
+    pub content: String,
+    #[serde(rename = "type")]
+    pub type_: SubjectMessageType,
+}
+
+#[derive(Serialize, Deserialize, FromRow )]
+pub struct SubjectMessage {
+    pub id: u64,
+    pub sender_id: u64,
+    pub subject_id: u64,
+    pub title: String,
+    pub content: String,
+    pub created_at: DateTime<Utc>,
+    #[sqlx(rename = "type")]
+    #[serde(rename = "type")]
+    pub type_: SubjectMessageType,
+}
+
+#[derive(sqlx::Type, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
+#[sqlx(type_name = "ENUM('message','link','file')")]
+#[serde(rename_all = "lowercase")]
+pub enum SubjectMessageType {
+    #[sqlx(rename = "message")]
+    Message,
+    #[sqlx(rename = "link")]
+    Link,
+    #[sqlx(rename = "file")]
+    File,
 }
 
 #[derive(Serialize, Deserialize)]

@@ -1,14 +1,11 @@
 use actix_web::HttpResponse;
 use sqlx::MySqlPool;
 use futures::future::join_all;
-use futures_util::StreamExt;
-use std::io::Write;
-use tempfile::NamedTempFile;
-use uuid::Uuid;
-use std::fs;
+use actix_multipart::Multipart;
+use std::str;
 
-use crate::functions::cleanup_temp;
-use crate::structs::{MySelf, Role, AssessmentType, Payload, NewGrade, NewMessage, NewSubmissionSelfAssessable};
+use crate::functions::parse_multipart;
+use crate::structs::{AssessmentType, MySelf, NewGrade, NewMessage, NewSubmissionSelfAssessable, Payload, Role};
 use crate::filters::SelfassessableFilter;
 use crate::traits::{Get, Post};
 
@@ -252,123 +249,35 @@ impl Post for MySelf {
     async fn post_profile_picture(
             &self,
             pool: &MySqlPool,
-            mut task_submission: actix_multipart::Multipart
+            multipart: actix_multipart::Multipart
         ) -> HttpResponse {
 
-        let mut saved_file_name: Option<String> = None;
-        let mut final_path: Option<String> = None;
-        let mut temp_path: Option<String> = None;
+        let hashmap = match parse_multipart(multipart, Some(&["jpg", "jpeg", "png"]), Some(&["image/jpeg", "image/png"])).await {
+            Ok(h) => h,
+            Err(e) => return HttpResponse::BadRequest().json(format!("Invalid upload: {}", e)),
+        };
 
-        while let Some(item) = task_submission.next().await {
-            let mut field = match item {
-                Ok(f) => f,
-                Err(_) => return HttpResponse::BadRequest().finish(),
-            };
+        let file_name = hashmap.get("file").and_then(|bytes| str::from_utf8(bytes).ok());
 
-            match field.name() {
-                Some("image") => {
-                    let filename = field
-                        .content_disposition()
-                        .and_then(|cd| cd.get_filename().map(sanitize_filename::sanitize));
+        let result = sqlx::query(
+            "UPDATE users SET photo = ? WHERE id = ?"
+        )
+        .bind(file_name)
+        .bind(self.id)
+        .execute(pool)
+        .await;
 
-                    let filename = match filename {
-                        Some(mut name) => {
-                            let supported_extensions = [".png",".jpg",".jpeg",".webp"];
-                            name = name.to_lowercase();
-                            if !(supported_extensions.iter().any(|&ext| name.ends_with(ext))) {
-                                return HttpResponse::BadRequest().body("Invalid file type");
-                            }
-                            name
-                        }
-                        None => return HttpResponse::BadRequest().body("Missing filename"),
-                    };
-
-                    let extension = filename.split('.').last().unwrap();
-                    let unique_name = format!("{}.{}", Uuid::new_v4(), extension);
-                    saved_file_name = Some(unique_name.clone());
-                    let upload_path = format!("./uploads/profile_pictures/{}", unique_name);
-                    final_path = Some(upload_path);
-
-                    let mut temp_file = match NamedTempFile::new() {
-                        Ok(f) => f,
-                        Err(_) => return HttpResponse::InternalServerError().finish(),
-                    };
-
-                    let mut total_size = 0;
-                    while let Some(chunk) = field.next().await {
-                        let chunk = match chunk {
-                            Ok(c) => c,
-                            Err(_) => {
-                                cleanup_temp(&temp_path);
-                                return HttpResponse::InternalServerError().finish();
-                            },
-                        };
-
-                        total_size += chunk.len();
-                        if total_size > 10 * 1024 * 1024 {
-                            cleanup_temp(&temp_path);
-                            return HttpResponse::BadRequest().body("File too large");
-                        }
-
-                        if let Err(_) = temp_file.write_all(&chunk) {
-                            cleanup_temp(&temp_path);
-                            return HttpResponse::InternalServerError().finish();
-                        }
-                    }
-
-                    let temp = match temp_file.into_temp_path().keep() {
-                        Ok(pathbuf) => pathbuf,
-                        Err(_) => {
-                            cleanup_temp(&temp_path);
-                            return HttpResponse::InternalServerError().finish();
-                        },
-                    };
-
-                    temp_path = Some(temp.to_string_lossy().to_string());
-                }
-
-                _ => {}
-            }
+        if result.is_err() {
+            return HttpResponse::InternalServerError().finish();
         }
 
 
-        if let (Some(temp), Some(final_path)) = (&temp_path, &final_path) {
-            if let Err(_) = fs::rename(temp, final_path) {
-                cleanup_temp(&temp_path);
-                return HttpResponse::InternalServerError().body("Failed to store image");
-            }
-        } else {
-            cleanup_temp(&temp_path);
-            return HttpResponse::BadRequest().body("Missing image data");
-        }
-
-        match saved_file_name {
-            Some(path) => {
-                let result = sqlx::query(
-                    "UPDATE users SET photo = ? WHERE id = ?"
-                )
-                .bind(path)
-                .bind(self.id)
-                .execute(pool)
-                .await;
-
-                if result.is_err() {
-                    cleanup_temp(&temp_path);
-                    return HttpResponse::InternalServerError().finish();
-                }
-
-                HttpResponse::Ok().body("image uploaded succesfully")
-            }
-            None => {
-                cleanup_temp(&temp_path);
-                HttpResponse::BadRequest().body("Missing data")
-            }
-        }
+        HttpResponse::Created().finish()       
     }
     async fn post_submission(
             &self,
             pool: &MySqlPool,
-            mut task_submission: actix_multipart::Multipart
+            multipart: Multipart
         ) -> HttpResponse {
         
         match self.role {
@@ -376,112 +285,27 @@ impl Post for MySelf {
             _ => return HttpResponse::Unauthorized().finish(),
         };
     
-        let user_course = self.get_courses(pool).await;
-        let user_course = match user_course {
+        let user_course = match self.get_courses(pool).await {
             Ok(c) if !c.is_empty() => c[0].id,
             Ok(_) => return HttpResponse::NotFound().json("No course found"),
             Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
         };
 
-        let mut saved_file_name: Option<String> = None;
-        let mut homework_id: Option<u64> = None;
-        let mut final_path: Option<String> = None;
-        let mut temp_path: Option<String> = None;
+        let hashmap = match parse_multipart(multipart, Some(&["pdf", "docx"]), Some(&["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"])).await {  
+            Ok(h) => h,
+            Err(e) => return HttpResponse::BadRequest().json(format!("Invalid upload: {}", e)),
+        };
 
-        while let Some(item) = task_submission.next().await {
-            let mut field = match item {
-                Ok(f) => f,
-                Err(_) => return HttpResponse::BadRequest().finish(),
-            };
-
-            match field.name() {
-                Some("homework") => {
-                    let filename = field
-                        .content_disposition()
-                        .and_then(|cd| cd.get_filename().map(sanitize_filename::sanitize));
-
-                    let filename = match filename {
-                        Some(mut name) => {
-                            let supported_extensions = [".pdf",".docx"];
-                            name = name.to_lowercase();
-                            if !(supported_extensions.iter().any(|&ext| name.ends_with(ext))) {
-                                return HttpResponse::BadRequest().body("Invalid file type");
-                            }
-                            name
-                        }
-                        None => return HttpResponse::BadRequest().body("Missing filename"),
-                    };
-
-                    let extension = filename.split('.').last().unwrap_or("docx");
-                    let unique_name = format!("{}.{}", Uuid::new_v4(), extension);
-                    saved_file_name = Some(unique_name.clone());
-                    let upload_path = format!("./uploads/submissions/{}", unique_name);
-                    final_path = Some(upload_path);
-
-                    let mut temp_file = match NamedTempFile::new() {
-                        Ok(f) => f,
-                        Err(_) => return HttpResponse::InternalServerError().finish(),
-                    };
-
-                    let mut total_size = 0;
-                    while let Some(chunk) = field.next().await {
-                        let chunk = match chunk {
-                            Ok(c) => c,
-                            Err(_) => {
-                                cleanup_temp(&temp_path);
-                                return HttpResponse::InternalServerError().finish();
-                            },
-                        };
-
-                        total_size += chunk.len();
-                        if total_size > 10 * 1024 * 1024 {
-                            cleanup_temp(&temp_path);
-                            return HttpResponse::BadRequest().body("File too large");
-                        }
-
-                        if let Err(_) = temp_file.write_all(&chunk) {
-                            cleanup_temp(&temp_path);
-                            return HttpResponse::InternalServerError().finish();
-                        }
-                    }
-
-                    let temp = match temp_file.into_temp_path().keep() {
-                        Ok(pathbuf) => pathbuf,
-                        Err(_) => {
-                            cleanup_temp(&temp_path);
-                            return HttpResponse::InternalServerError().finish();
-                        },
-                    };
-
-                    temp_path = Some(temp.to_string_lossy().to_string());
-                }
-
-                Some("homework_id") => {
-                    let mut data = Vec::new();
-                    while let Some(chunk) = field.next().await {
-                        data.extend_from_slice(&chunk.unwrap());
-                    }
-
-                    let text = String::from_utf8(data).unwrap_or_default();
-                    match text.trim().parse::<u64>() {
-                        Ok(id) => homework_id = Some(id),
-                        Err(_) => {
-                            cleanup_temp(&temp_path);
-                            return HttpResponse::BadRequest().body("Invalid homework ID");
-                        }
-                    }
-                }
-
-                _ => {}
-            }
-        }
-
-        let homework_id = match homework_id {
-            Some(id) => id,
-            None => {
-                cleanup_temp(&temp_path);
-                return HttpResponse::BadRequest().body("Missing homework_id");
-            }
+        let homework_id = match hashmap.get("homework_id")
+            .and_then(|bytes| str::from_utf8(bytes).ok())
+            .and_then(|s| s.parse::<u64>().ok()) {
+                Some(id) => id,
+                None => return HttpResponse::BadRequest().json("Missing or invalid task_id"),
+        };
+        
+        let file_name = match hashmap.get("file") {
+            Some(f) => f,
+            None => return HttpResponse::BadRequest().json("Missing file"),
         };
 
         let res: (String, u64) = match sqlx::query_as("SELECT type, subject_id FROM assessments WHERE id = ?")
@@ -490,13 +314,11 @@ impl Post for MySelf {
             .await{
             Ok(g) => g,
             Err(_) => {
-                cleanup_temp(&temp_path);
                 return HttpResponse::InternalServerError().finish();
             }
         };
 
         if res.0 != "homework" {
-            cleanup_temp(&temp_path);
             return HttpResponse::BadRequest().body("submission are only valid for homeworks");
         }
         let task_course = match sqlx::query_scalar::<_, u64>(
@@ -507,13 +329,11 @@ impl Post for MySelf {
         .await{
             Ok(g) => g,
             Err(_) => {
-                cleanup_temp(&temp_path);
                 return HttpResponse::InternalServerError().finish();
             }
         };
 
         if task_course != user_course {
-            cleanup_temp(&temp_path);
             return HttpResponse::Unauthorized().finish();
         }
 
@@ -527,50 +347,33 @@ impl Post for MySelf {
 
         match already_exists {
             Ok(true) => {
-                cleanup_temp(&temp_path);
                 return HttpResponse::BadRequest().body("You already submitted this homework");
             }
             Ok(false) => {}
             Err(_) => {
-                cleanup_temp(&temp_path);
                 return HttpResponse::InternalServerError().finish();
             }
         }
 
-        if let (Some(temp), Some(final_path)) = (&temp_path, &final_path) {
-            if let Err(_) = fs::rename(temp, final_path) {
-                cleanup_temp(&temp_path);
-                return HttpResponse::InternalServerError().body("Failed to store file");
-            }
-        } else {
-            cleanup_temp(&temp_path);
-            return HttpResponse::BadRequest().body("Missing file data");
+        
+
+        let result = sqlx::query(
+            "INSERT INTO homework_submissions (path, student_id, task_id) VALUES (?, ?, ?)"
+            )
+            .bind(file_name)
+            .bind(self.id)
+            .bind(homework_id)
+            .execute(pool)
+            .await;
+
+        if result.is_err() {
+            return HttpResponse::InternalServerError().finish();
         }
 
-        match saved_file_name {
-            Some(path) => {
-                let result = sqlx::query(
-                    "INSERT INTO homework_submissions (path, student_id, task_id) VALUES (?, ?, ?)"
-                )
-                .bind(path)
-                .bind(self.id)
-                .bind(homework_id)
-                .execute(pool)
-                .await;
-
-                if result.is_err() {
-                    cleanup_temp(&temp_path);
-                    return HttpResponse::InternalServerError().finish();
-                }
-
-                return HttpResponse::Ok().body("Submission created");
-            }
-            None => {
-                cleanup_temp(&temp_path);
-                return HttpResponse::BadRequest().body("Missing data");
-            }
-        }
+        return HttpResponse::Ok().body("Submission created");
+        
     }
+
     async fn post_submission_selfassessable(
             &self,
             pool: &MySqlPool,
@@ -649,7 +452,7 @@ impl Post for MySelf {
             id: Some(selfassessable_id),
         };  
 
-        let assessable_task = match self.get_selfassessables(&pool, Some(filter)).await {
+        let assessable_task = match self.get_selfassessables(&pool, filter).await {
             Ok(u) => u[0].clone(),
             Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
         };
@@ -688,5 +491,90 @@ impl Post for MySelf {
             Err(_) => HttpResponse::InternalServerError().finish(),
         }
     }
-    
-}
+    async fn post_subject_messages(
+            &self,
+            pool: &MySqlPool,
+            multipart: Multipart
+        ) -> HttpResponse {
+
+          // Parse multipart with allowed extensions and MIME types
+        let hashmap = match parse_multipart(
+            multipart,
+            Some(&["pdf", "docx"]),
+            Some(&[
+                "application/pdf",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            ])
+        ).await {
+            Ok(h) => h,
+            Err(e) => return HttpResponse::BadRequest().json(format!("Invalid upload: {}", e)),
+        };
+
+        // Extract and parse subject_id
+        let subject_id = match hashmap.get("subject_id")
+            .and_then(|bytes| str::from_utf8(bytes).ok())
+            .and_then(|s| s.parse::<u64>().ok()) {
+                Some(id) => id,
+                None => return HttpResponse::BadRequest().json("Missing or invalid subject_id"),
+        };
+
+        // Extract and parse type
+        let type_ = match hashmap.get("type")
+            .and_then(|bytes| str::from_utf8(bytes).ok()) {
+                Some(t) => t,
+                None => return HttpResponse::BadRequest().json("Missing or invalid type"),
+        };
+
+        // Extract content or file name
+        let content_or_file = match type_ {
+            "file" => match hashmap.get("file") {
+                Some(f) => f,
+                None => return HttpResponse::BadRequest().json("Missing file"),
+            },
+            "text" => match hashmap.get("content") {
+                Some(c) => c,
+                None => return HttpResponse::BadRequest().json("Missing content"),
+            },
+            _ => return HttpResponse::BadRequest().json("Invalid type"),
+        };
+
+        // Authorization
+        match self.role {
+            Role::student | Role::father | Role::preceptor => {
+                return HttpResponse::Unauthorized().finish();
+            }
+            Role::teacher => {
+                let authorized: bool = match sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)"
+                )
+                    .bind(self.id)
+                    .bind(subject_id)
+                    .fetch_one(pool)
+                    .await {
+                        Ok(result) => result,
+                        Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+                };
+
+                if !authorized {
+                    return HttpResponse::Unauthorized().finish();
+                }
+            }
+            Role::admin => {}
+        }
+
+        // Insert message into database
+        let insert_result = sqlx::query(
+            "INSERT INTO subject_messages (subject_id, sender_id, type, content) VALUES (?, ?, ?, ?)"
+        )
+            .bind(subject_id)
+            .bind(self.id)
+            .bind(type_)
+            .bind(content_or_file)
+            .execute(pool)
+            .await;
+
+        match insert_result {
+            Ok(_) => HttpResponse::Created().finish(),
+            Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
+        }
+    }}

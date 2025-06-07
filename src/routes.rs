@@ -15,6 +15,7 @@ use crate::views::{
     subjects::get_subjects,
     submissions::post_homework_submission,
     verify_token::verify_token,
+    subject_messages::{post_subject_message, get_subject_messages},
     selfassessables::{post_selfassessable_submission, get_selfassessables, get_selfassessables_responses}
 };
 
@@ -38,6 +39,8 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(get_selfassessables)
         .service(get_selfassessables_responses)
         .service(post_message)
+        .service(post_subject_message)
+        .service(get_subject_messages)
         .service(post_profile_picture)
         .service(register)
         .service(register_testing_users)

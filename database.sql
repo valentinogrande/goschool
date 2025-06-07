@@ -175,3 +175,14 @@ CREATE TABLE IF NOT EXISTS message_courses (
   PRIMARY KEY (message_id, course_id)
 );
 
+CREATE TABLE IF NOT EXISTS subject_messages(
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  sender_id BIGINT UNSIGNED NOT NULL,
+  subject_id BIGINT UNSIGNED NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  type ENUM('message','link','file') DEFAULT 'message',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (sender_id) REFERENCES users(id),
+  FOREIGN KEY (subject_id) REFERENCES subjects(id)
+);

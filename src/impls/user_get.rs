@@ -2,8 +2,9 @@ use sqlx::{MySqlPool, QueryBuilder};
 use actix_web::web;
 use chrono::Utc;
 use std::env;
-use crate::filters::{AssessmentFilter, GradeFilter, MessageFilter, SelfassessableFilter, SubjectFilter, UserFilter};
-use crate::structs::{Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData, Role, Selfassessable, SelfassessableResponse, Subject};
+
+use crate::filters::{AssessmentFilter, GradeFilter, MessageFilter, SelfassessableFilter, SubjectFilter, UserFilter, SubjectMessageFilter};
+use crate::structs::{Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData, Role, Selfassessable, SelfassessableResponse, Subject, SubjectMessage};
 use crate::traits::Get;
 
 impl Get for MySelf{
@@ -11,7 +12,7 @@ impl Get for MySelf{
    async fn get_students(
         &self,
         pool: web::Data<MySqlPool>,
-        filter: Option<UserFilter>,
+        filter: UserFilter,
     ) -> Result<Vec<u64>, sqlx::Error> {
         let mut query = sqlx::QueryBuilder::new("SELECT DISTINCT users.id FROM users ");
 
@@ -39,16 +40,14 @@ Role::student => {
                 query.push("WHERE 1=1");
             }
         }
-        if let Some(f) = filter {
-            if let Some(c) = f.course {
-                query.push(" AND users.course_id = ");
-                query.push_bind(c);
-            }
+        if let Some(c) = filter.course {
+            query.push(" AND users.course_id = ");
+            query.push_bind(c);
+        }
 
-            if let Some(n) = f.name {
-                query.push(" AND EXISTS (SELECT 1 FROM personal_data pd WHERE pd.user_id = users.id AND pd.full_name LIKE )");
-                query.push_bind(format!("%{}%", n));
-            }
+        if let Some(n) = filter.name {
+            query.push(" AND EXISTS (SELECT 1 FROM personal_data pd WHERE pd.user_id = users.id AND pd.full_name LIKE )");
+            query.push_bind(format!("%{}%", n));
         }
         let res = query
             .build_query_scalar::<u64>()
@@ -58,7 +57,11 @@ Role::student => {
         res
     }
     
-    async fn get_courses(&self, pool: &MySqlPool) -> Result<Vec<Course>, sqlx::Error> {
+    async fn get_courses(
+        &self,
+        pool: &MySqlPool)
+    -> Result<Vec<Course>, sqlx::Error> {
+
         let mut query = QueryBuilder::new("SELECT * FROM courses c ");
         match self.role {
             Role::student => {
@@ -88,8 +91,12 @@ Role::student => {
             .await;
         res
     }
-    async fn get_grades(&self, pool: &MySqlPool, filter: 
-    Option<GradeFilter>) -> Result<Vec<Grade>, sqlx::Error>{
+    async fn get_grades(
+        &self,
+        pool: &MySqlPool,
+        filter: GradeFilter)
+    -> Result<Vec<Grade>, sqlx::Error>{
+
         let mut query = QueryBuilder::new("SELECT * FROM grades ");
         match self.role {
             Role::student => {
@@ -112,19 +119,17 @@ Role::student => {
                 query.push_bind(self.id);
             }
         };
-        if let Some(f) = filter {
-            if let Some(c) = f.student_id {
-                query.push(" AND student_id = ");
-                query.push_bind(c);
-            }
-            if let Some(s) = f.subject_id {
-                query.push(" AND subject_id = ");
-                query.push_bind(s);
-            }
-            if let Some(d) = f.description {
-                query.push(" AND description = ");
-                query.push_bind(d);
-            }
+        if let Some(c) = filter.student_id {
+            query.push(" AND student_id = ");
+            query.push_bind(c);
+        }
+        if let Some(s) = filter.subject_id {
+            query.push(" AND subject_id = ");
+            query.push_bind(s);
+        }
+        if let Some(d) = filter.description {
+            query.push(" AND description = ");
+            query.push_bind(d);
         }
         let res = query
             .build_query_as()
@@ -132,7 +137,12 @@ Role::student => {
             .await;
         res
     }
-    async fn get_subjects(&self, pool: &MySqlPool, filter: Option<SubjectFilter>) -> Result<Vec<Subject>, sqlx::Error> {
+    async fn get_subjects(
+        &self,
+        pool: &MySqlPool,
+        filter: SubjectFilter)
+    -> Result<Vec<Subject>, sqlx::Error> {
+
         let mut query = QueryBuilder::new("SELECT * FROM subjects s ");
         match self.role {
             Role::teacher => {
@@ -163,23 +173,21 @@ Role::student => {
                 query.push_bind(self.id);
             }
         };
-        if let Some(f) = filter {
-            if let Some(c) = f.course_id {
-                query.push(" AND s.course_id = ");
-                query.push_bind(c);
-            }
-            if let Some(n) = f.name {
-                query.push(" AND s.name LIKE ");
-                query.push_bind(n);
-            }
-            if let Some(t) = f.teacher_id {
-                query.push(" AND s.teacher_id = ");
-                query.push_bind(t);
-            }
-            if let Some(i) = f.id {
-                query.push(" AND s.id = ");
-                query.push_bind(i);
-            }
+        if let Some(c) = filter.course_id {
+            query.push(" AND s.course_id = ");
+            query.push_bind(c);
+        }
+        if let Some(n) = filter.name {
+            query.push(" AND s.name LIKE ");
+            query.push_bind(n);
+        }
+        if let Some(t) = filter.teacher_id {
+            query.push(" AND s.teacher_id = ");
+            query.push_bind(t);
+        }
+        if let Some(i) = filter.id {
+            query.push(" AND s.id = ");
+            query.push_bind(i);
         }
         let res = query
             .build_query_as()
@@ -191,9 +199,9 @@ Role::student => {
     async fn get_assessments(
         &self,
         pool: &MySqlPool,
-        filter: Option<AssessmentFilter>,
-        subject_filter: Option<SubjectFilter>,
-        person_filter: Option<UserFilter>,
+        filter: AssessmentFilter,
+        subject_filter: SubjectFilter,
+        person_filter: UserFilter,
     ) -> Result<Vec<Assessment>, sqlx::Error> {
         let mut query = QueryBuilder::new("SELECT a.* FROM assessments a JOIN subjects s ON a.subject_id = s.id ");
 
@@ -272,65 +280,57 @@ Role::student => {
         }
 
         // Subject filters
-        if let Some(f) = subject_filter {
-            if let Some(c) = f.course_id {
-                query.push(" AND s.course_id = ");
-                query.push_bind(c);
-            }
-            if let Some(n) = f.name {
-                query.push(" AND s.name LIKE ");
-                query.push_bind(format!("%{}%", n));
-            }
-            if let Some(t) = f.teacher_id {
-                query.push(" AND s.teacher_id = ");
-                query.push_bind(t);
-            }
+        if let Some(c) = subject_filter.course_id {
+            query.push(" AND s.course_id = ");
+            query.push_bind(c);
+        }
+        if let Some(n) = subject_filter.name {
+            query.push(" AND s.name LIKE ");
+            query.push_bind(format!("%{}%", n));
+        }
+        if let Some(t) = subject_filter.teacher_id {
+            query.push(" AND s.teacher_id = ");
+            query.push_bind(t);
         }
 
         // Person filters
-        if let Some(f) = person_filter {
-            if let Some(n) = f.name {
-                query.push(
-                    " AND EXISTS (
-                        SELECT 1 FROM personal_data pd
-                        WHERE pd.user_id = a.user_id
-                        AND pd.full_name LIKE "
-                );
-                query.push_bind(format!("%{}%", n));
-                query.push(")");
-            }
-            if let Some(c) = f.course {
-                query.push(
-                    " AND EXISTS (
-                        SELECT 1 FROM users u
-                        WHERE u.id = a.user_id
-                        AND u.course_id = "
-                );
-                query.push_bind(c);
-                query.push(")");
-            }
-            if let Some(i) = f.id {
-                query.push(" AND a.user_id = ");
-                query.push_bind(i);
-            }
+        if let Some(n) = person_filter.name {
+            query.push(
+                " AND EXISTS (
+                    SELECT 1 FROM personal_data pd
+                    WHERE pd.user_id = a.user_id
+                    AND pd.full_name LIKE "
+            );
+            query.push_bind(format!("%{}%", n));
+            query.push(")");
         }
-        if let Some(f) = filter {
-            if let Some(due) = f.due {
-                if due {
-                    let actual_date = Utc::now();
-                    query.push(" AND a.due_date >= ");
-                    query.push_bind(actual_date);
-                }
-            }
-            if let Some(t) = f.task {
-                query.push(" AND a.task LIKE ");
-                query.push_bind(format!("%{}%", t));
-            }
-
-            
-            
+        if let Some(c) = person_filter.course {
+            query.push(
+                " AND EXISTS (
+                    SELECT 1 FROM users u
+                    WHERE u.id = a.user_id
+                    AND u.course_id = "
+            );
+            query.push_bind(c);
+            query.push(")");
+        }
+        if let Some(i) = person_filter.id {
+            query.push(" AND a.user_id = ");
+            query.push_bind(i);
         }
 
+        if let Some(due) = filter.due {
+            if due {
+                let actual_date = Utc::now();
+                query.push(" AND a.due_date >= ");
+                query.push_bind(actual_date);
+            }
+        }
+        if let Some(t) = filter.task {
+            query.push(" AND a.task LIKE ");
+            query.push_bind(format!("%{}%", t));
+        }
+        
         let res = query
             .build_query_as::<Assessment>()
             .fetch_all(pool)
@@ -338,35 +338,50 @@ Role::student => {
 
         res
     }
-    async fn get_personal_data(&self, pool: &MySqlPool) -> Result<PersonalData, sqlx::Error> {
+    async fn get_personal_data(
+        &self,
+        pool: &MySqlPool)
+    -> Result<PersonalData, sqlx::Error> {
+        
         let res = sqlx::query_as("SELECT * FROM personal_data WHERE user_id = ")
             .bind(self.id)
             .fetch_one(pool)
             .await;
+        
         res
     }
-    async fn get_public_personal_data(&self, pool: &MySqlPool, filter: Option<UserFilter>) -> Result<PersonalData, sqlx::Error> {
+
+    async fn get_public_personal_data(
+        &self,
+        pool: &MySqlPool,
+        filter: UserFilter)
+    -> Result<PersonalData, sqlx::Error> {
+        
         let mut query = QueryBuilder::new("SELECT pd.full_name,u.photo FROM personal_data pd JOIN user u ON pd.user_id = u.id");
-        if let Some(f) = filter {
-            if let Some(n) = f.name {
-                query.push(" WHERE pd.full_name LIKE ");
-                query.push_bind(format!("%{}%", n));
-            }
-            if let Some(i) = f.id {
-                query.push(" AND pd.user_id = ");
-                query.push_bind(i);
-            }
-            if let Some(c) = f.course {
-                query.push(" AND u.course_id = ");
-                query.push_bind(c);
-            }
+
+        if let Some(n) = filter.name {
+            query.push(" WHERE pd.full_name LIKE ");
+            query.push_bind(format!("%{}%", n));
+        }
+        if let Some(i) = filter.id {
+            query.push(" AND pd.user_id = ");
+            query.push_bind(i);
+        }
+        if let Some(c) = filter.course {
+            query.push(" AND u.course_id = ");
+            query.push_bind(c);
         }
 
         let res = query.build_query_as().fetch_one(pool).await;
         
         res
     }
-    async fn get_profile_picture(&self, pool: &MySqlPool) -> Result<String, sqlx::Error> {
+
+    async fn get_profile_picture(
+        &self,
+        pool: &MySqlPool)
+    -> Result<String, sqlx::Error> {
+
         let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ")
         .bind(self.id)
         .fetch_optional(pool)
@@ -381,7 +396,13 @@ Role::student => {
         let url = format!("{}/uploads/profile_pictures/{}", base_url, photo_filename);
         Ok(url)
     }
-    async fn get_messages(&self, pool: &MySqlPool, filter: Option<MessageFilter>) -> Result<Vec<Message>, sqlx::Error> {
+
+    async fn get_messages(
+        &self,
+        pool: &MySqlPool,
+        filter: MessageFilter)
+    -> Result<Vec<Message>, sqlx::Error> {
+        
         let mut query = QueryBuilder::new(
             "SELECT DISTINCT m.* FROM messages m
              JOIN message_courses mc ON mc.message_id = m.id "
@@ -407,20 +428,20 @@ Role::student => {
                 query.push_bind(self.id);
             }
         };
-        if let Some(f) = filter {
-            if let Some(c) = f.course_id {
-                query.push(" AND mc.course_id = ");
-                query.push_bind(c);
-            }
-            if let Some(s) = f.sender_id {
-                query.push(" AND m.sender_id = ");
-                query.push_bind(s);
-            }
-            if let Some(t) = f.title {
-                query.push(" AND m.title LIKE ");
-                query.push_bind(format!("%{}%", t));
-            }
+            
+        if let Some(c) = filter.course_id {
+            query.push(" AND mc.course_id = ");
+            query.push_bind(c);
         }
+        if let Some(s) = filter.sender_id {
+            query.push(" AND m.sender_id = ");
+            query.push_bind(s);
+        }
+        if let Some(t) = filter.title {
+            query.push(" AND m.title LIKE ");
+            query.push_bind(format!("%{}%", t));
+        }
+
         let res = query
             .build_query_as()
             .fetch_all(pool)
@@ -430,7 +451,7 @@ Role::student => {
     async fn get_selfassessables(
             &self,
             pool: &MySqlPool,
-            filter: Option<SelfassessableFilter>)
+            filter: SelfassessableFilter)
         -> anyhow::Result<Vec<crate::structs::Selfassessable>, sqlx::Error> {
         
         if self.role != Role::student {
@@ -450,12 +471,10 @@ Role::student => {
 
             query_builder.push_bind(self.id);
             
-            if let Some(f) = filter {
-                if let Some(i) = f.id {
-                    query_builder.push(" AND s.id = ");
-                    query_builder.push_bind(i);
-                }
-            } 
+            if let Some(i) = filter.id {
+                query_builder.push(" AND s.id = ");
+                query_builder.push_bind(i);
+            }
 
             let query = query_builder.build_query_as::<Selfassessable>();
 
@@ -466,7 +485,7 @@ Role::student => {
     async fn get_selfassessables_responses(
             &self,
             pool: &MySqlPool,
-            filter: Option<SelfassessableFilter>)
+            filter: SelfassessableFilter)
          -> anyhow::Result<Vec<SelfassessableResponse>, sqlx::Error> {
         
         if self.role != Role::student {
@@ -479,11 +498,9 @@ Role::student => {
 
         query_builder.push_bind(self.id);
 
-        if let Some(f) = filter {
-            if let Some(i) = f.id {
-                query_builder.push(" AND selfassessable_id = ");
-                query_builder.push_bind(i);
-            }
+        if let Some(i) = filter.id {
+            query_builder.push(" AND selfassessable_id = ");
+            query_builder.push_bind(i);
         }
 
         let query = query_builder.build_query_as::<SelfassessableResponse>();
@@ -495,7 +512,7 @@ Role::student => {
     async fn get_pending_selfassessables_grades(
             &self,
             pool: &MySqlPool,
-            filter: Option<SelfassessableFilter>)
+            filter: SelfassessableFilter)
         -> anyhow::Result<Vec<PendingSelfassessableGrade>, sqlx::Error> {
     
         let mut query_builder = QueryBuilder::new(
@@ -523,17 +540,67 @@ Role::student => {
             }
         }
 
-        if let Some(f) = filter {
-            if let Some(i) = f.id {
-                query_builder.push(" AND selfassessable_id = ");
-                query_builder.push_bind(i);
-            }
+        if let Some(i) = filter.id {
+            query_builder.push(" AND selfassessable_id = ");
+            query_builder.push_bind(i);
         }
+    
 
         let query = query_builder.build_query_as::<PendingSelfassessableGrade>();
 
         let selfassessables = query.fetch_all(pool).await?;
 
         Ok(selfassessables)
+    }
+    async fn get_subject_messages(
+            &self,
+            pool: &MySqlPool,
+            filter: SubjectMessageFilter)
+        -> anyhow::Result<Vec<SubjectMessage>, sqlx::Error> {
+    
+        let mut query = QueryBuilder::new(
+            "SELECT * FROM subject_messages sm"
+        );
+        match self.role {
+            Role::student => {
+                query.push(" JOIN subjects s ON s.id = sm.subject_id JOIN users u ON u.course_id = s.course_id WHERE u.id = ");
+                query.push_bind(self.id);
+            }
+            Role::admin => {
+                query.push(" WHERE 1=1");
+            }
+            Role::preceptor => {
+                query.push(" JOIN subjects s ON s.id = sm.subject_id JOIN courses c ON c.id = s.course_id WHERE c.preceptor_id = ");
+                query.push_bind(self.id);
+            }
+            Role::teacher => {
+                query.push(" JOIN subjects s ON s.id = sm.subject_id WHERE s.teacher_id = ");
+                query.push_bind(self.id);
+            }
+            Role::father => {
+                query.push(" JOIN subjects s ON s.id = sm.subject_id JOIN users u ON u.course_id = s.course_id JOIN families f ON f.student_id = u.id WHERE f.father_id = ");
+                query.push_bind(self.id);
+            }
+        };
+
+        if let Some(i) = filter.id {
+            query.push(" AND sm.id = ");
+            query.push_bind(i);
+        }
+        if let Some(s) = filter.subject_id {
+            query.push(" AND sm.subject_id = ");
+            query.push_bind(s);
+        }
+        if let Some(s) = filter.sender_id {
+            query.push(" AND sm.sender_id = ");
+            query.push_bind(s);
+        }
+
+        let res = query
+            .build_query_as()
+            .fetch_all(pool)
+            .await;
+        res
+
     }
 }

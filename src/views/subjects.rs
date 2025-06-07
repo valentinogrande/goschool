@@ -21,8 +21,10 @@ pub async fn get_subjects(
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
+    
     let user = token.claims.user;
-    let subjects = match user.get_subjects(&pool, Some(filter.into_inner())).await {
+    
+    let subjects = match user.get_subjects(&pool, filter.into_inner()).await {
         Ok(a) => a,
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };

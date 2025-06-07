@@ -24,7 +24,7 @@ pub async fn get_assessments(
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
     let user = token.claims.user;
-    let assessments = match user.get_assessments(&pool, Some(filter.into_inner()), Some(subject_filter.into_inner()), Some(person_filter.into_inner())).await {
+    let assessments = match user.get_assessments(&pool, filter.into_inner(), subject_filter.into_inner(), person_filter.into_inner()).await {
         Ok(a) => a,
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };

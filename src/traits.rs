@@ -13,7 +13,7 @@ pub trait Get {
     async fn get_students(
         &self,
         pool: web::Data<MySqlPool>,
-        filter: Option<UserFilter>)
+        filter: UserFilter)
     -> Result<Vec<u64>, sqlx::Error>;
 
     async fn get_courses(
@@ -24,27 +24,27 @@ pub trait Get {
     async fn get_grades(
         &self,
         pool: &MySqlPool,
-        filter: Option<GradeFilter>)
+        filter: GradeFilter)
     -> Result<Vec<Grade>, sqlx::Error>;
     
     async fn get_subjects(
         &self,
         pool: &MySqlPool,
-        filter: Option<SubjectFilter>
+        filter: SubjectFilter
     ) -> Result<Vec<Subject>, sqlx::Error>;
 
     async fn get_assessments(
         &self,
         pool: &MySqlPool,
-        filter: Option<AssessmentFilter>,
-        subject_filter: Option<SubjectFilter>,
-        person_filter: Option<UserFilter>)
+        filter: AssessmentFilter,
+        subject_filter: SubjectFilter,
+        person_filter: UserFilter)
     -> Result<Vec<Assessment>, sqlx::Error>;
     
     async fn get_messages(
         &self,
         pool: &MySqlPool,
-        filter: Option<MessageFilter>)
+        filter: MessageFilter)
     -> Result<Vec<Message>, sqlx::Error>;
     
     async fn get_personal_data(
@@ -59,23 +59,28 @@ pub trait Get {
     async fn get_selfassessables(
         &self,
         pool: &MySqlPool,
-        filter: Option<SelfassessableFilter>)
+        filter: SelfassessableFilter)
     -> Result<Vec<Selfassessable>, sqlx::Error>;   
     async fn get_selfassessables_responses(
         &self,
         pool: &MySqlPool,
-        filter: Option<SelfassessableFilter>)
+        filter: SelfassessableFilter)
      -> Result<Vec<SelfassessableResponse>, sqlx::Error>;
     async fn get_public_personal_data(
         &self,
         pool: &MySqlPool,
-        filter: Option<UserFilter>)
+        filter: UserFilter)
     -> Result<PersonalData, sqlx::Error>;
     async fn get_pending_selfassessables_grades(
         &self,
         pool: &MySqlPool,
-        filter: Option<SelfassessableFilter>)
+        filter: SelfassessableFilter)
     -> Result<Vec<PendingSelfassessableGrade>, sqlx::Error>;
+    async fn get_subject_messages(
+        &self,
+        pool: &MySqlPool,
+        filter: SubjectMessageFilter)
+    -> Result<Vec<SubjectMessage>, sqlx::Error>;
 }
 
 pub trait Post  {
@@ -103,11 +108,16 @@ pub trait Post  {
     async fn post_submission(
         &self,
         pool: &MySqlPool,
-        task_submission: Multipart
+        multipart: Multipart
     ) -> HttpResponse;
     async fn post_submission_selfassessable(
         &self,
         pool: &MySqlPool,
         task_submission: NewSubmissionSelfAssessable,
+    ) -> HttpResponse;
+    async fn post_subject_messages(
+        &self,
+        pool: &MySqlPool,
+        multipart: Multipart
     ) -> HttpResponse;
 }
