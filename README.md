@@ -198,7 +198,7 @@ curl -X GET http://localhost:8080/api/v1/public_personal_data/ -b "jwt={jwt}"
 ```bash
 # 📷 Subir foto de perfil
 curl -X POST http://localhost:8080/api/v1/upload_profile_picture/ \
-  -b "jwt={jwt}" -F "image=@ruta/imagen.jpg"
+  -b "jwt={jwt}" -F "file=@ruta/imagen.jpg"
 
 # 🖼️ Obtener link de la foto de perfil
 curl -X GET http://localhost:8080/api/v1/get_profile_picture/ -b "jwt={jwt}"
@@ -206,10 +206,42 @@ curl -X GET http://localhost:8080/api/v1/get_profile_picture/ -b "jwt={jwt}"
 # 📑 Subir tarea (homework)
 curl -X POST http://localhost:8080/api/v1/create_submission/ \
   -H "Cookie: jwt={jwt}" \
-  -F "homework=@archivo.pdf" -F "homework_id=1"
+  -F "file=@archivo.pdf" -F "homework_id=1"
 ```
 
 ---
+
+## 💬 Mensajes de cada materia 
+
+
+```bash 1
+# ✉️ Crear mensaje
+
+curl -X POST http://localhost:8000/api/v1/subject_messages/ \
+  -H "Cookie: jwt={jwt}" \
+  -F "subject_id=1" \
+  -F "type=file" \
+  -F "title=Material complemetario" \
+  -F "content=Material complementario del módulo 3" \
+  -F "file=@./documento.pdf"
+
+# crear mensaje sin archivo 
+
+curl -X POST http://localhost:8000/api/v1/subject_messages/ \
+  -H "Cookie: jwt={jwt}" \
+  -F "subject_id=1" \
+  -F "title=Reunion" \
+  -F "type=text" \
+  -F "content=Reunión el martes a las 10hs"
+
+# 📬 Obtener Mensajes
+
+curl -X GET "http://localhost:8000/api/v1/subject_messages/" \
+  -H "Cookie: jwt={jwt}" \
+  -H "Accept: application/json"
+
+```
+
 
 ## 💬 Mensajes internos
 

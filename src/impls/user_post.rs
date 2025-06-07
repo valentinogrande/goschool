@@ -525,6 +525,12 @@ impl Post for MySelf {
                 None => return HttpResponse::BadRequest().json("Missing or invalid type"),
         };
 
+        let title = match hashmap.get("title")
+            .and_then(|bytes| str::from_utf8(bytes).ok()) {
+                Some(t) => t,
+                None => "",
+        };
+
         // Extract content or file name
         let content_or_file = match type_ {
             "file" => match hashmap.get("file") {
@@ -564,12 +570,13 @@ impl Post for MySelf {
 
         // Insert message into database
         let insert_result = sqlx::query(
-            "INSERT INTO subject_messages (subject_id, sender_id, type, content) VALUES (?, ?, ?, ?)"
+            "INSERT INTO subject_messages (subject_id, sender_id, type, content, title) VALUES (?, ?, ?, ?, ?)"
         )
             .bind(subject_id)
             .bind(self.id)
             .bind(type_)
             .bind(content_or_file)
+            .bind(title)
             .execute(pool)
             .await;
 
@@ -577,4 +584,5 @@ impl Post for MySelf {
             Ok(_) => HttpResponse::Created().finish(),
             Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
         }
-    }}
+    }
+}
