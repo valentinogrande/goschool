@@ -4,7 +4,7 @@ use chrono::Utc;
 use std::env;
 
 use crate::filters::{AssessmentFilter, GradeFilter, MessageFilter, SelfassessableFilter, SubjectFilter, UserFilter, SubjectMessageFilter};
-use crate::structs::{Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData, Role, Selfassessable, SelfassessableResponse, Subject, SubjectMessage};
+use crate::structs::{Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData, Role, Selfassessable, SelfassessableResponse, Subject, SubjectMessage, PublicPersonalData};
 use crate::traits::Get;
 
 impl Get for MySelf{
@@ -293,7 +293,7 @@ Role::student => {
             query.push_bind(t);
         }
 
-        // Person filters
+       // Person filters
         if let Some(n) = person_filter.name {
             query.push(
                 " AND EXISTS (
@@ -343,7 +343,7 @@ Role::student => {
         pool: &MySqlPool)
     -> Result<PersonalData, sqlx::Error> {
         
-        let res = sqlx::query_as("SELECT * FROM personal_data WHERE user_id = ")
+        let res = sqlx::query_as("SELECT * FROM personal_data WHERE user_id = ?")
             .bind(self.id)
             .fetch_one(pool)
             .await;
@@ -355,9 +355,9 @@ Role::student => {
         &self,
         pool: &MySqlPool,
         filter: UserFilter)
-    -> Result<PersonalData, sqlx::Error> {
+    -> Result<PublicPersonalData, sqlx::Error> {
         
-        let mut query = QueryBuilder::new("SELECT pd.full_name,u.photo FROM personal_data pd JOIN user u ON pd.user_id = u.id");
+        let mut query = QueryBuilder::new("SELECT pd.full_name,u.photo FROM personal_data pd JOIN users u ON pd.user_id = u.id");
 
         if let Some(n) = filter.name {
             query.push(" WHERE pd.full_name LIKE ");

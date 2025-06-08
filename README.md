@@ -242,7 +242,6 @@ curl -X GET "http://localhost:8000/api/v1/subject_messages/" \
 
 ```
 
-
 ## 💬 Mensajes internos
 
 ```bash

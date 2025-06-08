@@ -218,6 +218,13 @@ pub struct NewTask {
     pub type_: AssessmentType,
 }
 
+
+#[derive(Serialize, Deserialize, FromRow, Decode)]
+pub struct PublicPersonalData {
+    pub full_name: String,
+    pub photo: Option<String>,
+}
+
 #[derive(Serialize, Deserialize, FromRow, Decode)]
 pub struct PersonalData {
     pub full_name: String,

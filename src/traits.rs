@@ -70,7 +70,7 @@ pub trait Get {
         &self,
         pool: &MySqlPool,
         filter: UserFilter)
-    -> Result<PersonalData, sqlx::Error>;
+    -> Result<PublicPersonalData, sqlx::Error>;
     async fn get_pending_selfassessables_grades(
         &self,
         pool: &MySqlPool,
