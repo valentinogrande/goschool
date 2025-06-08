@@ -90,13 +90,13 @@ pub struct PendingSelfassessableGrade {
     pub grade: Decimal,
 }
 
-#[derive(Debug, FromRow, Serialize)]
+#[derive(Debug, FromRow, Serialize, sqlx::Type)]
 pub struct Course {
     pub id: u64,
     pub year: i32,
     pub division: String,
-    pub level: Level,
-    pub shift: Shift,
+    pub level: String,
+    pub shift: String,
     pub preceptor_id: Option<u64>,
 }
 
@@ -260,22 +260,6 @@ pub struct Subject {
     pub teacher_id: u64,
     pub course_id: u64,
 }
-
-#[derive(Debug, Type, Serialize)]
-#[sqlx(type_name = "enum", rename_all = "lowercase")]
-pub enum Level {
-    Primary,
-    Secondary,
-}
-
-#[derive(Debug, Type, Serialize)]
-#[sqlx(type_name = "enum", rename_all = "lowercase")]
-pub enum Shift {
-    Morning,
-    Afternoon,
-}
-
-
 
 impl NewSelfassessable {
     pub fn validate(&self) -> bool {
