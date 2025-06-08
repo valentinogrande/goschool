@@ -201,7 +201,7 @@ curl -X POST http://localhost:8080/api/v1/profile_pictures/ \
   -b "jwt={jwt}" -F "file=@ruta/imagen.jpg"
 
 # 🖼️ Obtener link de la foto de perfil
-curl -X GET http://localhost:8080/api/v1/get_profile_picture/ -b "jwt={jwt}"
+curl -X GET http://localhost:8080/api/v1/profile_pictures/ -b "jwt={jwt}"
 
 # 📑 Subir tarea (homework)
 curl -X POST http://localhost:8080/api/v1/create_submission/ \

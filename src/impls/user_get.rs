@@ -406,18 +406,20 @@ Role::student => {
         pool: &MySqlPool)
     -> Result<String, sqlx::Error> {
 
-        let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ")
+        let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ?")
         .bind(self.id)
         .fetch_optional(pool)
         .await
     {
         Ok(Some(path)) => path,
-        Ok(None) => "default.jpg".to_string(),
+        Ok(None) => {
+                let base_url = env::var("BASE_URL").expect("BASE_URL must be set");
+                format!("{}uploads/profile_pictures/default.jpg", base_url)
+            },
         Err(e) => return Err(e),
     };
 
-        let base_url = env::var("BASE_URL").expect("BASE_URL must be set");
-        let url = format!("{}/uploads/profile_pictures/{}", base_url, photo_filename);
+        let url = format!("{}", photo_filename);
         Ok(url)
     }
 

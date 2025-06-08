@@ -252,7 +252,12 @@ impl Post for MySelf {
             multipart: actix_multipart::Multipart
         ) -> HttpResponse {
 
-        let hashmap = match parse_multipart(multipart, Some(&["jpg", "jpeg", "png"]), Some(&["image/jpeg", "image/png"])).await {
+        let hashmap = match parse_multipart(
+            multipart,
+            Some(&["jpg", "jpeg", "png"]),
+            Some(&["image/jpeg", "image/png"]),
+            "uploads/profile_pictures")
+        .await {
             Ok(h) => h,
             Err(e) => return HttpResponse::BadRequest().json(format!("Invalid upload: {}", e)),
         };
@@ -291,7 +296,12 @@ impl Post for MySelf {
             Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
         };
 
-        let hashmap = match parse_multipart(multipart, Some(&["pdf", "docx"]), Some(&["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"])).await {  
+        let hashmap = match parse_multipart(
+            multipart,
+            Some(&["pdf", "docx"]),
+            Some(&["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]),
+            "uploads/submissions")
+        .await {  
             Ok(h) => h,
             Err(e) => return HttpResponse::BadRequest().json(format!("Invalid upload: {}", e)),
         };
@@ -503,8 +513,8 @@ impl Post for MySelf {
             Some(&["pdf", "docx"]),
             Some(&[
                 "application/pdf",
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            ])
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]),
+            "uploads/files"
         ).await {
             Ok(h) => h,
             Err(e) => return HttpResponse::BadRequest().json(format!("Invalid upload: {}", e)),

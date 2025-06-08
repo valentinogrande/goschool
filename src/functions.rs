@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use actix_multipart::Multipart;
 use futures_util::StreamExt;
 use std::io::Write;
-use tokio::fs;
 use tempfile::NamedTempFile;
 use uuid::Uuid;
 use sanitize_filename::sanitize;
+use std::env;
 
 /// Tamaño máximo permitido para subir archivos: 10 MB
 const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; 
@@ -14,6 +14,7 @@ pub async fn parse_multipart<'a>(
     mut multipart: Multipart,
     supported_extensions: Option<&[&str]>,
     supported_mime_types: Option<&[&str]>,
+    upload_path: &'a str
 ) -> Result<HashMap<String, Vec<u8>>, &'a str> {
     let mut fields = HashMap::new();
 
@@ -54,8 +55,9 @@ pub async fn parse_multipart<'a>(
 
             // Nombre único para almacenar (UUID + extensión)
             let unique_name = format!("{}.{}", Uuid::new_v4(), extension);
-            let upload_path = format!("./uploads/submissions/{}", unique_name);
-
+            let base_path = env::var("BASE_PATH").unwrap();
+            let upload_path_str = format!("{}/{}/{}", base_path, upload_path, unique_name);
+            
             // Crear archivo temporal
             let mut temp_file = NamedTempFile::new().map_err(|_| "Failed to create temp file")?;
 
@@ -89,17 +91,27 @@ pub async fn parse_multipart<'a>(
                 }
             }
 
-            // Mover archivo temporal a ubicación definitiva
-            let temp_path = temp_file.into_temp_path().to_path_buf();
-            if fs::rename(&temp_path, &upload_path).await.is_err() {
-                let _ = fs::remove_file(&temp_path).await;
-                return Err("Failed to store file");
+            let path = std::path::Path::new(&upload_path_str);
+            if let Some(parent) = path.parent() {
+                tokio::fs::create_dir_all(parent).await.map_err(|_| "Failed to create upload directory")?;
             }
 
-            // Guardar en el HashMap la ruta del archivo guardado
-            fields.insert("file".to_string(), upload_path.into_bytes());
-            // Opcional: guardar también el nombre original saneado si quieres
-            fields.insert("file_original_name".to_string(), filename_sanitized.into_bytes());
+            // Mover archivo temporal a ubicación definitiva usando persist dentro de spawn_blocking
+            tokio::task::spawn_blocking({
+                let upload_path_str = upload_path_str.clone();
+                move || {
+                    temp_file.persist(&upload_path_str)
+                        .map_err(|_| "Failed to move uploaded file")
+                }
+            }).await.map_err(|_| "Blocking task failed")??;
+
+            // Guardar en el HashMap la ruta del archivo guardado (como string en bytes)
+            
+            let url = env::var("BASE_URL").expect("BASE_URL must be set");
+            let path = format!("{}{}/{}", url, upload_path, unique_name);
+            dbg!(&path);
+            fields.insert("file".to_string(), path.into_bytes());
+
         } else {
             // Campos normales (no archivo)
             let mut data = Vec::new();
