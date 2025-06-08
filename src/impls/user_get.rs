@@ -1,4 +1,4 @@
-use sqlx::{MySqlPool, QueryBuilder};
+use sqlx::{MySqlPool, QueryBuilder, MySql};
 use actix_web::web;
 use chrono::Utc;
 use std::env;
@@ -196,6 +196,7 @@ Role::student => {
         res
     }
    
+    
     async fn get_assessments(
         &self,
         pool: &MySqlPool,
@@ -203,141 +204,160 @@ Role::student => {
         subject_filter: SubjectFilter,
         person_filter: UserFilter,
     ) -> Result<Vec<Assessment>, sqlx::Error> {
-        let mut query = QueryBuilder::new("SELECT a.* FROM assessments a JOIN subjects s ON a.subject_id = s.id ");
+        let mut query = QueryBuilder::new(
+            "SELECT a.* FROM assessments a \
+             JOIN subjects s ON a.subject_id = s.id",
+        );
+
+        // Rol y permisos: condiciones base
+        let mut where_started = false;
+
+        let mut add_where = |q: &mut QueryBuilder<'_, MySql>, condition: &str| {
+            if !where_started {
+                q.push(" WHERE ");
+                where_started = true;
+            } else {
+                q.push(" AND ");
+            }
+            q.push(condition);
+        };
 
         match self.role {
             Role::teacher => {
-                query.push("WHERE s.teacher_id = ");
+                add_where(&mut query, "s.teacher_id = ");
                 query.push_bind(self.id);
             }
             Role::admin => {
-                query.push("WHERE 1=1");
+                // no filtro necesario
             }
             Role::father => {
-                let subjects: Vec<u64> = sqlx::query_scalar(
+                let subject_ids: Vec<u64> = sqlx::query_scalar(
                     "SELECT s.id FROM subjects s
                      JOIN users u ON s.course_id = u.course_id
                      JOIN families f ON f.student_id = u.id
-                     WHERE f.father_id = "
+                     WHERE f.father_id = ?",
                 )
                 .bind(self.id)
                 .fetch_all(pool)
                 .await?;
 
-                if subjects.is_empty() {
-                    return Ok(Vec::new());
+                if subject_ids.is_empty() {
+                    return Ok(vec![]);
                 }
 
-                query.push("WHERE a.subject_id IN (");
+                add_where(&mut query, "a.subject_id IN (");
                 let mut separated = query.separated(", ");
-                for id in subjects.iter() {
-                    separated.push_bind(*id);
+                for id in subject_ids {
+                    separated.push_bind(id);
                 }
                 query.push(")");
             }
             Role::student => {
-                let subjects: Vec<u64> = sqlx::query_scalar(
+                let subject_ids: Vec<u64> = sqlx::query_scalar(
                     "SELECT s.id FROM subjects s
                      JOIN users u ON s.course_id = u.course_id
-                     WHERE u.id = "
+                     WHERE u.id = ?",
                 )
                 .bind(self.id)
                 .fetch_all(pool)
                 .await?;
 
-                if subjects.is_empty() {
-                    return Ok(Vec::new());
+                if subject_ids.is_empty() {
+                    return Ok(vec![]);
                 }
 
-                query.push("WHERE a.subject_id IN (");
+                add_where(&mut query, "a.subject_id IN (");
                 let mut separated = query.separated(", ");
-                for id in subjects.iter() {
-                    separated.push_bind(*id);
+                for id in subject_ids {
+                    separated.push_bind(id);
                 }
                 query.push(")");
             }
             Role::preceptor => {
-                let subjects: Vec<u64> = sqlx::query_scalar(
+                let subject_ids: Vec<u64> = sqlx::query_scalar(
                     "SELECT s.id FROM subjects s
                      JOIN courses c ON s.course_id = c.id
-                     WHERE c.preceptor_id = "
+                     WHERE c.preceptor_id = ?",
                 )
                 .bind(self.id)
                 .fetch_all(pool)
                 .await?;
 
-                if subjects.is_empty() {
-                    return Ok(Vec::new());
+                if subject_ids.is_empty() {
+                    return Ok(vec![]);
                 }
 
-                query.push("WHERE a.subject_id IN (");
+                add_where(&mut query, "a.subject_id IN (");
                 let mut separated = query.separated(", ");
-                for id in subjects.iter() {
-                    separated.push_bind(*id);
+                for id in subject_ids {
+                    separated.push_bind(id);
                 }
                 query.push(")");
             }
         }
 
-        // Subject filters
-        if let Some(c) = subject_filter.course_id {
-            query.push(" AND s.course_id = ");
-            query.push_bind(c);
+        // Filtros de materia (subject)
+        if let Some(course_id) = subject_filter.course_id {
+            add_where(&mut query, "s.course_id = ");
+            query.push_bind(course_id);
         }
-        if let Some(n) = subject_filter.name {
-            query.push(" AND s.name LIKE ");
-            query.push_bind(format!("%{}%", n));
+        if let Some(ref name) = subject_filter.name {
+            add_where(&mut query, "s.name LIKE ");
+            query.push_bind(format!("%{}%", name));
         }
-        if let Some(t) = subject_filter.teacher_id {
-            query.push(" AND s.teacher_id = ");
-            query.push_bind(t);
+        if let Some(teacher_id) = subject_filter.teacher_id {
+            add_where(&mut query, "s.teacher_id = ");
+            query.push_bind(teacher_id);
         }
 
-       // Person filters
-        if let Some(n) = person_filter.name {
-            query.push(
-                " AND EXISTS (
+        // Filtros de persona (usuario asociado a la evaluación)
+        if let Some(ref full_name) = person_filter.name {
+            add_where(
+                &mut query,
+                "EXISTS (
                     SELECT 1 FROM personal_data pd
-                    WHERE pd.user_id = a.user_id
-                    AND pd.full_name LIKE "
+                    WHERE pd.user_id = a.user_id AND pd.full_name LIKE ",
             );
-            query.push_bind(format!("%{}%", n));
+            query.push_bind(format!("%{}%", full_name));
             query.push(")");
-        }
-        if let Some(c) = person_filter.course {
-            query.push(
-                " AND EXISTS (
-                    SELECT 1 FROM users u
-                    WHERE u.id = a.user_id
-                    AND u.course_id = "
-            );
-            query.push_bind(c);
-            query.push(")");
-        }
-        if let Some(i) = person_filter.id {
-            query.push(" AND a.user_id = ");
-            query.push_bind(i);
         }
 
-        if let Some(due) = filter.due {
-            if due {
-                let actual_date = Utc::now();
-                query.push(" AND a.due_date >= ");
-                query.push_bind(actual_date);
-            }
+        if let Some(course_id) = person_filter.course {
+            add_where(
+                &mut query,
+                "EXISTS (
+                    SELECT 1 FROM users u
+                    WHERE u.id = a.user_id AND u.course_id = ",
+            );
+            query.push_bind(course_id);
+            query.push(")");
         }
-        if let Some(t) = filter.task {
-            query.push(" AND a.task LIKE ");
-            query.push_bind(format!("%{}%", t));
+
+        if let Some(user_id) = person_filter.id {
+            add_where(&mut query, "a.user_id = ");
+            query.push_bind(user_id);
         }
-        
-        let res = query
+
+        // Filtros propios de la evaluación
+        if let Some(true) = filter.due {
+            let now = Utc::now().naive_utc();
+            add_where(&mut query, "a.due_date >= ");
+            query.push_bind(now);
+        }
+
+        if let Some(ref task) = filter.task {
+            add_where(&mut query, "a.task LIKE ");
+            query.push_bind(format!("%{}%", task));
+        }
+
+        let result = query
             .build_query_as::<Assessment>()
             .fetch_all(pool)
             .await;
 
-        res
+        result
     }
+
     async fn get_personal_data(
         &self,
         pool: &MySqlPool)
