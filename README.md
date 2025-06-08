@@ -152,7 +152,7 @@ curl -X POST http://localhost:8080/api/v1/assessments/ \
   }'
 
 # ✅ Responder autoevaluable
-curl -X POST http://localhost:8080/api/v1/create_selfassessable_submission/ \
+curl -X POST http://localhost:8080/api/v1/selfassessables/ \
   -H "Content-Type: application/json" \
   -b "jwt={jwt}" \
   -d '{"assessment_id":1,"answers":["respuesta1","respuesta2"]}'
@@ -197,7 +197,7 @@ curl -X GET http://localhost:8080/api/v1/public_personal_data/ -b "jwt={jwt}"
 
 ```bash
 # 📷 Subir foto de perfil
-curl -X POST http://localhost:8080/api/v1/upload_profile_picture/ \
+curl -X POST http://localhost:8080/api/v1/profile_pictures/ \
   -b "jwt={jwt}" -F "file=@ruta/imagen.jpg"
 
 # 🖼️ Obtener link de la foto de perfil
@@ -264,7 +264,7 @@ curl -X GET http://localhost:8080/api/v1/messages/ -b "jwt={jwt}"
 curl -X GET "http://localhost:8080/api/v1/verify_token/" -b "jwt={jwt}"
 
 # 🔍 Obtener rol actual
-curl -X GET "http://localhost:8080/api/v1/get_role/" -b "jwt={jwt}"
+curl -X GET "http://localhost:8080/api/v1/role/" -b "jwt={jwt}"
 ```
 
 ---
