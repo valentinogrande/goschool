@@ -26,12 +26,12 @@ pub struct SubjectFilter {
     pub teacher_id: Option<u64>,
     pub course_id: Option<u64>,
     pub name: Option<String>,
-    pub id: Option<u64>,
+    pub subject_id: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct SubjectMessageFilter {
-    pub id: Option<u64>,
+    pub subject_message_id: Option<u64>,
     pub sender_id: Option<u64>,
     pub subject_id: Option<u64>,
 }
@@ -40,11 +40,10 @@ pub struct SubjectMessageFilter {
 pub struct UserFilter {
     pub course: Option<u64>,
     pub name: Option<String>,
-    pub id: Option<u64>,
+    pub user_id: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct SelfassessableFilter {
-    pub id: Option<u64>,
+    pub selfassessable_id: Option<u64>,
 }
-

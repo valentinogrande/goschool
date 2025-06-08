@@ -449,7 +449,7 @@ impl Post for MySelf {
         let answers = task_submission.answers;
         
         let filter = SelfassessableFilter {
-            id: Some(selfassessable_id),
+            selfassessable_id: Some(selfassessable_id),
         };  
 
         let assessable_task = match self.get_selfassessables(&pool, filter).await {

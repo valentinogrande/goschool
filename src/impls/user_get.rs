@@ -185,7 +185,7 @@ Role::student => {
             query.push(" AND s.teacher_id = ");
             query.push_bind(t);
         }
-        if let Some(i) = filter.id {
+        if let Some(i) = filter.subject_id {
             query.push(" AND s.id = ");
             query.push_bind(i);
         }
@@ -309,6 +309,10 @@ Role::student => {
             add_where(&mut query, "s.teacher_id = ");
             query.push_bind(teacher_id);
         }
+        if let Some(id) = subject_filter.subject_id {
+            add_where(&mut query, "s.id = ");
+            query.push_bind(id);
+        }
 
         // Filtros de persona (usuario asociado a la evaluación)
         if let Some(ref full_name) = person_filter.name {
@@ -333,7 +337,7 @@ Role::student => {
             query.push(")");
         }
 
-        if let Some(user_id) = person_filter.id {
+        if let Some(user_id) = person_filter.user_id {
             add_where(&mut query, "a.user_id = ");
             query.push_bind(user_id);
         }
@@ -383,7 +387,7 @@ Role::student => {
             query.push(" WHERE pd.full_name LIKE ");
             query.push_bind(format!("%{}%", n));
         }
-        if let Some(i) = filter.id {
+        if let Some(i) = filter.user_id {
             query.push(" AND pd.user_id = ");
             query.push_bind(i);
         }
@@ -491,7 +495,7 @@ Role::student => {
 
             query_builder.push_bind(self.id);
             
-            if let Some(i) = filter.id {
+            if let Some(i) = filter.selfassessable_id {
                 query_builder.push(" AND s.id = ");
                 query_builder.push_bind(i);
             }
@@ -518,7 +522,7 @@ Role::student => {
 
         query_builder.push_bind(self.id);
 
-        if let Some(i) = filter.id {
+        if let Some(i) = filter.selfassessable_id {
             query_builder.push(" AND selfassessable_id = ");
             query_builder.push_bind(i);
         }
@@ -560,7 +564,7 @@ Role::student => {
             }
         }
 
-        if let Some(i) = filter.id {
+        if let Some(i) = filter.selfassessable_id {
             query_builder.push(" AND selfassessable_id = ");
             query_builder.push_bind(i);
         }
@@ -603,7 +607,7 @@ Role::student => {
             }
         };
 
-        if let Some(i) = filter.id {
+        if let Some(i) = filter.subject_message_id {
             query.push(" AND sm.id = ");
             query.push_bind(i);
         }
