@@ -379,7 +379,7 @@ Role::student => {
         &self,
         pool: &MySqlPool,
         filter: UserFilter)
-    -> Result<PublicPersonalData, sqlx::Error> {
+    -> Result<Vec<PublicPersonalData>, sqlx::Error> {
         
         let mut query = QueryBuilder::new("SELECT pd.full_name,u.photo FROM personal_data pd JOIN users u ON pd.user_id = u.id");
 
@@ -396,7 +396,7 @@ Role::student => {
             query.push_bind(c);
         }
 
-        let res = query.build_query_as().fetch_one(pool).await;
+        let res = query.build_query_as().fetch_all(pool).await;
         
         res
     }
