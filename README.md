@@ -274,3 +274,7 @@ curl -X GET "http://localhost:8080/api/v1/role/" -b "jwt={jwt}"
 - 🔄 Reemplaza `{jwt}` por el token JWT recibido tras iniciar sesión.
 - 🔐 Algunos endpoints requieren un rol específico para acceder.
 - 📖 Puedes consultar el código fuente para ver más detalles internos.
+
+## LICENCIA
+este proyecto se encuentra bajo la licencia [MIT](https://github.com/valentinogrande/goschool/blob/main/LICENSE).
+proyecto mantenido por [Valentino Grande](https://github.com/valentinogrande).
