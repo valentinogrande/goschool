@@ -217,7 +217,7 @@ curl -X POST http://localhost:8080/api/v1/create_submission/ \
 ```bash 1
 # ✉️ Crear mensaje
 
-curl -X POST http://localhost:8000/api/v1/subject_messages/ \
+curl -X POST http://localhost:8080/api/v1/subject_messages/ \
   -H "Cookie: jwt={jwt}" \
   -F "subject_id=1" \
   -F "type=file" \
@@ -227,16 +227,16 @@ curl -X POST http://localhost:8000/api/v1/subject_messages/ \
 
 # crear mensaje sin archivo 
 
-curl -X POST http://localhost:8000/api/v1/subject_messages/ \
+curl -X POST http://localhost:8080/api/v1/subject_messages/ \
   -H "Cookie: jwt={jwt}" \
   -F "subject_id=1" \
   -F "title=Reunion" \
-  -F "type=text" \
+  -F "type=message" \ # or link
   -F "content=Reunión el martes a las 10hs"
 
 # 📬 Obtener Mensajes
 
-curl -X GET "http://localhost:8000/api/v1/subject_messages/" \
+curl -X GET "http://localhost:8080/api/v1/subject_messages/" \
   -H "Cookie: jwt={jwt}" \
   -H "Accept: application/json"
 

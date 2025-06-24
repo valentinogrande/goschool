@@ -532,7 +532,7 @@ impl Post for MySelf {
         let type_ = match hashmap.get("type")
             .and_then(|bytes| str::from_utf8(bytes).ok()) {
                 Some(t) => t,
-                None => return HttpResponse::BadRequest().json("Missing or invalid type"),
+                None => "message",
         };
 
         let title = match hashmap.get("title")
