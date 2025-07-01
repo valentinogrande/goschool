@@ -113,6 +113,20 @@ curl -X GET http://localhost:8080/api/v1/subjetcs/ -b "jwt={jwt}"
 
 ---
 
+## Como saber si ya esta resuelto?
+
+```bash
+# 📝 Obtener si la tarea ya fue resuelta
+curl -X POST http://localhost:8080/api/v1/get_if_homework_answered/ -H "Content-Type: application/json" -H "Cookie: jwt={jwt}" -d '{"homework_id": 2}' 
+
+# 📝 Obtener si el autoevaluable ya fue resuelto
+curl -X POST http://localhost:8080/api/v1/get_if_selfassessable_answered/ -H "Content-Type: application/json" -H "Cookie: jwt={jwt}" -d '{"selfassessable_id": 2}'
+
+```
+
+
+ ---
+
 ## 📝 Evaluaciones
 
 ```bash
@@ -204,7 +218,7 @@ curl -X POST http://localhost:8080/api/v1/profile_pictures/ \
 curl -X GET http://localhost:8080/api/v1/profile_pictures/ -b "jwt={jwt}"
 
 # 📑 Subir tarea (homework)
-curl -X POST http://localhost:8080/api/v1/create_submission/ \
+curl -X POST http://localhost:8080/api/v1/homework_submission/ \
   -H "Cookie: jwt={jwt}" \
   -F "file=@archivo.pdf" -F "homework_id=1"
 ```

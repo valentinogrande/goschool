@@ -16,3 +16,4 @@ pub mod submissions;
 pub mod selfassessables;
 pub mod selfassessables_pending_grades;
 pub mod subject_messages;
+pub mod get_if_answered;

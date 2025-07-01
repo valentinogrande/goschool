@@ -291,7 +291,7 @@ impl Post for MySelf {
         };
     
         let user_course = match self.get_courses(pool).await {
-            Ok(c) if !c.is_empty() => c[0].id,
+            Ok(c) if !c.is_empty() => c[0].course_id,
             Ok(_) => return HttpResponse::NotFound().json("No course found"),
             Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
         };
@@ -342,7 +342,7 @@ impl Post for MySelf {
                 return HttpResponse::InternalServerError().finish();
             }
         };
-
+        
         if task_course != user_course {
             return HttpResponse::Unauthorized().finish();
         }
@@ -380,7 +380,7 @@ impl Post for MySelf {
             return HttpResponse::InternalServerError().finish();
         }
 
-        return HttpResponse::Ok().body("Submission created");
+        return HttpResponse::Created().body("Submission created");
         
     }
 
@@ -594,5 +594,29 @@ impl Post for MySelf {
             Ok(_) => HttpResponse::Created().finish(),
             Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
         }
+    }
+    async fn get_is_selfassessable_answered(
+            &self,
+            pool: &MySqlPool,
+            selfassessable_id: u64)
+        -> anyhow::Result<bool, sqlx::Error> {
+        let res = sqlx::query_scalar("SELECT EXISTS (SELECT * FROM selfassessable_submissions WHERE student_id = ? AND selfassessable_id = ?)")
+            .bind(self.id)
+            .bind(selfassessable_id)
+            .fetch_one(pool)
+            .await;
+        res
+    }
+    async fn get_is_homework_answered(
+            &self,
+            pool: &MySqlPool,
+            homework_id: u64)
+        -> anyhow::Result<bool, sqlx::Error> {
+        let res = sqlx::query_scalar("SELECT EXISTS (SELECT * FROM homework_submissions WHERE student_id = ? AND task_id = ?)")
+            .bind(self.id)
+            .bind(homework_id)
+            .fetch_one(pool)
+            .await;
+        res
     }
 }

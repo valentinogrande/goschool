@@ -93,6 +93,7 @@ pub struct PendingSelfassessableGrade {
 #[derive(Debug, FromRow, Serialize, sqlx::Type)]
 pub struct Course {
     pub id: u64,
+    pub course_id: u64,
     pub year: i32,
     pub division: String,
     pub level: String,

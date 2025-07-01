@@ -81,6 +81,7 @@ pub trait Get {
         pool: &MySqlPool,
         filter: SubjectMessageFilter)
     -> Result<Vec<SubjectMessage>, sqlx::Error>;
+
 }
 
 pub trait Post  {
@@ -120,4 +121,14 @@ pub trait Post  {
         pool: &MySqlPool,
         multipart: Multipart
     ) -> HttpResponse;
+    async fn get_is_selfassessable_answered(
+        &self,
+        pool: &MySqlPool,
+        selfassessable_id: u64)
+    -> Result<bool, sqlx::Error>;
+    async fn get_is_homework_answered(
+        &self,
+        pool: &MySqlPool,
+        homework_id: u64        
+    ) -> Result<bool, sqlx::Error>;
 }
