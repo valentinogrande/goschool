@@ -1,15 +1,20 @@
-use sqlx::{MySqlPool, QueryBuilder, MySql};
 use actix_web::web;
 use chrono::Utc;
+use sqlx::{MySql, MySqlPool, QueryBuilder};
 use std::env;
 
-use crate::filters::{AssessmentFilter, GradeFilter, MessageFilter, SelfassessableFilter, SubjectFilter, UserFilter, SubjectMessageFilter};
-use crate::structs::{Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData, Role, Selfassessable, SelfassessableResponse, Subject, SubjectMessage, PublicPersonalData};
+use crate::filters::{
+    AssessmentFilter, GradeFilter, MessageFilter, SelfassessableFilter, SubjectFilter,
+    SubjectMessageFilter, UserFilter,
+};
+use crate::structs::{
+    Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData,
+    PublicPersonalData, Role, Selfassessable, SelfassessableResponse, Subject, SubjectMessage,
+};
 use crate::traits::Get;
 
-impl Get for MySelf{
-   
-   async fn get_students(
+impl Get for MySelf {
+    async fn get_students(
         &self,
         pool: web::Data<MySqlPool>,
         filter: UserFilter,
@@ -23,7 +28,7 @@ impl Get for MySelf{
                 query.push("WHERE s.teacher_id = ");
                 query.push_bind(self.id);
             }
-Role::student => {
+            Role::student => {
                 return Ok(vec![self.id]);
             }
             Role::preceptor => {
@@ -56,59 +61,51 @@ Role::student => {
 
         res
     }
-    
-    async fn get_courses(
-        &self,
-        pool: &MySqlPool)
-    -> Result<Vec<Course>, sqlx::Error> {
 
+    async fn get_courses(&self, pool: &MySqlPool) -> Result<Vec<Course>, sqlx::Error> {
         let mut query = QueryBuilder::new("SELECT * FROM courses c ");
         match self.role {
             Role::student => {
                 query.push("JOIN users u ON c.id = u.course_id WHERE u.id = ");
                 query.push_bind(self.id);
-            },
+            }
             Role::admin => {
                 query.push("WHERE 1=1");
-            },
+            }
             Role::preceptor => {
                 query.push("WHERE preceptor_id = ");
                 query.push_bind(self.id);
-            },
+            }
             Role::father => {
                 query.push("JOIN users u ON c.id = u.course_id JOIN families f ON f.student_id = u.id WHERE f.father_id = ");
                 query.push_bind(self.id);
-            },
+            }
             Role::teacher => {
                 query.push("JOIN subjects s ON c.id = s.course_id WHERE s.teacher_id = ");
                 query.push_bind(self.id);
-            },
+            }
         };
 
-        let res = query
-            .build_query_as()
-            .fetch_all(pool)
-            .await;
+        let res = query.build_query_as().fetch_all(pool).await;
         res
     }
     async fn get_grades(
         &self,
         pool: &MySqlPool,
-        filter: GradeFilter)
-    -> Result<Vec<Grade>, sqlx::Error>{
-
+        filter: GradeFilter,
+    ) -> Result<Vec<Grade>, sqlx::Error> {
         let mut query = QueryBuilder::new("SELECT * FROM grades ");
         match self.role {
             Role::student => {
                 query.push("WHERE student_id =");
                 query.push_bind(self.id);
-            },
+            }
             Role::teacher => {
                 query.push("SELECT * FROM grades g JOIN subjects s ON g.subject_id = s.id WHERE s.teacher_id =");
                 query.push_bind(self.id);
             }
             Role::admin => {
-            query.push("WHERE 1=1");
+                query.push("WHERE 1=1");
             }
             Role::father => {
                 query.push("SELECT * FROM grades g JOIN families f ON g.student_id = f.student_id WHERE f.father_id =");
@@ -131,18 +128,14 @@ Role::student => {
             query.push(" AND description = ");
             query.push_bind(d);
         }
-        let res = query
-            .build_query_as()
-            .fetch_all(pool)
-            .await;
+        let res = query.build_query_as().fetch_all(pool).await;
         res
     }
     async fn get_subjects(
         &self,
         pool: &MySqlPool,
-        filter: SubjectFilter)
-    -> Result<Vec<Subject>, sqlx::Error> {
-
+        filter: SubjectFilter,
+    ) -> Result<Vec<Subject>, sqlx::Error> {
         let mut query = QueryBuilder::new("SELECT * FROM subjects s ");
         match self.role {
             Role::teacher => {
@@ -153,12 +146,9 @@ Role::student => {
                 query.push("WHERE 1=1");
             }
             Role::student => {
-                query.push(
-                "JOIN courses c ON s.course_id = c.id \
-                 JOIN users u ON c.id = u.course_id \
-                 WHERE u.id = "
-                );
+                query.push("WHERE s.course_id = (SELECT course_id FROM users WHERE id = ");
                 query.push_bind(self.id);
+                query.push(")");
             }
             Role::preceptor => {
                 query.push("JOIN courses c ON s.course_id = c.id WHERE c.preceptor_id =");
@@ -166,9 +156,9 @@ Role::student => {
             }
             Role::father => {
                 query.push(
-                "JOIN users u ON s.course_id = u.course_id \
+                    "JOIN users u ON s.course_id = u.course_id \
                  JOIN families f ON f.student_id = u.id \
-                 WHERE f.father_id = "
+                 WHERE f.father_id = ",
                 );
                 query.push_bind(self.id);
             }
@@ -189,14 +179,10 @@ Role::student => {
             query.push(" AND s.id = ");
             query.push_bind(i);
         }
-        let res = query
-            .build_query_as()
-            .fetch_all(pool)
-            .await;
+        let res = query.build_query_as::<Subject>().fetch_all(pool).await;
         res
     }
-   
-    
+
     async fn get_assessments(
         &self,
         pool: &MySqlPool,
@@ -354,34 +340,28 @@ Role::student => {
             query.push_bind(format!("%{}%", task));
         }
 
-        let result = query
-            .build_query_as::<Assessment>()
-            .fetch_all(pool)
-            .await;
+        let result = query.build_query_as::<Assessment>().fetch_all(pool).await;
 
         result
     }
 
-    async fn get_personal_data(
-        &self,
-        pool: &MySqlPool)
-    -> Result<PersonalData, sqlx::Error> {
-        
+    async fn get_personal_data(&self, pool: &MySqlPool) -> Result<PersonalData, sqlx::Error> {
         let res = sqlx::query_as("SELECT * FROM personal_data WHERE user_id = ?")
             .bind(self.id)
             .fetch_one(pool)
             .await;
-        
+
         res
     }
 
     async fn get_public_personal_data(
         &self,
         pool: &MySqlPool,
-        filter: UserFilter)
-    -> Result<Vec<PublicPersonalData>, sqlx::Error> {
-        
-        let mut query = QueryBuilder::new("SELECT pd.full_name,u.photo FROM personal_data pd JOIN users u ON pd.user_id = u.id");
+        filter: UserFilter,
+    ) -> Result<Vec<PublicPersonalData>, sqlx::Error> {
+        let mut query = QueryBuilder::new(
+            "SELECT pd.full_name,u.photo FROM personal_data pd JOIN users u ON pd.user_id = u.id",
+        );
 
         if let Some(n) = filter.name {
             query.push(" WHERE pd.full_name LIKE ");
@@ -397,27 +377,24 @@ Role::student => {
         }
 
         let res = query.build_query_as().fetch_all(pool).await;
-        
+
         res
     }
 
-    async fn get_profile_picture(
-        &self,
-        pool: &MySqlPool)
-    -> Result<String, sqlx::Error> {
-
-        let photo_filename: String = match sqlx::query_scalar("SELECT photo FROM users WHERE id = ?")
-        .bind(self.id)
-        .fetch_optional(pool)
-        .await
-    {
-        Ok(Some(path)) => path,
-        Ok(None) => {
-                let base_url = env::var("BASE_URL").expect("BASE_URL must be set");
-                format!("{}uploads/profile_pictures/default.jpg", base_url)
-            },
-        Err(e) => return Err(e),
-    };
+    async fn get_profile_picture(&self, pool: &MySqlPool) -> Result<String, sqlx::Error> {
+        let photo_filename: String =
+            match sqlx::query_scalar("SELECT photo FROM users WHERE id = ?")
+                .bind(self.id)
+                .fetch_optional(pool)
+                .await
+            {
+                Ok(Some(path)) => path,
+                Ok(None) => {
+                    let base_url = env::var("BASE_URL").expect("BASE_URL must be set");
+                    format!("{}uploads/profile_pictures/default.jpg", base_url)
+                }
+                Err(e) => return Err(e),
+            };
 
         let url = format!("{}", photo_filename);
         Ok(url)
@@ -426,12 +403,11 @@ Role::student => {
     async fn get_messages(
         &self,
         pool: &MySqlPool,
-        filter: MessageFilter)
-    -> Result<Vec<Message>, sqlx::Error> {
-        
+        filter: MessageFilter,
+    ) -> Result<Vec<Message>, sqlx::Error> {
         let mut query = QueryBuilder::new(
             "SELECT DISTINCT m.* FROM messages m
-             JOIN message_courses mc ON mc.message_id = m.id "
+             JOIN message_courses mc ON mc.message_id = m.id ",
         );
         match self.role {
             Role::student => {
@@ -454,7 +430,7 @@ Role::student => {
                 query.push_bind(self.id);
             }
         };
-            
+
         if let Some(c) = filter.course_id {
             query.push(" AND mc.course_id = ");
             query.push_bind(c);
@@ -468,59 +444,55 @@ Role::student => {
             query.push_bind(format!("%{}%", t));
         }
 
-        let res = query
-            .build_query_as()
-            .fetch_all(pool)
-            .await;
+        let res = query.build_query_as().fetch_all(pool).await;
         res
     }
     async fn get_selfassessables(
-            &self,
-            pool: &MySqlPool,
-            filter: SelfassessableFilter)
-        -> anyhow::Result<Vec<crate::structs::Selfassessable>, sqlx::Error> {
-        
+        &self,
+        pool: &MySqlPool,
+        filter: SelfassessableFilter,
+    ) -> anyhow::Result<Vec<crate::structs::Selfassessable>, sqlx::Error> {
         if self.role != Role::student {
-                return Err(sqlx::Error::Protocol(
-                    "Only students can get selfassessables".into(),
-                ));
-            }
+            return Err(sqlx::Error::Protocol(
+                "Only students can get selfassessables".into(),
+            ));
+        }
 
-            let mut query_builder = QueryBuilder::new(
-                "SELECT st.* FROM selfassessable_tasks st
+        let mut query_builder = QueryBuilder::new(
+            "SELECT st.* FROM selfassessable_tasks st
                  JOIN selfassessables s ON s.id = st.selfassessable_id 
                  JOIN assessments a ON a.id = s.assessment_id
                  JOIN subjects sj ON sj.id = a.subject_id
                  JOIN users u ON u.course_id = sj.course_id
                  WHERE u.id =  ",
-            );
+        );
 
-            query_builder.push_bind(self.id);
-            
-            if let Some(i) = filter.selfassessable_id {
-                query_builder.push(" AND s.id = ");
-                query_builder.push_bind(i);
-            }
+        query_builder.push_bind(self.id);
 
-            let query = query_builder.build_query_as::<Selfassessable>();
+        if let Some(i) = filter.selfassessable_id {
+            query_builder.push(" AND s.id = ");
+            query_builder.push_bind(i);
+        }
 
-            let selfassessables = query.fetch_all(pool).await?;
+        let query = query_builder.build_query_as::<Selfassessable>();
 
-            Ok(selfassessables)
+        let selfassessables = query.fetch_all(pool).await?;
+
+        Ok(selfassessables)
     }
     async fn get_selfassessables_responses(
-            &self,
-            pool: &MySqlPool,
-            filter: SelfassessableFilter)
-         -> anyhow::Result<Vec<SelfassessableResponse>, sqlx::Error> {
-        
+        &self,
+        pool: &MySqlPool,
+        filter: SelfassessableFilter,
+    ) -> anyhow::Result<Vec<SelfassessableResponse>, sqlx::Error> {
         if self.role != Role::student {
-                return Err(sqlx::Error::Protocol(
-                    "Only students can get selfassessables".into(),
-                ));
+            return Err(sqlx::Error::Protocol(
+                "Only students can get selfassessables".into(),
+            ));
         }
-        
-        let mut query_builder = QueryBuilder::new("SELECT * FROM selfassessable_submissions WHERE student_id = ");
+
+        let mut query_builder =
+            QueryBuilder::new("SELECT * FROM selfassessable_submissions WHERE student_id = ");
 
         query_builder.push_bind(self.id);
 
@@ -536,27 +508,27 @@ Role::student => {
         Ok(responses)
     }
     async fn get_pending_selfassessables_grades(
-            &self,
-            pool: &MySqlPool,
-            filter: SelfassessableFilter)
-        -> anyhow::Result<Vec<PendingSelfassessableGrade>, sqlx::Error> {
-    
-        let mut query_builder = QueryBuilder::new(
-            "SELECT * FROM selfassessable_pending_grades pg"
-        );
-        match self.role {            
+        &self,
+        pool: &MySqlPool,
+        filter: SelfassessableFilter,
+    ) -> anyhow::Result<Vec<PendingSelfassessableGrade>, sqlx::Error> {
+        let mut query_builder = QueryBuilder::new("SELECT * FROM selfassessable_pending_grades pg");
+        match self.role {
             Role::student => {
                 return Err(sqlx::Error::Protocol(
                     "Only teachers can get selfassessables grades".into(),
-                ));            }
+                ));
+            }
             Role::preceptor => {
                 return Err(sqlx::Error::Protocol(
                     "Only teachers can get selfassessables grades".into(),
-                ));            }
+                ));
+            }
             Role::father => {
                 return Err(sqlx::Error::Protocol(
                     "Only teachers can get selfassessables grades".into(),
-                ));            }
+                ));
+            }
             Role::teacher => {
                 query_builder.push(" JOIN selfassessables s ON s.id = pg.selfassessable_id JOIN assessments a ON a.id = s.assessment_id JOIN subjects sj ON sj.id = a.subject_id JOIN users u ON u.course_id = sj.course_id WHERE u.id = ");
                 query_builder.push_bind(self.id);
@@ -570,7 +542,6 @@ Role::student => {
             query_builder.push(" AND selfassessable_id = ");
             query_builder.push_bind(i);
         }
-    
 
         let query = query_builder.build_query_as::<PendingSelfassessableGrade>();
 
@@ -579,14 +550,11 @@ Role::student => {
         Ok(selfassessables)
     }
     async fn get_subject_messages(
-            &self,
-            pool: &MySqlPool,
-            filter: SubjectMessageFilter)
-        -> anyhow::Result<Vec<SubjectMessage>, sqlx::Error> {
-    
-        let mut query = QueryBuilder::new(
-            "SELECT * FROM subject_messages sm"
-        );
+        &self,
+        pool: &MySqlPool,
+        filter: SubjectMessageFilter,
+    ) -> anyhow::Result<Vec<SubjectMessage>, sqlx::Error> {
+        let mut query = QueryBuilder::new("SELECT * FROM subject_messages sm");
         match self.role {
             Role::student => {
                 query.push(" JOIN subjects s ON s.id = sm.subject_id JOIN users u ON u.course_id = s.course_id WHERE u.id = ");
@@ -622,12 +590,7 @@ Role::student => {
             query.push_bind(s);
         }
 
-        let res = query
-            .build_query_as()
-            .fetch_all(pool)
-            .await;
+        let res = query.build_query_as().fetch_all(pool).await;
         res
-
     }
-
 }

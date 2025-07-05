@@ -1,10 +1,9 @@
-use actix_web::{get, web, HttpRequest, HttpResponse, Responder};
+use actix_web::{HttpRequest, HttpResponse, Responder, get, web};
 use sqlx::mysql::MySqlPool;
 
-use crate::jwt::validate;
 use crate::filters::SubjectFilter;
+use crate::jwt::validate;
 use crate::traits::Get;
-
 
 #[get("/api/v1/subjetcs/")]
 pub async fn get_subjects(
