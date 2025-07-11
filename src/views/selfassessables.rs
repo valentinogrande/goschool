@@ -1,10 +1,10 @@
-use actix_web::{get, web, HttpRequest, HttpResponse, Responder, post};
+use actix_web::{HttpRequest, HttpResponse, Responder, get, post, web};
 use sqlx::mysql::MySqlPool;
 
+use crate::filters::SelfassessableFilter;
 use crate::jwt::validate;
 use crate::structs::NewSubmissionSelfAssessable;
-use crate::traits::{Post, Get};
-use crate::filters::SelfassessableFilter;
+use crate::traits::{Get, Post};
 
 #[get("/api/v1/selfassessables/")]
 pub async fn get_selfassessables(
@@ -23,15 +23,14 @@ pub async fn get_selfassessables(
     };
 
     let user = token.claims.user;
-    
+
     let selfassessables = match user.get_selfassessables(&pool, filter.into_inner()).await {
         Ok(s) => s,
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };
-    
+
     HttpResponse::Ok().json(selfassessables)
 }
-
 
 #[post("/api/v1/selfassessables/")]
 pub async fn post_selfassessable_submission(
@@ -48,10 +47,11 @@ pub async fn post_selfassessable_submission(
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().finish(),
     };
-    
+
     let user = token.claims.user;
-        
-    user.post_submission_selfassessable(&pool, task_submission.into_inner()).await
+
+    user.post_submission_selfassessable(&pool, task_submission.into_inner())
+        .await
 }
 
 #[get("/api/v1/selfassessables_responses/")]
@@ -64,21 +64,21 @@ pub async fn get_selfassessables_responses(
         Some(cookie) => cookie,
         None => return HttpResponse::Unauthorized().json("Missing JWT cookie"),
     };
-    
+
     let token = match validate(cookie.value()) {
         Ok(t) => t,
         Err(_) => return HttpResponse::Unauthorized().json("Invalid JWT token"),
     };
-    
+
     let user = token.claims.user;
-    
-    let selfassessables = match user.get_selfassessables_responses(&pool, filter.into_inner()).await {
+
+    let selfassessables = match user
+        .get_selfassessables_responses(&pool, filter.into_inner())
+        .await
+    {
         Ok(s) => s,
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };
-    
+
     HttpResponse::Ok().json(selfassessables)
-    
 }
-
-

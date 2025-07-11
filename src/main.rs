@@ -1,29 +1,28 @@
-use actix_web::{middleware::Logger, web, App, HttpServer};
 use actix_cors::Cors;
-use sqlx::mysql::MySqlPool;
-use env_logger;
-use chrono::Datelike;
 use actix_files::Files;
+use actix_web::{App, HttpServer, middleware::Logger, web};
+use chrono::Datelike;
+use env_logger;
+use sqlx::mysql::MySqlPool;
 
-mod views;
-mod traits;
-mod jwt;
-mod json;
-mod routes;
+mod cron;
 mod filters;
-mod structs;
 mod functions;
 mod impls;
-mod cron;
+mod json;
+mod jwt;
+mod routes;
+mod structs;
+mod traits;
+mod views;
 
 use jwt::Claims;
 
-use routes::register_services;
 use cron::start_cron_task;
+use routes::register_services;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    
     dotenv::dotenv().ok();
     let mut db_url = std::env::var("DATABASE_URL").expect("database url should be setted");
     let actual_year = chrono::Utc::now().year();
@@ -43,19 +42,23 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         let cors = Cors::default()
-            .allow_any_origin() 
-            .allow_any_method() 
+            .allow_any_origin()
+            .allow_any_method()
             .allow_any_header()
             .supports_credentials();
-        
+
         App::new()
             .wrap(Logger::default())
             .wrap(cors)
             .app_data(web::Data::new(pool.clone()))
             .app_data(json_conf.clone())
-            .service(Files::new("/uploads/profile_pictures", "./uploads/profile_pictures").index_file("404"))
+            .service(
+                Files::new("/uploads/profile_pictures", "./uploads/profile_pictures")
+                    .index_file("404"),
+            )
+            .service(Files::new("/uploads/files", "./uploads/files").index_file("404"))
             .configure(register_services)
-   })
+    })
     .bind("127.0.0.1:8080")?
     .run()
     .await

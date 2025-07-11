@@ -23,12 +23,12 @@ impl Post for MySelf {
                 .fetch_one(pool)
                 .await
                 {
-                Ok(s) => s,
-                Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
-            };
-            if !teacher_subject {
-                return HttpResponse::Unauthorized().finish();
-            }
+                    Ok(s) => s,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+                };
+                if !teacher_subject {
+                    return HttpResponse::Unauthorized().finish();
+                }
             }
             Role::admin => {}
             _ => return HttpResponse::Unauthorized().finish(),
@@ -53,12 +53,12 @@ impl Post for MySelf {
             .bind(&payload.newtask.due_date)
             .execute(pool)
             .await
-        {
-            Ok(res) => res,
-            Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
-        };
+            {
+                Ok(res) => res,
+                Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+            };
             let assessment_id = insert_result.last_insert_id();
-        
+
             let assessable =
                 match sqlx::query("INSERT INTO selfassessables (assessment_id) VALUES (?)")
                     .bind(assessment_id)
@@ -67,7 +67,7 @@ impl Post for MySelf {
                 {
                     Ok(r) => r,
                     Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
-            };
+                };
             let assessable_id = assessable.last_insert_id();
             let mut queries = selfassessable.generate_query(assessable_id);
 
@@ -92,8 +92,8 @@ impl Post for MySelf {
             .await;
 
             match insert_result {
-               Ok(_) => HttpResponse::Created().finish(),
-               Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
+                Ok(_) => HttpResponse::Created().finish(),
+                Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
             }
         }
     }
@@ -109,32 +109,32 @@ impl Post for MySelf {
                 .fetch_one(pool)
                 .await
                 {
-                Ok(s) => s,
-                Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
-            };
-            if !teacher_subject {
-                return HttpResponse::Unauthorized().finish();
+                    Ok(s) => s,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+                };
+                if !teacher_subject {
+                    return HttpResponse::Unauthorized().finish();
+                }
             }
-        }
             _ => return HttpResponse::Unauthorized().finish(),
         };
-        
+
         let course =
             match sqlx::query_scalar::<_, u64>("SELECT course_id FROM subjects WHERE id = ?")
-            .bind(grade.subject)
-            .fetch_one(pool)
+                .bind(grade.subject)
+                .fetch_one(pool)
                 .await
             {
-            Ok(c) => c,
-            Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
-        };
+                Ok(c) => c,
+                Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+            };
 
         let student_course: bool = match sqlx::query_scalar(
             "SELECT EXISTS(SELECT 1 FROM users WHERE id = ? AND course_id = ?)",
         )
-            .bind(grade.student_id)
-            .bind(course)
-            .fetch_one(pool)
+        .bind(grade.student_id)
+        .bind(course)
+        .fetch_one(pool)
         .await
         {
             Ok(s) => s,
@@ -143,14 +143,14 @@ impl Post for MySelf {
         if !student_course {
             return HttpResponse::Unauthorized().finish();
         }
-    
+
         if let Some(assessment_id) = grade.assessment_id {
             let assessment_verify: bool = match sqlx::query_scalar(
                 "SELECT EXISTS(SELECT 1 FROM assessments WHERE id = ? AND subject_id = ?)",
             )
-                .bind(assessment_id)
-                .bind(grade.subject)
-                .fetch_one(pool)
+            .bind(assessment_id)
+            .bind(grade.subject)
+            .fetch_one(pool)
             .await
             {
                 Ok(s) => s,
@@ -188,7 +188,7 @@ impl Post for MySelf {
                 return HttpResponse::Created().finish();
             }
         }
-         let result = sqlx::query("INSERT INTO grades (student_id, grade_type, description, grade, subject_id) VALUES (?, ?, ?, ?, ?)")
+        let result = sqlx::query("INSERT INTO grades (student_id, grade_type, description, grade, subject_id) VALUES (?, ?, ?, ?, ?)")
             .bind(grade.student_id)
             .bind(&grade.grade_type)
             .bind(&grade.description)
@@ -212,7 +212,7 @@ impl Post for MySelf {
         for course in courses.iter() {
             if *course <= 0 || *course > 36 {
                 return HttpResponse::BadRequest().json("Invalid courses");
-            } 
+            }
         }
 
         match self.role {
@@ -240,9 +240,9 @@ impl Post for MySelf {
                 .execute(pool)
                 .await
             {
-            Ok(ref result) => result.last_insert_id(),
-            Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
-        };
+                Ok(ref result) => result.last_insert_id(),
+                Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+            };
 
         for course in courses.iter() {
             let _insert_result = match sqlx::query(
@@ -261,10 +261,10 @@ impl Post for MySelf {
     }
 
     async fn post_profile_picture(
-            &self,
-            pool: &MySqlPool,
+        &self,
+        pool: &MySqlPool,
         multipart: actix_multipart::Multipart,
-        ) -> HttpResponse {
+    ) -> HttpResponse {
         let hashmap = match parse_multipart(
             multipart,
             Some(&["jpg", "jpeg", "png"]),
@@ -281,26 +281,28 @@ impl Post for MySelf {
             .get("file")
             .and_then(|bytes| str::from_utf8(bytes).ok());
 
+        dbg!(&file_name);
+
         let result = sqlx::query("UPDATE users SET photo = ? WHERE id = ?")
-        .bind(file_name)
-        .bind(self.id)
-        .execute(pool)
-        .await;
+            .bind(file_name)
+            .bind(self.id)
+            .execute(pool)
+            .await;
 
         if result.is_err() {
             return HttpResponse::InternalServerError().finish();
         }
 
-        HttpResponse::Created().finish()       
+        HttpResponse::Created().finish()
     }
     async fn post_submission(&self, pool: &MySqlPool, multipart: Multipart) -> HttpResponse {
         match self.role {
             Role::student => {}
             _ => return HttpResponse::Unauthorized().finish(),
         };
-    
+
         let user_course = match self.get_courses(pool).await {
-            Ok(c) if !c.is_empty() => c[0].course_id,
+            Ok(c) if !c.is_empty() => c[0].id,
             Ok(_) => return HttpResponse::NotFound().json("No course found"),
             Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
         };
@@ -325,10 +327,10 @@ impl Post for MySelf {
             .and_then(|bytes| str::from_utf8(bytes).ok())
             .and_then(|s| s.parse::<u64>().ok())
         {
-                Some(id) => id,
-                None => return HttpResponse::BadRequest().json("Missing or invalid task_id"),
+            Some(id) => id,
+            None => return HttpResponse::BadRequest().json("Missing or invalid task_id"),
         };
-        
+
         let file_name = match hashmap.get("file") {
             Some(f) => f,
             None => return HttpResponse::BadRequest().json("Missing file"),
@@ -336,31 +338,31 @@ impl Post for MySelf {
 
         let res: (String, u64) =
             match sqlx::query_as("SELECT type, subject_id FROM assessments WHERE id = ?")
-            .bind(homework_id)
-            .fetch_one(pool)
+                .bind(homework_id)
+                .fetch_one(pool)
                 .await
             {
-            Ok(g) => g,
-            Err(_) => {
-                return HttpResponse::InternalServerError().finish();
-            }
-        };
+                Ok(g) => g,
+                Err(_) => {
+                    return HttpResponse::InternalServerError().finish();
+                }
+            };
 
         if res.0 != "homework" {
             return HttpResponse::BadRequest().body("submission are only valid for homeworks");
         }
         let task_course =
             match sqlx::query_scalar::<_, u64>("SELECT course_id FROM subjects WHERE id = ?")
-        .bind(res.1)
-        .fetch_one(pool)
+                .bind(res.1)
+                .fetch_one(pool)
                 .await
             {
-            Ok(g) => g,
-            Err(_) => {
-                return HttpResponse::InternalServerError().finish();
-            }
-        };
-        
+                Ok(g) => g,
+                Err(_) => {
+                    return HttpResponse::InternalServerError().finish();
+                }
+            };
+
         if task_course != user_course {
             return HttpResponse::Unauthorized().finish();
         }
@@ -385,12 +387,12 @@ impl Post for MySelf {
 
         let result = sqlx::query(
             "INSERT INTO homework_submissions (path, student_id, task_id) VALUES (?, ?, ?)",
-            )
-            .bind(file_name)
-            .bind(self.id)
-            .bind(homework_id)
-            .execute(pool)
-            .await;
+        )
+        .bind(file_name)
+        .bind(self.id)
+        .bind(homework_id)
+        .execute(pool)
+        .await;
 
         if result.is_err() {
             return HttpResponse::InternalServerError().finish();
@@ -400,33 +402,33 @@ impl Post for MySelf {
     }
 
     async fn post_submission_selfassessable(
-            &self,
-            pool: &MySqlPool,
-            task_submission: NewSubmissionSelfAssessable,
-        ) -> HttpResponse {
+        &self,
+        pool: &MySqlPool,
+        task_submission: NewSubmissionSelfAssessable,
+    ) -> HttpResponse {
         if self.role != Role::student {
             return HttpResponse::Unauthorized().finish();
         }
 
         let user_course =
             match sqlx::query_scalar::<_, u64>("SELECT course_id FROM users WHERE id = ?")
-        .bind(self.id)
-        .fetch_one(pool)
+                .bind(self.id)
+                .fetch_one(pool)
                 .await
             {
-            Ok(course_id) => course_id,
-            Err(_) => return HttpResponse::InternalServerError().finish(),
-        };
+                Ok(course_id) => course_id,
+                Err(_) => return HttpResponse::InternalServerError().finish(),
+            };
 
         let (assessment_type, subject_id): (String, u64) =
             match sqlx::query_as("SELECT type, subject_id FROM assessments WHERE id = ?")
-        .bind(task_submission.assessment_id)
-        .fetch_one(pool)
+                .bind(task_submission.assessment_id)
+                .fetch_one(pool)
                 .await
             {
-            Ok(res) => res,
-            Err(_) => return HttpResponse::InternalServerError().finish(),
-        };
+                Ok(res) => res,
+                Err(_) => return HttpResponse::InternalServerError().finish(),
+            };
 
         if assessment_type != "selfassessable" {
             return HttpResponse::BadRequest().body("submission are only valid for selfassables");
@@ -434,13 +436,13 @@ impl Post for MySelf {
 
         let assessable_course =
             match sqlx::query_scalar::<_, u64>("SELECT course_id FROM subjects WHERE id = ?")
-        .bind(subject_id)
-        .fetch_one(pool)
+                .bind(subject_id)
+                .fetch_one(pool)
                 .await
             {
-            Ok(course_id) => course_id,
-            Err(_) => return HttpResponse::InternalServerError().finish(),
-        };
+                Ok(course_id) => course_id,
+                Err(_) => return HttpResponse::InternalServerError().finish(),
+            };
 
         if assessable_course != user_course {
             return HttpResponse::Unauthorized().finish();
@@ -471,12 +473,12 @@ impl Post for MySelf {
         if already_exists {
             return HttpResponse::BadRequest().body("You already submitted this homework");
         }
-        
+
         let answers = task_submission.answers;
-        
+
         let filter = SelfassessableFilter {
             selfassessable_id: Some(selfassessable_id),
-        };  
+        };
 
         let assessable_task = match self.get_selfassessables(&pool, filter).await {
             Ok(u) => u[0].clone(),
@@ -493,7 +495,7 @@ impl Post for MySelf {
             }
         }
         let percentage = grade as f64 / answers.len() as f64;
-        
+
         let result = sqlx::query("INSERT INTO selfassessable_pending_grades (selfassessable_id, student_id, grade) VALUES (?, ?, ?)")
             .bind(assessable_task.id)
             .bind(self.id)
@@ -517,7 +519,7 @@ impl Post for MySelf {
         }
     }
     async fn post_subject_messages(&self, pool: &MySqlPool, multipart: Multipart) -> HttpResponse {
-          // Parse multipart with allowed extensions and MIME types
+        // Parse multipart with allowed extensions and MIME types
         let hashmap = match parse_multipart(
             multipart,
             Some(&["pdf", "docx"]),
@@ -539,8 +541,8 @@ impl Post for MySelf {
             .and_then(|bytes| str::from_utf8(bytes).ok())
             .and_then(|s| s.parse::<u64>().ok())
         {
-                Some(id) => id,
-                None => return HttpResponse::BadRequest().json("Missing or invalid subject_id"),
+            Some(id) => id,
+            None => return HttpResponse::BadRequest().json("Missing or invalid subject_id"),
         };
 
         // Extract and parse type
@@ -548,16 +550,16 @@ impl Post for MySelf {
             .get("type")
             .and_then(|bytes| str::from_utf8(bytes).ok())
         {
-                Some(t) => t,
-                None => "message",
+            Some(t) => t,
+            None => "message",
         };
 
         let title = match hashmap
             .get("title")
             .and_then(|bytes| str::from_utf8(bytes).ok())
         {
-                Some(t) => t,
-                None => "",
+            Some(t) => t,
+            None => "",
         };
 
         // Extract content or file name
@@ -585,13 +587,13 @@ impl Post for MySelf {
                 let authorized: bool = match sqlx::query_scalar(
                     "SELECT EXISTS(SELECT 1 FROM subjects WHERE teacher_id = ? AND id = ?)",
                 )
-                    .bind(self.id)
-                    .bind(subject_id)
-                    .fetch_one(pool)
+                .bind(self.id)
+                .bind(subject_id)
+                .fetch_one(pool)
                 .await
                 {
-                        Ok(result) => result,
-                        Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+                    Ok(result) => result,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
                 };
 
                 if !authorized {
@@ -636,8 +638,8 @@ impl Post for MySelf {
         }
     }
     async fn get_is_selfassessable_answered(
-            &self,
-            pool: &MySqlPool,
+        &self,
+        pool: &MySqlPool,
         selfassessable_id: u64,
     ) -> anyhow::Result<bool, sqlx::Error> {
         let res = sqlx::query_scalar("SELECT EXISTS (SELECT * FROM selfassessable_submissions WHERE student_id = ? AND selfassessable_id = ?)")
@@ -648,8 +650,8 @@ impl Post for MySelf {
         res
     }
     async fn get_is_homework_answered(
-            &self,
-            pool: &MySqlPool,
+        &self,
+        pool: &MySqlPool,
         homework_id: u64,
     ) -> anyhow::Result<bool, sqlx::Error> {
         let res = sqlx::query_scalar("SELECT EXISTS (SELECT * FROM homework_submissions WHERE student_id = ? AND task_id = ?)")

@@ -1,12 +1,12 @@
-use serde::{Serialize, Deserialize};
-use sqlx::{FromRow, QueryBuilder, MySql, Type, Decode};
+use chrono::{DateTime, NaiveDate, Utc};
 use rust_decimal::Decimal;
-use chrono::{DateTime, Utc, NaiveDate};
+use serde::{Deserialize, Serialize};
+use sqlx::{Decode, FromRow, MySql, QueryBuilder, Type};
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct MySelf{
+pub struct MySelf {
     pub role: Role,
-    pub id: u64
+    pub id: u64,
 }
 
 #[derive(Serialize, Deserialize, FromRow)]
@@ -62,7 +62,6 @@ pub struct Assessment {
     pub type_: AssessmentType,
 }
 
-
 #[derive(sqlx::Type, Debug, serde::Serialize, serde::Deserialize, PartialEq)]
 #[sqlx(type_name = "ENUM('exam','homework','project','oral','remedial','selfassessable')")]
 #[serde(rename_all = "lowercase")]
@@ -81,7 +80,6 @@ pub enum AssessmentType {
     Selfassessable,
 }
 
-
 #[derive(Debug, FromRow, Serialize)]
 pub struct PendingSelfassessableGrade {
     pub id: u64,
@@ -93,7 +91,6 @@ pub struct PendingSelfassessableGrade {
 #[derive(Debug, FromRow, Serialize, sqlx::Type)]
 pub struct Course {
     pub id: u64,
-    pub course_id: u64,
     pub year: i32,
     pub division: String,
     pub level: String,
@@ -132,8 +129,7 @@ pub struct NewGrade {
     pub grade: f32,
 }
 
-
-#[derive(Serialize, Deserialize, )]
+#[derive(Serialize, Deserialize)]
 pub struct NewSubjectMessage {
     pub sender_id: u64,
     pub subject_id: u64,
@@ -143,7 +139,7 @@ pub struct NewSubjectMessage {
     pub type_: SubjectMessageType,
 }
 
-#[derive(Serialize, Deserialize, FromRow )]
+#[derive(Serialize, Deserialize, FromRow)]
 pub struct SubjectMessage {
     pub id: u64,
     pub sender_id: u64,
@@ -207,7 +203,7 @@ pub struct SelfassessableResponse {
     pub id: u64,
     pub selfassessable_id: u64,
     pub answers: String,
-    pub student_id:  u64,
+    pub student_id: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -218,7 +214,6 @@ pub struct NewTask {
     #[serde(rename = "type")]
     pub type_: AssessmentType,
 }
-
 
 #[derive(Serialize, Deserialize, FromRow, Decode)]
 pub struct PublicPersonalData {
@@ -339,4 +334,3 @@ impl NewSelfassessable {
         queries
     }
 }
-
