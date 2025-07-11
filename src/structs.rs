@@ -257,6 +257,18 @@ pub struct Subject {
     pub course_id: u64,
 }
 
+#[derive(Serialize)]
+pub struct AssessmentWithSelfassessableId {
+    pub id: u64,
+    pub subject_id: u64,
+    pub task: String,
+    pub due_date: NaiveDate,
+    pub created_at: DateTime<Utc>,
+    #[serde(rename = "type")]
+    pub type_: AssessmentType,
+    pub selfassessable_id: Option<u64>,
+}
+
 impl NewSelfassessable {
     pub fn validate(&self) -> bool {
         if self.correct.len() != self.incorrect1.len() {
