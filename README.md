@@ -107,8 +107,7 @@ curl -X POST http://localhost:8080/api/v1/roles/ \
 curl -X GET http://localhost:8080/api/v1/courses/ -b "jwt={jwt}"
 
 # 📚 Listar materias
-curl -X GET http://localhost:8080/api/v1/subjetcs/ -b "jwt={jwt}"
-# (Nota: endpoint con typo: 'subjetcs' en lugar de 'subjects')
+curl -X GET http://localhost:8080/api/v1/subjects/ -b "jwt={jwt}"
 ```
 
 ---

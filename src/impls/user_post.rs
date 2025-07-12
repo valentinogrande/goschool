@@ -489,12 +489,16 @@ impl Post for MySelf {
 
         let mut grade = 0;
 
+        dbg!(&answers);
+        dbg!(&corrects);
+
         for (answer, correct) in answers.iter().zip(corrects.iter()) {
             if answer == correct {
                 grade += 1;
             }
         }
         let percentage = grade as f64 / answers.len() as f64;
+        dbg!(&percentage);
 
         let result = sqlx::query("INSERT INTO selfassessable_pending_grades (selfassessable_id, student_id, grade) VALUES (?, ?, ?)")
             .bind(assessable_task.id)

@@ -5,7 +5,7 @@ use crate::filters::SubjectFilter;
 use crate::jwt::validate;
 use crate::traits::Get;
 
-#[get("/api/v1/subjetcs/")]
+#[get("/api/v1/subjects/")]
 pub async fn get_subjects(
     pool: web::Data<MySqlPool>,
     req: HttpRequest,
