@@ -175,7 +175,7 @@ CREATE TABLE IF NOT EXISTS message_courses (
   PRIMARY KEY (message_id, course_id)
 );
 
-CREATE TABLE IF NOT EXISTS subject_messages(
+CREATE TABLE IF NOT EXISTS subject_messages (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   sender_id BIGINT UNSIGNED NOT NULL,
   subject_id BIGINT UNSIGNED NOT NULL,
