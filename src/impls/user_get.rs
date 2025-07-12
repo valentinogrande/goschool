@@ -94,25 +94,25 @@ impl Get for MySelf {
         pool: &MySqlPool,
         filter: GradeFilter,
     ) -> Result<Vec<Grade>, sqlx::Error> {
-        let mut query = QueryBuilder::new("SELECT * FROM grades ");
+        let mut query = QueryBuilder::new("SELECT * FROM grades g ");
         match self.role {
             Role::student => {
-                query.push("WHERE student_id =");
+                query.push("WHERE g.student_id =");
                 query.push_bind(self.id);
             }
             Role::teacher => {
-                query.push("SELECT * FROM grades g JOIN subjects s ON g.subject_id = s.id WHERE s.teacher_id =");
+                query.push("JOIN subjects s ON g.subject_id = s.id WHERE s.teacher_id =");
                 query.push_bind(self.id);
             }
             Role::admin => {
                 query.push("WHERE 1=1");
             }
             Role::father => {
-                query.push("SELECT * FROM grades g JOIN families f ON g.student_id = f.student_id WHERE f.father_id =");
+                query.push("JOIN families f ON g.student_id = f.student_id WHERE f.father_id =");
                 query.push_bind(self.id);
             }
             Role::preceptor => {
-                query.push("SELECT * FROM grades g JOIN subjects s ON g.subject_id = s.id JOIN courses c ON s.course_id = c.id WHERE c.preceptor_id =");
+                query.push("JOIN subjects s ON g.subject_id = s.id JOIN courses c ON s.course_id = c.id WHERE c.preceptor_id =");
                 query.push_bind(self.id);
             }
         };
