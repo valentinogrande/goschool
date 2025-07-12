@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::{Decode, FromRow, MySql, QueryBuilder, Type};
@@ -108,6 +108,17 @@ pub struct Grade {
     pub assessment_id: Option<u64>,
     pub grade_type: Option<GradeType>,
     pub created_at: Option<DateTime<Utc>>,
+}
+
+
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+pub struct Timetable {
+    pub id: u64, 
+    pub course_id: u64,
+    pub subject_id: u64,
+    pub day: String,
+    pub start_time: NaiveTime,
+    pub end_time: NaiveTime
 }
 
 #[derive(Debug, Type, Serialize, Deserialize)]

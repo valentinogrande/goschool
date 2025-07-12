@@ -124,6 +124,12 @@ curl -X POST http://localhost:8080/api/v1/get_if_selfassessable_answered/ -H "Co
 
 ```
 
+## 📅 listar el horario
+
+```bash
+# 📖 Listar horarios
+curl -X GET http://localhost:8080/api/v1/timetables/ -b "jwt={jwt}"
+```
 
  ---
 

@@ -5,11 +5,10 @@ use std::env;
 
 use crate::filters::{
     AssessmentFilter, GradeFilter, MessageFilter, SelfassessableFilter, SubjectFilter,
-    SubjectMessageFilter, UserFilter,
+    SubjectMessageFilter, UserFilter, TimetableFilter
 };
 use crate::structs::{
-    Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData,
-    PublicPersonalData, Role, Selfassessable, SelfassessableResponse, Subject, SubjectMessage,
+    Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData, Timetable, PublicPersonalData, Role, Selfassessable, SelfassessableResponse, Subject, SubjectMessage,
 };
 use crate::traits::Get;
 
@@ -592,5 +591,54 @@ impl Get for MySelf {
 
         let res = query.build_query_as().fetch_all(pool).await;
         res
+    }
+    async fn get_timetables(
+            &self,
+            pool: &MySqlPool,
+            filter: TimetableFilter)
+        -> anyhow::Result<Vec<Timetable>, sqlx::Error> {
+            let mut query = QueryBuilder::new("SELECT * FROM timetables t JOIN subjects s ON s.id = t.subject_id JOIN users u ON u.course_id = s.course_id JOIN courses c ON s.course_id = c.id");
+            match self.role {
+                Role::student => {
+                    query.push("  WHERE u.id = ");
+                    query.push_bind(self.id);
+                }
+                Role::admin => {
+                    query.push(" WHERE 1=1");
+                }
+                Role::preceptor => {
+                    query.push(" WHERE c.preceptor_id = ");
+                    query.push_bind(self.id);
+                }
+                Role::teacher => {
+                    query.push("  WHERE s.teacher_id = ");
+                    query.push_bind(self.id);
+                }
+                Role::father => {
+                    query.push(" JOIN families f ON f.student_id = u.id WHERE f.father_id = ");
+                    query.push_bind(self.id);
+                }
+            };
+
+            if let Some(i) = filter.day {
+                query.push(" AND t.day = ");
+                query.push_bind(i);
+            }
+            if let Some(s) = filter.subject_id {
+                query.push(" AND s.id = ");
+                query.push_bind(s);
+            }
+            if let Some(s) = filter.teacher_id {
+                query.push(" AND s.teacher_id = ");
+                query.push_bind(s);
+            }
+            if let Some(s) = filter.course_id {
+                query.push(" AND c.id = ");
+                query.push_bind(s);
+            }
+            
+
+            let res = query.build_query_as().fetch_all(pool).await;
+            res
     }
 }

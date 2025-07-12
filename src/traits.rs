@@ -81,7 +81,11 @@ pub trait Get {
         pool: &MySqlPool,
         filter: SubjectMessageFilter)
     -> Result<Vec<SubjectMessage>, sqlx::Error>;
-
+    async fn get_timetables(
+        &self,
+        pool: &MySqlPool,
+        filter: TimetableFilter)
+    -> Result<Vec<Timetable>, sqlx::Error>;
 }
 
 pub trait Post  {

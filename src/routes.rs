@@ -21,6 +21,7 @@ use crate::views::{
     subjects::get_subjects,
     submissions::post_homework_submission,
     verify_token::verify_token,
+    timetables::get_timetable,
 };
 
 pub fn register_services(cfg: &mut web::ServiceConfig) {
@@ -49,6 +50,7 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(post_profile_picture)
         .service(register)
         .service(register_testing_users)
+        .service(get_timetable)
         .service(verify_token)
         .service(get_if_homework_answered)
         .service(get_if_selfassessable_answered);

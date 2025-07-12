@@ -114,6 +114,9 @@ def create_users():
         cursor.execute("INSERT INTO personal_data (user_id, full_name, birth_date, address, phone_number) VALUES (%s, %s, %s, %s, %s)", (4,"father","2000-01-01","mi casa","123456789"))
         cursor.execute("INSERT INTO personal_data (user_id, full_name, birth_date, address, phone_number) VALUES (%s, %s, %s, %s, %s)", (5,"teacher","2000-01-01","mi casa","123456789"))
         cursor.execute("INSERT INTO subjects (name, course_id, teacher_id) VALUES ('matematica',34,5)")
+        cursor.execute("INSERT INTO subjects (name, course_id, teacher_id) VALUES ('lengua',34,5)")
+        cursor.execute("INSERT INTO subjects (name, course_id, teacher_id) VALUES ('historia',34,5)")
+        cursor.execute("INSERT INTO subjects (name, course_id, teacher_id) VALUES ('matematica',35,5)")
         cursor.execute("UPDATE users SET course_id=34 WHERE id=2")
 
 
@@ -125,6 +128,18 @@ def create_preceptors():
     cursor.execute("UPDATE courses SET preceptor_id=3 WHERE id=35")
     cursor.execute("UPDATE courses SET preceptor_id=3 WHERE id=36")
     print("preceptors courses were addded succesfully")
+
+def create_timetables():
+    print()
+    print("making timetables")
+    print()
+    cursor.execute("INSERT INTO timetables (course_id, subject_id, start_time, end_time, day) VALUES (%s, %s, %s, %s, %s)", (34,1,"07:00:00","13:00:00","Monday"))
+    cursor.execute("INSERT INTO timetables (course_id, subject_id, start_time, end_time, day) VALUES (%s, %s, %s, %s, %s)", (34,3,"07:00:00","13:00:00","Tuesday"))
+    cursor.execute("INSERT INTO timetables (course_id, subject_id, start_time, end_time, day) VALUES (%s, %s, %s, %s, %s)", (34,1,"07:00:00","13:00:00","Wednesday"))
+    cursor.execute("INSERT INTO timetables (course_id, subject_id, start_time, end_time, day) VALUES (%s, %s, %s, %s, %s)", (34,2,"07:00:00","13:00:00","Thursday"))
+    cursor.execute("INSERT INTO timetables (course_id, subject_id, start_time, end_time, day) VALUES (%s, %s, %s, %s, %s)", (34,1,"07:00:00","8:00:00","Friday"))
+    cursor.execute("INSERT INTO timetables (course_id, subject_id, start_time, end_time, day) VALUES (%s, %s, %s, %s, %s)", (34,2,"08:15:00","9:30:00","Friday"))
+
 
 
 with open('database.sql', 'r') as file:
@@ -145,12 +160,15 @@ with open('database.sql', 'r') as file:
             create_preceptors()
         if command == "generate_rsa":
             generate_key_pair()
+        if command == "create_timetables":
+            create_timetables()
         if command == "create_all":
             generate_key_pair()
             create_tables(file)
             create_courses()
             create_users()
             create_preceptors()
+            create_timetables()
             print("\033[92mAll tables created succesfully\033[0m")
     
 conn.commit()
