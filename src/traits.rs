@@ -56,11 +56,19 @@ pub trait Get {
         &self,
         pool: &MySqlPool)
     -> Result<String, sqlx::Error>;
+    
     async fn get_selfassessables(
         &self,
         pool: &MySqlPool,
         filter: SelfassessableFilter)
     -> Result<Vec<Selfassessable>, sqlx::Error>;   
+    
+    async fn get_public_selfassessables(
+        &self,
+        pool: &MySqlPool,
+        filter: SelfassessableFilter)
+    -> Result<Vec<PublicSelfassessable>, sqlx::Error>;   
+    
     async fn get_selfassessables_responses(
         &self,
         pool: &MySqlPool,
@@ -86,6 +94,11 @@ pub trait Get {
         pool: &MySqlPool,
         filter: TimetableFilter)
     -> Result<Vec<Timetable>, sqlx::Error>;
+    async fn get_selfassessable_id(
+        &self,
+        pool: &MySqlPool,
+        assessment_id: u64)
+    -> Result<u64, sqlx::Error>;
 }
 
 pub trait Post  {
@@ -128,7 +141,7 @@ pub trait Post  {
     async fn get_is_selfassessable_answered(
         &self,
         pool: &MySqlPool,
-        selfassessable_id: u64)
+        assessment_id: u64)
     -> Result<bool, sqlx::Error>;
     async fn get_is_homework_answered(
         &self,

@@ -281,8 +281,6 @@ impl Post for MySelf {
             .get("file")
             .and_then(|bytes| str::from_utf8(bytes).ok());
 
-        dbg!(&file_name);
-
         let result = sqlx::query("UPDATE users SET photo = ? WHERE id = ?")
             .bind(file_name)
             .bind(self.id)
@@ -458,39 +456,31 @@ impl Post for MySelf {
             Ok(id) => id,
             Err(_) => return HttpResponse::InternalServerError().finish(),
         };
+    
+        let assessment_id = task_submission.assessment_id;
 
-        let already_exists = match sqlx::query_scalar::<_, bool>(
-            "SELECT EXISTS(SELECT 1 FROM selfassessable_submissions WHERE student_id = ? AND selfassessable_id = ?)"
-        )
-        .bind(self.id)
-        .bind(selfassessable_id)
-        .fetch_one(pool)
-        .await {
-            Ok(exists) => exists,
-            Err(_) => return HttpResponse::InternalServerError().finish(),
+        let already_exists = match self.get_is_selfassessable_answered(&pool, assessment_id).await {
+            Ok(f) => f,
+            Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
         };
-
+        
         if already_exists {
-            return HttpResponse::BadRequest().body("You already submitted this homework");
+            return HttpResponse::BadRequest().body("You already submitted this selfassessable");
         }
 
         let answers = task_submission.answers;
 
         let filter = SelfassessableFilter {
-            selfassessable_id: Some(selfassessable_id),
+            assessment_id: Some(assessment_id),
         };
 
         let assessable_task = match self.get_selfassessables(&pool, filter).await {
-            Ok(u) => u[0].clone(),
+            Ok(u) => u,
             Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
         };
 
-        let corrects = assessable_task.correct.split(',').collect::<Vec<_>>();
-
+        let corrects: Vec<String> = assessable_task.into_iter().map(|a| a.correct).collect();
         let mut grade = 0;
-
-        dbg!(&answers);
-        dbg!(&corrects);
 
         for (answer, correct) in answers.iter().zip(corrects.iter()) {
             if answer == correct {
@@ -498,10 +488,9 @@ impl Post for MySelf {
             }
         }
         let percentage = grade as f64 / answers.len() as f64;
-        dbg!(&percentage);
 
         let result = sqlx::query("INSERT INTO selfassessable_pending_grades (selfassessable_id, student_id, grade) VALUES (?, ?, ?)")
-            .bind(assessable_task.id)
+            .bind(selfassessable_id)
             .bind(self.id)
             .bind(percentage * 10.0)
             .execute(pool)
@@ -644,8 +633,17 @@ impl Post for MySelf {
     async fn get_is_selfassessable_answered(
         &self,
         pool: &MySqlPool,
-        selfassessable_id: u64,
+        assessment_id: u64,
     ) -> anyhow::Result<bool, sqlx::Error> {
+
+        let selfassessable_id: u64 = match sqlx::query_scalar("SELECT id FROM selfassessables s WHERE s.assessment_id = ?")
+            .bind(assessment_id)
+            .fetch_one(pool)
+            .await {
+            Ok(id) => id,
+            Err(e) => return Err(e),
+        };
+
         let res = sqlx::query_scalar("SELECT EXISTS (SELECT * FROM selfassessable_submissions WHERE student_id = ? AND selfassessable_id = ?)")
             .bind(self.id)
             .bind(selfassessable_id)

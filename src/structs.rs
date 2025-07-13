@@ -80,6 +80,9 @@ pub enum AssessmentType {
     Selfassessable,
 }
 
+
+
+
 #[derive(Debug, FromRow, Serialize)]
 pub struct PendingSelfassessableGrade {
     pub id: u64,
@@ -207,6 +210,17 @@ pub struct Selfassessable {
     pub incorrect2: Option<String>,
     pub incorrect3: Option<String>,
     pub incorrect4: Option<String>,
+}
+
+#[derive(Debug, FromRow, Serialize)]
+pub struct PublicSelfassessable {
+    pub id: u64,
+    pub question: String,
+    pub op1: String,
+    pub op2: String,
+    pub op3: Option<String>, 
+    pub op4: Option<String>,
+    pub op5: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, FromRow, Clone)]

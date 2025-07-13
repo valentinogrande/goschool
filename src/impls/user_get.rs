@@ -2,14 +2,18 @@ use actix_web::web;
 use chrono::Utc;
 use sqlx::{MySql, MySqlPool, QueryBuilder};
 use std::env;
+use rand::seq::SliceRandom;
+use rand::rng;
+
 
 use crate::filters::{
     AssessmentFilter, GradeFilter, MessageFilter, SelfassessableFilter, SubjectFilter,
     SubjectMessageFilter, UserFilter, TimetableFilter
 };
 use crate::structs::{
-    Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData, Timetable, PublicPersonalData, Role, Selfassessable, SelfassessableResponse, Subject, SubjectMessage,
+    Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData, Timetable, PublicPersonalData, Role, Selfassessable, SelfassessableResponse, Subject, SubjectMessage, PublicSelfassessable
 };
+
 use crate::traits::Get;
 
 impl Get for MySelf {
@@ -446,6 +450,76 @@ impl Get for MySelf {
         let res = query.build_query_as().fetch_all(pool).await;
         res
     }
+    
+    async fn get_public_selfassessables(
+        &self,
+        pool: &MySqlPool,
+        filter: SelfassessableFilter,
+    ) -> Result<Vec<PublicSelfassessable>, sqlx::Error> {
+        
+        if self.role != Role::student {
+            return Err(sqlx::Error::Protocol(
+                "Only students can get selfassessables".into(),
+            ));
+        }
+        // falta condicion de tiempo
+        let mut query_builder = QueryBuilder::new(
+            "SELECT st.* FROM selfassessable_tasks st
+                 JOIN selfassessables s ON s.id = st.selfassessable_id 
+                 JOIN assessments a ON a.id = s.assessment_id
+                 JOIN subjects sj ON sj.id = a.subject_id
+                 JOIN users u ON u.course_id = sj.course_id
+                 WHERE u.id =  ",
+        );
+        query_builder.push_bind(self.id);
+        if let Some(i) = filter.assessment_id {
+            query_builder.push(" AND s.id = ");
+            let self_id = self.get_selfassessable_id(pool, i).await?;
+            query_builder.push_bind(self_id);
+        }
+        
+        let query = query_builder.build_query_as::<Selfassessable>();
+        let selfassessables = query.fetch_all(pool).await?;
+        
+        // Convertir a PublicSelfassessable con opciones randomizadas
+        let mut public_selfassessables = Vec::new();
+        let mut rng = rng();
+        
+        for selfassessable in selfassessables {
+            // Recopilar todas las opciones disponibles
+            let mut options = vec![selfassessable.correct.clone(), selfassessable.incorrect1.clone()];
+            
+            if let Some(inc2) = &selfassessable.incorrect2 {
+                options.push(inc2.clone());
+            }
+            if let Some(inc3) = &selfassessable.incorrect3 {
+                options.push(inc3.clone());
+            }
+            if let Some(inc4) = &selfassessable.incorrect4 {
+                options.push(inc4.clone());
+            }
+            
+            // Randomizar el orden de las opciones
+            options.shuffle(&mut rng);
+            
+            // Crear PublicSelfassessable con opciones randomizadas
+            let public_selfassessable = PublicSelfassessable {
+                id: selfassessable.id,
+                question: selfassessable.question,
+                op1: options[0].clone(),
+                op2: options[1].clone(),
+                op3: options.get(2).cloned(),
+                op4: options.get(3).cloned(),
+                op5: options.get(4).cloned(),
+            };
+            
+            public_selfassessables.push(public_selfassessable);
+        }
+        
+        Ok(public_selfassessables)
+    }
+    
+
     async fn get_selfassessables(
         &self,
         pool: &MySqlPool,
@@ -456,7 +530,7 @@ impl Get for MySelf {
                 "Only students can get selfassessables".into(),
             ));
         }
-
+        // falta condicion de tiempo
         let mut query_builder = QueryBuilder::new(
             "SELECT st.* FROM selfassessable_tasks st
                  JOIN selfassessables s ON s.id = st.selfassessable_id 
@@ -468,9 +542,10 @@ impl Get for MySelf {
 
         query_builder.push_bind(self.id);
 
-        if let Some(i) = filter.selfassessable_id {
+        if let Some(i) = filter.assessment_id {
             query_builder.push(" AND s.id = ");
-            query_builder.push_bind(i);
+            let self_id = self.get_selfassessable_id(pool, i).await?; 
+            query_builder.push_bind(self_id);
         }
 
         let query = query_builder.build_query_as::<Selfassessable>();
@@ -495,9 +570,10 @@ impl Get for MySelf {
 
         query_builder.push_bind(self.id);
 
-        if let Some(i) = filter.selfassessable_id {
+        if let Some(i) = filter.assessment_id {
             query_builder.push(" AND selfassessable_id = ");
-            query_builder.push_bind(i);
+            let self_id = self.get_selfassessable_id(pool, i).await?;
+            query_builder.push_bind(self_id);
         }
 
         let query = query_builder.build_query_as::<SelfassessableResponse>();
@@ -537,9 +613,10 @@ impl Get for MySelf {
             }
         }
 
-        if let Some(i) = filter.selfassessable_id {
+        if let Some(i) = filter.assessment_id {
             query_builder.push(" AND selfassessable_id = ");
-            query_builder.push_bind(i);
+            let self_id = self.get_selfassessable_id(pool, i).await?;
+            query_builder.push_bind(self_id);
         }
 
         let query = query_builder.build_query_as::<PendingSelfassessableGrade>();
@@ -640,5 +717,15 @@ impl Get for MySelf {
 
             let res = query.build_query_as().fetch_all(pool).await;
             res
+    }
+    async fn get_selfassessable_id(&self, pool: &MySqlPool, assessment_id: u64) -> Result<u64, sqlx::Error> {
+        let res: u64 = match sqlx::query_scalar("SELECT id FROM selfassessables WHERE assessment_id = ?")
+            .bind(assessment_id)
+            .fetch_one(pool)
+            .await {
+            Ok(id) => id,
+            Err(e) => return Err(e),
+        };
+        Ok(res)
     }
 }

@@ -54,5 +54,5 @@ pub struct UserFilter {
 
 #[derive(Serialize, Deserialize, Clone, Copy)]
 pub struct SelfassessableFilter {
-    pub selfassessable_id: Option<u64>,
+    pub assessment_id: Option<u64>,
 }
