@@ -2,3 +2,4 @@
 /target
 ecc_public_key.pem
 ecc_private_key.pem
+.env
