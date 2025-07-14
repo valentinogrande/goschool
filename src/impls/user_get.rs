@@ -462,15 +462,16 @@ impl Get for MySelf {
                 "Only students can get selfassessables".into(),
             ));
         }
-        // falta condicion de tiempo
+
         let mut query_builder = QueryBuilder::new(
             "SELECT st.* FROM selfassessable_tasks st
                  JOIN selfassessables s ON s.id = st.selfassessable_id 
                  JOIN assessments a ON a.id = s.assessment_id
                  JOIN subjects sj ON sj.id = a.subject_id
                  JOIN users u ON u.course_id = sj.course_id
-                 WHERE u.id =  ",
+                 WHERE DATE(due_date) = CURRENT_DATE() AND u.id =  ",
         );
+
         query_builder.push_bind(self.id);
         if let Some(i) = filter.assessment_id {
             query_builder.push(" AND s.id = ");
@@ -530,14 +531,14 @@ impl Get for MySelf {
                 "Only students can get selfassessables".into(),
             ));
         }
-        // falta condicion de tiempo
+
         let mut query_builder = QueryBuilder::new(
             "SELECT st.* FROM selfassessable_tasks st
                  JOIN selfassessables s ON s.id = st.selfassessable_id 
                  JOIN assessments a ON a.id = s.assessment_id
                  JOIN subjects sj ON sj.id = a.subject_id
                  JOIN users u ON u.course_id = sj.course_id
-                 WHERE u.id =  ",
+                 WHERE DATE(due_date) = CURRENT_DATE() AND u.id =  ",
         );
 
         query_builder.push_bind(self.id);

@@ -68,6 +68,7 @@ impl Post for MySelf {
                     Ok(r) => r,
                     Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
                 };
+
             let assessable_id = assessable.last_insert_id();
             let mut queries = selfassessable.generate_query(assessable_id);
 
@@ -418,8 +419,8 @@ impl Post for MySelf {
                 Err(_) => return HttpResponse::InternalServerError().finish(),
             };
 
-        let (assessment_type, subject_id): (String, u64) =
-            match sqlx::query_as("SELECT type, subject_id FROM assessments WHERE id = ?")
+        let (assessment_type, subject_id, due_date): (String, u64, chrono::DateTime<chrono::Utc>) =
+            match sqlx::query_as("SELECT type, subject_id, due_date FROM assessments WHERE id = ?")
                 .bind(task_submission.assessment_id)
                 .fetch_one(pool)
                 .await
@@ -430,6 +431,13 @@ impl Post for MySelf {
 
         if assessment_type != "selfassessable" {
             return HttpResponse::BadRequest().body("submission are only valid for selfassables");
+        }
+
+        let now = chrono::Utc::now();
+
+        if now.date_naive() != due_date.date_naive() {
+            let msg = format!("Submission is only allowed on the {}",due_date.date_naive().to_string());
+            return HttpResponse::BadRequest().body(msg);
         }
 
         let assessable_course =
