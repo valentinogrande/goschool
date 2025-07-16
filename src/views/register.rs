@@ -1,6 +1,7 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder, get};
 use sqlx::mysql::MySqlPool;
 use bcrypt::{hash, DEFAULT_COST};
+use std::env;
 
 use crate::{jwt::validate, structs::NewUser, structs::Role};
 
@@ -10,61 +11,105 @@ pub async fn register(
     user: web::Json<NewUser>,
     req: HttpRequest,
 ) -> impl Responder {
+
     let hashed_pass = match hash(&user.password, DEFAULT_COST) {
         Ok(h) => h,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
     };
 
-    let jwt = match req.cookie("jwt") {
-        Some(c) => c,
-        None => return HttpResponse::Unauthorized().finish(),
-    };
-    let token = match validate(jwt.value()) {
-        Ok(t) => t,
-        Err(_) => return HttpResponse::Unauthorized().finish(),
-    };
+
+    log::info!("Registering user: {}, pass {}", user.email, user.password);
     
-    let role = token.claims.user.role;
-    
-    if role != Role::admin {
-        return HttpResponse::Unauthorized().finish();
+    let debug = env::var("DEBUG").unwrap();
+
+    if debug != "true" {
+        let jwt = match req.cookie("jwt") {
+            Some(c) => c,
+            None => return HttpResponse::Unauthorized().finish(),
+        };
+        let token = match validate(jwt.value()) {
+            Ok(t) => t,
+            Err(_) => return HttpResponse::Unauthorized().finish(),
+        };
+        
+        let role = token.claims.user.role;
+        
+        if role != Role::admin {
+            return HttpResponse::Unauthorized().finish();
+        }
     }
 
-    let _query = match sqlx::query("INSERT INTO users (password, email, role) VALUES (?, ?, ?)")
+    let _query = match sqlx::query("INSERT INTO users (password, email) VALUES (?, ?)")
             .bind(&hashed_pass)
             .bind(&user.email)
+        .execute(pool.get_ref())
+        .await {
+        Ok(g) => g,
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
+    };
+
+    let _query = match sqlx::query("INSERT INTO roles (user_id, role) VALUES (?, ?)")
+            .bind(_query.last_insert_id())
             .bind(&user.role)
         .execute(pool.get_ref())
         .await {
         Ok(g) => g,
-        Err(_) => return HttpResponse::InternalServerError().finish()
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
     };
 
     HttpResponse::Created().finish()
 }
 
 #[get("/api/v1/register_testing_users/")]
-pub async fn register_testing_users(pool: web::Data<MySqlPool>) -> impl Responder{
-    let users: Vec<&str> = Vec::from(["admin","student","preceptor","father","teacher"]);
-    for (i, user) in users.iter().enumerate() {
-        let hash = hash(user, DEFAULT_COST).unwrap();
-        let _res = match sqlx::query("INSERT INTO users (password, email) VALUES (?,?)")
-        .bind(&hash)
-        .bind(user)
-        .execute(pool.get_ref()).await{
-            Ok(_) => {},
-            Err(_) => {}
-        };
+pub async fn register_testing_users(req: HttpRequest, pool: web::Data<MySqlPool>) -> impl Responder{
 
-        let i = i +1;
-        log::info!("user: {:?}, id : {}", user,i);
-        let _res = match sqlx::query("INSERT INTO roles (user_id, role) VALUES (?,?)")
-        .bind(i as i32)
-        .bind(user)
-        .execute(pool.get_ref()).await{
-            Ok(r) => r,
-            Err(e) => return HttpResponse::InternalServerError().body(e.to_string())
+    let users: Vec<String> = vec![
+        "admin".to_string(),
+        "student".to_string(),
+        "preceptor".to_string(),
+        "father".to_string(),
+        "teacher".to_string(),
+    ];
+
+    let debug = env::var("DEBUG").unwrap();
+
+    if debug != "true" {
+        let jwt = match req.cookie("jwt") {
+            Some(c) => c,
+            None => return HttpResponse::Unauthorized().finish(),
         };
+        let token = match validate(jwt.value()) {
+            Ok(t) => t,
+            Err(_) => return HttpResponse::Unauthorized().finish(),
+        };
+        
+        let role = token.claims.user.role;
+        
+        if role != Role::admin {
+            return HttpResponse::Unauthorized().finish();
+        }
     }
+
+    for user in users.iter() {
+        let hash = hash(user, DEFAULT_COST).unwrap();
+        let res = match sqlx::query("INSERT INTO users (password, email) VALUES (?,?)")
+    .bind(&hash)
+    .bind(user)
+    .execute(pool.get_ref()).await {
+        Ok(r) => r,
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string())
+    };
+
+let user_id = res.last_insert_id();
+
+let _res = match sqlx::query("INSERT INTO roles (user_id, role) VALUES (?,?)")
+    .bind(user_id)
+    .bind(user)
+    .execute(pool.get_ref()).await {
+        Ok(_) => {},
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string())
+    };
+    }
+
     HttpResponse::Created().finish()
 }

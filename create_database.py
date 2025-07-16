@@ -6,6 +6,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 import os
 
+from fake_data import generate_fake_data
+
 def generate_key_pair():
     try: 
         os.remove("ecc_private_key.pem")
@@ -162,13 +164,16 @@ with open('database.sql', 'r') as file:
             generate_key_pair()
         if command == "create_timetables":
             create_timetables()
+        if command == "insert_fake_data":
+            generate_fake_data()
+        
         if command == "create_all":
             generate_key_pair()
             create_tables(file)
             create_courses()
             create_users()
             create_preceptors()
-            create_timetables()
+ #           create_timetables()
             print("\033[92mAll tables created succesfully\033[0m")
     
 conn.commit()
