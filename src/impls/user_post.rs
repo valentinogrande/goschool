@@ -419,14 +419,14 @@ impl Post for MySelf {
                 Err(_) => return HttpResponse::InternalServerError().finish(),
             };
 
-        let (assessment_type, subject_id, due_date): (String, u64, chrono::DateTime<chrono::Utc>) =
+        let (assessment_type, subject_id, due_date): (String, u64, chrono::NaiveDate) =
             match sqlx::query_as("SELECT type, subject_id, due_date FROM assessments WHERE id = ?")
                 .bind(task_submission.assessment_id)
                 .fetch_one(pool)
                 .await
             {
                 Ok(res) => res,
-                Err(_) => return HttpResponse::InternalServerError().finish(),
+                Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
             };
 
         if assessment_type != "selfassessable" {
@@ -435,8 +435,10 @@ impl Post for MySelf {
 
         let now = chrono::Utc::now();
 
-        if now.date_naive() != due_date.date_naive() {
-            let msg = format!("Submission is only allowed on the {}",due_date.date_naive().to_string());
+        if now.date_naive() != due_date {
+            let msg = format!(
+                "Submission is only allowed on the {}",
+                due_date.to_string());
             return HttpResponse::BadRequest().body(msg);
         }
 
@@ -447,7 +449,7 @@ impl Post for MySelf {
                 .await
             {
                 Ok(course_id) => course_id,
-                Err(_) => return HttpResponse::InternalServerError().finish(),
+                Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
             };
 
         if assessable_course != user_course {
@@ -462,7 +464,7 @@ impl Post for MySelf {
         .await
         {
             Ok(id) => id,
-            Err(_) => return HttpResponse::InternalServerError().finish(),
+            Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
         };
     
         let assessment_id = task_submission.assessment_id;
@@ -503,10 +505,9 @@ impl Post for MySelf {
             .bind(percentage * 10.0)
             .execute(pool)
             .await;
-        if result.is_err() {
-            return HttpResponse::InternalServerError().finish();
+        if let Err(e) = result {
+            return HttpResponse::InternalServerError().body(e.to_string());
         }
-
         match sqlx::query(
             "INSERT INTO selfassessable_submissions (selfassessable_id, student_id, answers) VALUES (?, ?, ?)"
         )
@@ -516,7 +517,7 @@ impl Post for MySelf {
         .execute(pool)
         .await {
             Ok(_) => HttpResponse::Created().finish(),
-            Err(_) => HttpResponse::InternalServerError().finish(),
+            Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
         }
     }
     async fn post_subject_messages(&self, pool: &MySqlPool, multipart: Multipart) -> HttpResponse {
