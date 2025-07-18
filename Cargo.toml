@@ -33,4 +33,5 @@ infer = "0.19"
 rand="0.9"
 lettre = { version = "0.11", features = ["builder", "tokio1-native-tls"] }
 tera = "1"
-chrono-tz = "0.8"
+chrono-tz = "0.10"
+ammonia="4"

@@ -117,9 +117,9 @@ pub async fn send_message_email(
         match to_str.parse::<Mailbox>() {
             Ok(to) => {
                 let mut context = Context::new();
-                context.insert("sender_name", sender_name);
-                context.insert("receiver_name", student_name);
-                context.insert("message", message);
+                context.insert("sender_name", &ammonia::clean(sender_name));
+                context.insert("receiver_name", &ammonia::clean(student_name));
+                context.insert("message", &ammonia::clean(message));
                 let body = match tera.render("message_sent", &context) {
                     Ok(s) => s,
                     Err(e) => {
@@ -127,12 +127,13 @@ pub async fn send_message_email(
                         continue;
                     }
                 };
+                let sanitized_body = ammonia::clean(&body);
                 let email = Message::builder()
                     .from(from.clone())
                     .to(to)
                     .subject(email_subject.to_string())
                     .header(header.clone())
-                    .body(body)
+                    .body(sanitized_body)
                     .unwrap();
                 match mailer.send(&email) {
                     Ok(_) => println!("✅ Email enviado a {}", to_str),
@@ -184,10 +185,10 @@ pub async fn send_subject_message_email(
         match to_str.parse::<Mailbox>() {
             Ok(to) => {
                 let mut context = Context::new();
-                context.insert("sender_name", sender_name);
-                context.insert("receiver_name", student_name);
-                context.insert("subject_name", subject_name);
-                context.insert("message", message);
+                context.insert("sender_name", &ammonia::clean(sender_name));
+                context.insert("receiver_name", &ammonia::clean(student_name));
+                context.insert("subject_name", &ammonia::clean(subject_name));
+                context.insert("message", &ammonia::clean(message));
                 let body = match tera.render("subject_message_sent", &context) {
                     Ok(s) => s,
                     Err(e) => {
@@ -195,12 +196,13 @@ pub async fn send_subject_message_email(
                         continue;
                     }
                 };
+                let sanitized_body = ammonia::clean(&body);
                 let email = Message::builder()
                     .from(from.clone())
                     .to(to)
                     .subject(email_subject.clone())
                     .header(header.clone())
-                    .body(body)
+                    .body(sanitized_body)
                     .unwrap();
                 match mailer.send(&email) {
                     Ok(_) => println!("✅ Email enviado a {}", to_str),
@@ -251,11 +253,11 @@ pub async fn send_assessment_email(
         match to_str.parse::<Mailbox>() {
             Ok(to) => {
                 let mut context = Context::new();
-                context.insert("sender_name", sender_name);
-                context.insert("receiver_name", student_name);
-                context.insert("subject_name", subject_name);
-                context.insert("assessment_title", assessment_title);
-                context.insert("due_date", due_date);
+                context.insert("sender_name", &ammonia::clean(sender_name));
+                context.insert("receiver_name", &ammonia::clean(student_name));
+                context.insert("subject_name", &ammonia::clean(subject_name));
+                context.insert("assessment_title", &ammonia::clean(assessment_title));
+                context.insert("due_date", &ammonia::clean(due_date));
                 let body = match tera.render("assessment_created", &context) {
                     Ok(s) => s,
                     Err(e) => {
@@ -263,13 +265,14 @@ pub async fn send_assessment_email(
                         continue;
                     }
                 };
+                let sanitized_body = ammonia::clean(&body);
                 let email_subject = format!("Nueva evaluación en la materia: {}", subject_name);
                 let email = Message::builder()
                     .from(from.clone())
                     .to(to)
                     .subject(email_subject)
                     .header(header.clone())
-                    .body(body)
+                    .body(sanitized_body)
                     .unwrap();
                 match mailer.send(&email) {
                     Ok(_) => println!("✅ Email enviado a {}", to_str),
