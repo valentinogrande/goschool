@@ -150,6 +150,5 @@ pub async fn register_testing_users(req: HttpRequest, pool: web::Data<MySqlPool>
         Err(e) => return HttpResponse::InternalServerError().body(e.to_string())
     };
 
-
     HttpResponse::Created().finish()
 }

@@ -296,9 +296,10 @@ impl Post for MySelf {
                     Ok(c) => c.iter().map(|c| c.id).collect(),
                     Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
                 };
+                dbg!(&preceptor_courses);
                 if !preceptor_courses
                     .iter()
-                    .all(|&course| courses.contains(&course))
+                    .any(|&course| courses.contains(&course))
                 {
                     return HttpResponse::Unauthorized().finish();
                 }
