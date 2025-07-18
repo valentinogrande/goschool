@@ -100,16 +100,56 @@ pub async fn register_testing_users(req: HttpRequest, pool: web::Data<MySqlPool>
         Err(e) => return HttpResponse::InternalServerError().body(e.to_string())
     };
 
-let user_id = res.last_insert_id();
+    let user_id = res.last_insert_id();
 
-let _res = match sqlx::query("INSERT INTO roles (user_id, role) VALUES (?,?)")
-    .bind(user_id)
-    .bind(user)
+    let _res = match sqlx::query("INSERT INTO roles (user_id, role) VALUES (?,?)")
+        .bind(user_id)
+        .bind(user)
+        .execute(pool.get_ref()).await {
+            Ok(_) => {},
+            Err(e) => return HttpResponse::InternalServerError().body(e.to_string())
+        };
+    }
+
+    let email = "valentinogrande972@gmail.com";
+
+    let pass = "student";
+
+    let hash = hash(pass, DEFAULT_COST).unwrap();
+
+    let res = match sqlx::query("INSERT INTO users (password, email) VALUES (?,?)")
+    .bind(&hash)
+    .bind(email)
     .execute(pool.get_ref()).await {
-        Ok(_) => {},
+        Ok(r) => r,
         Err(e) => return HttpResponse::InternalServerError().body(e.to_string())
     };
-    }
+
+    let user_id = res.last_insert_id();
+
+    let _res = match sqlx::query("INSERT INTO roles (user_id, role) VALUES (?,?)")
+        .bind(user_id)
+        .bind("student")
+        .execute(pool.get_ref()).await {
+            Ok(_) => {},
+            Err(e) => return HttpResponse::InternalServerError().body(e.to_string())
+    };
+
+    
+    let _res = match sqlx::query(
+        "INSERT INTO personal_data (user_id, full_name, birth_date, address, phone_number) VALUES (?, ?, ?, ?, ?)"
+    )
+    .bind(6)
+    .bind("valentino grande")
+    .bind("2024-07-18 15:30:00")
+    .bind("santa coloma 9282")
+    .bind("543412115831")
+    .execute(pool.get_ref())
+    .await {
+        Ok(r) => r,
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string())
+    };
+
 
     HttpResponse::Created().finish()
 }
