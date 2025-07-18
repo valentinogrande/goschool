@@ -139,6 +139,25 @@ impl Delete for MySelf {
         if !is_authorized {
             return HttpResponse::Unauthorized().finish();
         }
+        //deleting file in case of existance
+        let file_exists: Result<bool, _> = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM subject_messages WHERE id = ? AND file IS NOT NULL)"
+        )
+        .bind(subject_message_id)
+        .fetch_one(pool)
+        .await;
+        if file_exists.unwrap_or(false) {
+            let res: String = match sqlx::query_scalar("SELECT file FROM subject_messages WHERE id = ?")
+                .bind(subject_message_id)
+                .fetch_one(pool)
+                .await {
+                    Ok(file) => file,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+            };
+            std::fs::remove_file(res).unwrap();
+        }
+                    
+
         let res = sqlx::query("DELETE FROM subject_messages WHERE id = ?")
             .bind(subject_message_id)
             .execute(pool)
@@ -168,6 +187,25 @@ impl Delete for MySelf {
         if !is_authorized {
             return HttpResponse::Unauthorized().finish();
         }
+
+        //deleting file in case of existance
+        let file_exists: Result<bool, _> = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM homework_submissions WHERE id = ? AND file IS NOT NULL)"
+        )
+        .bind(submission_id)
+        .fetch_one(pool)
+        .await;
+        if file_exists.unwrap_or(false) {
+            let res: String = match sqlx::query_scalar("SELECT file FROM homework_submissions WHERE id = ?")
+                .bind(submission_id)
+                .fetch_one(pool)
+                .await {
+                    Ok(file) => file,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+            };
+            std::fs::remove_file(res).unwrap();
+        }
+
         let res = sqlx::query("DELETE FROM homework_submissions WHERE id = ?")
             .bind(submission_id)
             .execute(pool)

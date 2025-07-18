@@ -18,10 +18,10 @@ CREATE TABLE IF NOT EXISTS courses (
   level ENUM('primary', 'secondary') NOT NULL DEFAULT 'secondary',
   shift ENUM('morning', 'afternoon') NOT NULL DEFAULT 'morning',
   preceptor_id BIGINT UNSIGNED,
-  FOREIGN KEY (preceptor_id) REFERENCES users(id)
+  FOREIGN KEY (preceptor_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
-ALTER TABLE users ADD CONSTRAINT fk_course FOREIGN KEY (course_id) REFERENCES courses(id);
+ALTER TABLE users ADD CONSTRAINT fk_course FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE SET NULL;
 
 
 CREATE TABLE IF NOT EXISTS roles (
@@ -39,15 +39,15 @@ CREATE TABLE IF NOT EXISTS personal_data (
   birth_date DATE NOT NULL,
   address VARCHAR(255) NOT NULL,
   phone_number VARCHAR(20) NOT NULL,
-  FOREIGN KEY (user_id) REFERENCES users(id)
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS families (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   student_id BIGINT UNSIGNED NOT NULL,
   father_id BIGINT UNSIGNED NOT NULL,
-  FOREIGN KEY (student_id) REFERENCES users(id),
-  FOREIGN KEY (father_id) REFERENCES users(id)
+  FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (father_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS subjects (
@@ -55,8 +55,8 @@ CREATE TABLE IF NOT EXISTS subjects (
   name VARCHAR(255) NOT NULL,
   course_id BIGINT UNSIGNED NOT NULL,
   teacher_id BIGINT UNSIGNED NOT NULL,
-  FOREIGN KEY (course_id) REFERENCES courses(id),
-  FOREIGN KEY (teacher_id) REFERENCES users(id)
+  FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+  FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS timetables (
@@ -66,8 +66,8 @@ CREATE TABLE IF NOT EXISTS timetables (
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
   day ENUM('Monday','Tuesday','Wednesday','Thursday','Friday') NOT NULL,
-  FOREIGN KEY (course_id) REFERENCES courses(id),
-  FOREIGN KEY (subject_id) REFERENCES subjects(id)
+  FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+  FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS assessments (
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS assessments (
   due_date DATE NOT NULL,
   task TEXT NOT NULL,
   subject_id BIGINT UNSIGNED NOT NULL,
-  FOREIGN KEY (subject_id) REFERENCES subjects(id)
+  FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS grades (
@@ -89,9 +89,9 @@ CREATE TABLE IF NOT EXISTS grades (
   assessment_id BIGINT UNSIGNED,
   grade_type ENUM('numerical','conceptual','percentage') DEFAULT 'numerical',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (student_id) REFERENCES users(id),
-  FOREIGN KEY (subject_id) REFERENCES subjects(id),
-  FOREIGN KEY (assessment_id) REFERENCES assessments(id)
+  FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE,
+  FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS homework_submissions (
@@ -99,14 +99,14 @@ CREATE TABLE IF NOT EXISTS homework_submissions (
   task_id BIGINT UNSIGNED NOT NULL,
   student_id BIGINT UNSIGNED NOT NULL,
   path VARCHAR(255) NOT NULL,
-  FOREIGN KEY (task_id) REFERENCES assessments(id),
-  FOREIGN KEY (student_id) REFERENCES users(id)
+  FOREIGN KEY (task_id) REFERENCES assessments(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS selfassessables (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   assessment_id BIGINT UNSIGNED NOT NULL,
-  FOREIGN KEY (assessment_id) REFERENCES assessments(id)
+  FOREIGN KEY (assessment_id) REFERENCES assessments(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS selfassessable_tasks (
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS selfassessable_tasks (
   incorrect2 VARCHAR(255),
   incorrect3 VARCHAR(255),
   incorrect4 VARCHAR(255),
-  FOREIGN KEY (selfassessable_id) REFERENCES selfassessables(id)
+  FOREIGN KEY (selfassessable_id) REFERENCES selfassessables(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS selfassessable_submissions (
@@ -126,8 +126,8 @@ CREATE TABLE IF NOT EXISTS selfassessable_submissions (
   selfassessable_id BIGINT UNSIGNED NOT NULL,
   answers TEXT NOT NULL,
   student_id BIGINT UNSIGNED NOT NULL,
-  FOREIGN KEY (selfassessable_id) REFERENCES selfassessables(id),
-  FOREIGN KEY (student_id) REFERENCES users(id)
+  FOREIGN KEY (selfassessable_id) REFERENCES selfassessables(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS selfassessable_pending_grades (
@@ -135,8 +135,8 @@ CREATE TABLE IF NOT EXISTS selfassessable_pending_grades (
   selfassessable_id BIGINT UNSIGNED NOT NULL,
   student_id BIGINT UNSIGNED NOT NULL,
   grade DECIMAL(5,2) NOT NULL,
-  FOREIGN KEY (selfassessable_id) REFERENCES selfassessables(id),
-  FOREIGN KEY (student_id) REFERENCES users(id)
+  FOREIGN KEY (selfassessable_id) REFERENCES selfassessables(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS assistance (
@@ -144,7 +144,7 @@ CREATE TABLE IF NOT EXISTS assistance (
   student_id BIGINT UNSIGNED NOT NULL,
   presence ENUM('present','absent','excused') DEFAULT 'present',
   date DATE NOT NULL,
-  FOREIGN KEY (student_id) REFERENCES users(id)
+  FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS disciplinary_sanctions (
@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS disciplinary_sanctions (
   quantity INT DEFAULT 1,
   description TEXT,
   date DATE NOT NULL,
-  FOREIGN KEY (student_id) REFERENCES users(id)
+  FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS messages (
   message TEXT NOT NULL,
   title TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (sender_id) REFERENCES users(id)
+  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS message_courses (
@@ -183,6 +183,6 @@ CREATE TABLE IF NOT EXISTS subject_messages (
   content TEXT NOT NULL,
   type ENUM('message','link','file') DEFAULT 'message',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (sender_id) REFERENCES users(id),
-  FOREIGN KEY (subject_id) REFERENCES subjects(id)
+  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
 );
