@@ -462,22 +462,23 @@ impl Get for MySelf {
                  JOIN assessments a ON a.id = s.assessment_id
                  JOIN subjects sj ON sj.id = a.subject_id
                  JOIN users u ON u.course_id = sj.course_id
-                 WHERE DATE(due_date) = CURRENT_DATE() AND u.id =  ",
+                 WHERE DATE(a.due_date) = CURRENT_DATE() AND u.id =  "
         );
 
         query_builder.push_bind(self.id);
         if let Some(i) = filter.assessment_id {
-            query_builder.push(" AND a.id = ");
+            query_builder.push(" AND s.id = ");
             let self_id = self.get_selfassessable_id(pool, i).await?;
             query_builder.push_bind(self_id);
         }
-        
         let query = query_builder.build_query_as::<Selfassessable>();
         let selfassessables = query.fetch_all(pool).await?;
-        
+            
+        dbg!(&selfassessables);
+
         // Convertir a PublicSelfassessable con opciones randomizadas
         let mut public_selfassessables = Vec::new();
-        let mut rng = rng();
+        let mut rng = rand::rng();
         
         for selfassessable in selfassessables {
             // Recopilar todas las opciones disponibles
@@ -513,7 +514,6 @@ impl Get for MySelf {
         Ok(public_selfassessables)
     }
     
-
     async fn get_selfassessables(
         &self,
         pool: &MySqlPool,
@@ -531,7 +531,7 @@ impl Get for MySelf {
                  JOIN assessments a ON a.id = s.assessment_id
                  JOIN subjects sj ON sj.id = a.subject_id
                  JOIN users u ON u.course_id = sj.course_id
-                 WHERE DATE(due_date) = CURRENT_DATE() AND u.id =  ",
+                 WHERE DATE(a.due_date) = CURRENT_DATE() AND u.id =  ",
         );
 
         query_builder.push_bind(self.id);

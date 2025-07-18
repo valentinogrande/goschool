@@ -297,3 +297,7 @@ curl -X GET "http://localhost:8080/api/v1/role/" -b "jwt={jwt}"
 ## LICENCIA
 este proyecto se encuentra bajo la licencia [MIT](https://github.com/valentinogrande/goschool/blob/main/LICENSE).
 proyecto mantenido por [Valentino Grande](https://github.com/valentinogrande).
+
+## Zona horaria en autoevaluables
+
+Todos los endpoints y la base de datos trabajan en UTC. El backend filtra y almacena fechas en UTC. El frontend convierte las fechas a la zona local del usuario solo para mostrar, pero no envía la zona horaria al backend.

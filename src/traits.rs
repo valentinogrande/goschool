@@ -149,3 +149,88 @@ pub trait Post  {
         homework_id: u64        
     ) -> Result<bool, sqlx::Error>;
 }
+
+
+pub trait Delete {
+    async fn delete_assessment(
+        &self,
+        pool: &MySqlPool,
+        assessment_id: u64
+    ) -> HttpResponse;
+    async fn delete_grade(
+        &self,
+        pool: &MySqlPool,
+        grade_id: u64
+    ) -> HttpResponse;
+    async fn delete_message(
+        &self,
+        pool: &MySqlPool,
+        message_id: u64
+    ) -> HttpResponse;
+    async fn delete_personal_data(
+        &self,
+        pool: &MySqlPool,
+        user_id: u64
+    ) -> HttpResponse;
+    async fn delete_profile_picture(
+        &self,
+        pool: &MySqlPool,
+        user_id: u64)
+    -> HttpResponse;
+    async fn delete_subject_message(
+        &self,
+        pool: &MySqlPool,
+        subject_message_id: u64
+    ) -> HttpResponse;
+    async fn delete_submission(
+        &self,
+        pool: &MySqlPool,
+        submission_id: u64
+    ) -> HttpResponse;
+}
+
+pub trait Update {
+    async fn update_assessment(
+        &self,
+        pool: &MySqlPool,
+        assessment_id: u64,
+        data: UpdateAssessment
+    ) -> HttpResponse;
+    async fn update_grade(
+        &self,
+        pool: &MySqlPool,
+        grade_id: u64,
+        data: UpdateGrade
+    ) -> HttpResponse;
+    async fn update_message(
+        &self,
+        pool: &MySqlPool,
+        message_id: u64,
+        data: UpdateMessage
+    ) -> HttpResponse;
+    async fn update_personal_data(
+        &self,
+        pool: &MySqlPool,
+        user_id: u64,
+        data: UpdatePersonalData
+    ) -> HttpResponse;
+    async fn update_profile_picture(
+        &self,
+        pool: &MySqlPool,
+        user_id: u64,
+        multipart: Multipart
+    ) -> HttpResponse;
+    async fn update_subject_message(
+        &self,
+        pool: &MySqlPool,
+        subject_message_id: u64,
+        data: UpdateSubjectMessage
+    ) -> HttpResponse;
+    async fn update_submission(
+        &self,
+        pool: &MySqlPool,
+        submission_id: u64,
+        data: UpdateSubmission
+    ) -> HttpResponse;
+}
+

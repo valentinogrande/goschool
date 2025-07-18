@@ -359,3 +359,81 @@ impl NewSelfassessable {
         queries
     }
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateUser {
+    pub password: Option<String>,
+    pub email: Option<String>,
+    pub role: Option<Role>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateCourse {
+    pub year: Option<i32>,
+    pub division: Option<String>,
+    pub level: Option<String>,
+    pub shift: Option<String>,
+    pub preceptor_id: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateGrade {
+    pub description: Option<String>,
+    pub grade: Option<Decimal>,
+    pub student_id: Option<u64>,
+    pub subject_id: Option<u64>,
+    pub assessment_id: Option<u64>,
+    pub grade_type: Option<GradeType>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateSubject {
+    pub name: Option<String>,
+    pub teacher_id: Option<u64>,
+    pub course_id: Option<u64>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateAssessment {
+    pub subject_id: Option<u64>,
+    pub task: Option<String>,
+    pub due_date: Option<NaiveDate>,
+    pub type_: Option<AssessmentType>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateMessage {
+    pub title: Option<String>,
+    pub message: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateTimetable {
+    pub course_id: Option<u64>,
+    pub subject_id: Option<u64>,
+    pub day: Option<String>,
+    pub start_time: Option<NaiveTime>,
+    pub end_time: Option<NaiveTime>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdatePersonalData {
+    pub full_name: Option<String>,
+    pub phone_number: Option<String>,
+    pub address: Option<String>,
+    pub birth_date: Option<NaiveDate>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateSubjectMessage {
+    pub title: Option<String>,
+    pub content: Option<String>,
+    pub type_: Option<SubjectMessageType>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateSubmission {
+    pub path: Option<String>,
+    pub student_id: Option<u64>,
+    pub task_id: Option<u64>,
+}

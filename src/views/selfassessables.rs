@@ -72,10 +72,7 @@ pub async fn get_selfassessables_responses(
 
     let user = token.claims.user;
 
-    let selfassessables = match user
-        .get_selfassessables_responses(&pool, filter.into_inner())
-        .await
-    {
+    let selfassessables = match user.get_selfassessables(&pool, filter.into_inner()).await {
         Ok(s) => s,
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };

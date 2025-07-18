@@ -1,4 +1,4 @@
-use crate::structs::{Role, MySelf};
+use crate::structs::{MySelf, Role};
 use crate::traits::New;
 
 impl New for MySelf {
