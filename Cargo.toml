@@ -31,3 +31,5 @@ uuid = { version = "1", features = ["v4"] }
 cron = "0.15.0"
 infer = "0.19"
 rand="0.9"
+lettre = { version = "0.11", features = ["builder", "tokio1-native-tls"] }
+tera = "1"

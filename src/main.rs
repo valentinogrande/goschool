@@ -7,7 +7,7 @@ use sqlx::mysql::MySqlPool;
 
 mod cron;
 mod filters;
-mod functions;
+mod parse_multipart;
 mod impls;
 mod json;
 mod jwt;
@@ -15,6 +15,7 @@ mod routes;
 mod structs;
 mod traits;
 mod views;
+mod email;
 
 use jwt::Claims;
 

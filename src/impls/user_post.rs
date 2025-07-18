@@ -5,7 +5,7 @@ use sqlx::MySqlPool;
 use std::str;
 
 use crate::filters::SelfassessableFilter;
-use crate::functions::parse_multipart;
+use crate::parse_multipart::parse_multipart;
 use crate::structs::{
     AssessmentType, MySelf, NewGrade, NewMessage, NewSubmissionSelfAssessable, Payload, Role,
 };
