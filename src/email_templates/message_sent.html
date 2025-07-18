@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Nuevo mensaje recibido</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px; }
+    .container { max-width: 600px; background-color: #fff; padding: 30px; margin: auto; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: #333; }
+    h2 { color: #2c3e50; }
+    p { font-size: 16px; }
+    .message-box { margin: 30px auto; padding: 30px; text-align: center; font-size: 20px; font-weight: bold; color: #222; background-color: #e9ecef; border-radius: 12px; max-width: 400px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Hola {{ receiver_name }} 👋</h2>
+    <p>Has recibido un nuevo mensaje de <strong>{{ sender_name }}</strong>:</p>
+    <div class="message-box">{{ message }}</div>
+  </div>
+</body>
+</html> 

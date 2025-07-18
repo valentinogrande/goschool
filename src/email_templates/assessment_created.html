@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Nueva evaluación creada</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px; }
+    .container { max-width: 600px; background-color: #fff; padding: 30px; margin: auto; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: #333; }
+    h2 { color: #2c3e50; }
+    p { font-size: 16px; }
+    .assessment-box { margin: 30px auto; padding: 20px; text-align: center; font-size: 22px; font-weight: bold; color: #fff; background-color: #17a2b8; border-radius: 12px; max-width: 400px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .due-date { margin-top: 20px; font-size: 16px; color: #dc3545; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Hola {{ receiver_name }} 👋</h2>
+    <p>Desde <strong>{{ sender_name }}</strong> te informamos que se ha creado una nueva evaluación en la materia <strong>{{ subject_name }}</strong>:</p>
+    <div class="assessment-box">{{ assessment_title }}</div>
+    <div class="due-date">Fecha de entrega: <strong>{{ due_date }}</strong></div>
+  </div>
+</body>
+</html> 

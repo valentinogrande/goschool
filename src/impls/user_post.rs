@@ -8,6 +8,7 @@ use crate::filters::SelfassessableFilter;
 use crate::parse_multipart::parse_multipart;
 use crate::structs::*;
 use crate::traits::{Get, Post};
+use crate::send_grade_email;
 
 impl Post for MySelf {
     async fn post_assessment(&self, pool: &MySqlPool, payload: Payload) -> HttpResponse {
@@ -91,7 +92,40 @@ impl Post for MySelf {
             .await;
 
             match insert_result {
-                Ok(_) => HttpResponse::Created().finish(),
+                Ok(_) => {
+                    // Enviar email a todos los estudiantes del curso de la materia
+                    let students: Vec<(String, String, String)> = match sqlx::query_as::<_, (String, String, String)>(
+                        r#"
+                        SELECT u.email, pd.full_name, s.name
+                        FROM users u
+                        JOIN personal_data pd ON pd.user_id = u.id
+                        JOIN subjects s ON s.course_id = u.course_id
+                        WHERE s.id = ?
+                        "#
+                    )
+                    .bind(payload.newtask.subject)
+                    .fetch_all(pool)
+                    .await
+                    {
+                        Ok(list) => list,
+                        Err(_) => vec![],
+                    };
+                    let sender_name: String = match sqlx::query_scalar("SELECT full_name FROM personal_data WHERE user_id = ?")
+                        .bind(self.id)
+                        .fetch_one(pool)
+                        .await
+                    {
+                        Ok(name) => name,
+                        Err(_) => "Remitente".to_string(),
+                    };
+                    crate::email::send_assessment_email(
+                        students,
+                        &sender_name,
+                        &payload.newtask.task,
+                        &payload.newtask.due_date.to_string()
+                    ).await;
+                    HttpResponse::Created().finish()
+                },
                 Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
             }
         }
@@ -184,8 +218,48 @@ impl Post for MySelf {
             if result.is_err() {
                 return HttpResponse::InternalServerError().finish();
             } else {
+                
+            let (
+                    reply_to,
+                    subject_name,
+                    sender_name,
+                    receiver_name
+                ): (String, String, String, String) =
+                match sqlx::query_as::<_, (String, String, String, String)>(
+                    r#"
+                    SELECT 
+                        u1.email, 
+                        s.name, 
+                        pd1.full_name AS sender_name, 
+                        pd2.full_name AS receiver_name
+                    FROM grades g
+                    JOIN users u1 ON u1.id = g.student_id
+                    JOIN subjects s ON s.id = g.subject
+                    JOIN personal_data pd1 ON pd1.user_id = ?
+                    JOIN personal_data pd2 ON pd2.user_id = g.student_id
+                    WHERE g.student_id = ? AND g.subject = ?
+                    "#
+                )
+                .bind(self.id)
+                .bind(grade.student_id)
+                .bind(grade.subject)
+                .fetch_one(pool)
+                .await
+                .map_err(|e| HttpResponse::InternalServerError().json(e.to_string())) {
+                    Ok(u) => u,
+                    Err(e) => return e,
+                };
+
+                send_grade_email(
+                    vec![reply_to],
+                    &subject_name,
+                    &sender_name,
+                    &receiver_name,
+                    &grade.grade.to_string(),
+                ).await;
                 return HttpResponse::Created().finish();
             }
+           
         }
         let result = sqlx::query("INSERT INTO grades (student_id, grade_type, description, grade, subject_id) VALUES (?, ?, ?, ?, ?)")
             .bind(grade.student_id)
@@ -198,6 +272,7 @@ impl Post for MySelf {
         if result.is_err() {
             return HttpResponse::InternalServerError().finish();
         } else {
+
             return HttpResponse::Created().finish();
         }
     }
@@ -255,6 +330,39 @@ impl Post for MySelf {
                 Ok(r) => r,
                 Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
             };
+        }
+
+        if !courses.is_empty() {
+            let placeholders = courses.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+            let sql = format!(
+                "SELECT u.email, pd.full_name FROM users u JOIN personal_data pd ON pd.user_id = u.id WHERE u.course_id IN ({})",
+                placeholders
+            );
+
+            let mut query = sqlx::query_as::<_, (String, String)>(&sql);
+
+            for course in &courses {
+                query = query.bind(course);
+            }
+
+            let students: Vec<(String, String)> = match query.fetch_all(pool).await {
+                Ok(list) => list,
+                Err(_) => vec![],
+            };
+
+            let sender_name: String = match sqlx::query_scalar("SELECT full_name FROM personal_data WHERE user_id = ?")
+                .bind(self.id)
+                .fetch_one(pool)
+                .await
+            {
+                Ok(name) => name,
+                Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+            };
+            crate::email::send_message_email(
+                students,
+                &sender_name,
+                &message.message
+            ).await;
         }
         HttpResponse::Created().finish()
     }
@@ -633,7 +741,53 @@ impl Post for MySelf {
         };
 
         match insert_result {
-            Ok(_) => HttpResponse::Created().finish(),
+            Ok(_) => {
+                // Enviar email a todos los estudiantes del curso de la materia
+                let students: Vec<(String, String)> = match sqlx::query_as::<_, (String, String)>(
+                    r#"
+                    SELECT u.email, pd.full_name
+                    FROM users u
+                    JOIN personal_data pd ON pd.user_id = u.id
+                    JOIN subjects s ON s.course_id = u.course_id
+                    WHERE s.id = ?
+                    "#
+                )
+                .bind(subject_id)
+                .fetch_all(pool)
+                .await
+                {
+                    Ok(list) => list,
+                    Err(_) => vec![],
+                };
+                let sender_name: String = match sqlx::query_scalar("SELECT full_name FROM personal_data WHERE user_id = ?")
+                    .bind(self.id)
+                    .fetch_one(pool)
+                    .await
+                {
+                    Ok(name) => name,
+                    Err(_) => "Remitente".to_string(),
+                };
+                let subject_name: String = match sqlx::query_scalar("SELECT name FROM subjects WHERE id = ?")
+                    .bind(subject_id)
+                    .fetch_one(pool)
+                    .await
+                {
+                    Ok(name) => name,
+                    Err(_) => "Materia".to_string(),
+                };
+                let msg = if is_text {
+                    str::from_utf8(content_or_file).unwrap_or("")
+                } else {
+                    "Archivo adjunto"
+                };
+                crate::email::send_subject_message_email(
+                    students,
+                    &sender_name,
+                    &subject_name,
+                    msg
+                ).await;
+                HttpResponse::Created().finish()
+            },
             Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
         }
     }

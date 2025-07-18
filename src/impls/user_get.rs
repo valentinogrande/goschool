@@ -3,7 +3,6 @@ use chrono::Utc;
 use sqlx::{MySql, MySqlPool, QueryBuilder};
 use std::env;
 use rand::seq::SliceRandom;
-use rand::rng;
 
 use crate::filters::*;
 use crate::structs::*;

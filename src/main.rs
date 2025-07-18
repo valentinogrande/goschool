@@ -4,6 +4,7 @@ use actix_web::{App, HttpServer, middleware::Logger, web};
 use chrono::Datelike;
 use env_logger;
 use sqlx::mysql::MySqlPool;
+use crate::email::send_grade_email;
 
 mod cron;
 mod filters;

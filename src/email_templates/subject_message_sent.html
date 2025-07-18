@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Nuevo mensaje en la materia</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px; }
+    .container { max-width: 600px; background-color: #fff; padding: 30px; margin: auto; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: #333; }
+    h2 { color: #2c3e50; }
+    p { font-size: 16px; }
+    .subject-box { margin: 20px 0 10px 0; font-size: 18px; color: #007bff; }
+    .message-box { margin: 20px auto; padding: 20px; text-align: center; font-size: 18px; font-weight: bold; color: #222; background-color: #e9ecef; border-radius: 12px; max-width: 400px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Hola {{ receiver_name }} 👋</h2>
+    <div class="subject-box">Materia: <strong>{{ subject_name }}</strong></div>
+    <p>Tienes un nuevo mensaje de <strong>{{ sender_name }}</strong>:</p>
+    <div class="message-box">{{ message }}</div>
+  </div>
+</body>
+</html> 
