@@ -5,15 +5,8 @@ use std::env;
 use rand::seq::SliceRandom;
 use rand::rng;
 
-
-use crate::filters::{
-    AssessmentFilter, GradeFilter, MessageFilter, SelfassessableFilter, SubjectFilter,
-    SubjectMessageFilter, UserFilter, TimetableFilter
-};
-use crate::structs::{
-    Assessment, Course, Grade, Message, MySelf, PendingSelfassessableGrade, PersonalData, Timetable, PublicPersonalData, Role, Selfassessable, SelfassessableResponse, Subject, SubjectMessage, PublicSelfassessable
-};
-
+use crate::filters::*;
+use crate::structs::*;
 use crate::traits::Get;
 
 impl Get for MySelf {
@@ -474,7 +467,7 @@ impl Get for MySelf {
 
         query_builder.push_bind(self.id);
         if let Some(i) = filter.assessment_id {
-            query_builder.push(" AND s.id = ");
+            query_builder.push(" AND a.id = ");
             let self_id = self.get_selfassessable_id(pool, i).await?;
             query_builder.push_bind(self_id);
         }

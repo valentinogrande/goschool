@@ -6,9 +6,7 @@ use std::str;
 
 use crate::filters::SelfassessableFilter;
 use crate::parse_multipart::parse_multipart;
-use crate::structs::{
-    AssessmentType, MySelf, NewGrade, NewMessage, NewSubmissionSelfAssessable, Payload, Role,
-};
+use crate::structs::*;
 use crate::traits::{Get, Post};
 
 impl Post for MySelf {
