@@ -120,6 +120,7 @@ def create_users():
         cursor.execute("INSERT INTO subjects (name, course_id, teacher_id) VALUES ('historia',34,5)")
         cursor.execute("INSERT INTO subjects (name, course_id, teacher_id) VALUES ('matematica',35,5)")
         cursor.execute("UPDATE users SET course_id=34 WHERE id=2")
+        cursor.execute("UPDATE users SET course_id=34 WHERE id=6")
 
 
 def create_preceptors():
