@@ -58,7 +58,7 @@ impl Get for MySelf {
     }
 
     async fn get_courses(&self, pool: &MySqlPool) -> Result<Vec<Course>, sqlx::Error> {
-        let mut query = QueryBuilder::new("SELECT * FROM courses c ");
+        let mut query = QueryBuilder::new("SELECT c.* FROM courses c ");
         match self.role {
             Role::student => {
                 query.push("JOIN users u ON c.id = u.course_id WHERE u.id = ");
@@ -131,10 +131,12 @@ impl Get for MySelf {
         pool: &MySqlPool,
         filter: SubjectFilter,
     ) -> Result<Vec<Subject>, sqlx::Error> {
-        let mut query = QueryBuilder::new("SELECT * FROM subjects s ");
+        
+        let mut query = QueryBuilder::new("SELECT s.*, c.name as course_name FROM subjects s JOIN courses c ON s.course_id = c.id ");
+        
         match self.role {
             Role::teacher => {
-                query.push("WHERE teacher_id =");
+                query.push("WHERE s.teacher_id =");
                 query.push_bind(self.id);
             }
             Role::admin => {
@@ -146,7 +148,7 @@ impl Get for MySelf {
                 query.push(")");
             }
             Role::preceptor => {
-                query.push("JOIN courses c ON s.course_id = c.id WHERE c.preceptor_id =");
+                query.push("WHERE c.preceptor_id =");
                 query.push_bind(self.id);
             }
             Role::father => {
@@ -158,6 +160,7 @@ impl Get for MySelf {
                 query.push_bind(self.id);
             }
         };
+
         if let Some(c) = filter.course_id {
             query.push(" AND s.course_id = ");
             query.push_bind(c);
@@ -174,7 +177,9 @@ impl Get for MySelf {
             query.push(" AND s.id = ");
             query.push_bind(i);
         }
+
         let res = query.build_query_as::<Subject>().fetch_all(pool).await;
+
         res
     }
 

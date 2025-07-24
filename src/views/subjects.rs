@@ -28,5 +28,7 @@ pub async fn get_subjects(
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };
 
+    dbg!(&subjects);
+
     HttpResponse::Ok().json(subjects)
 }

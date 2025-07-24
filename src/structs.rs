@@ -99,6 +99,7 @@ pub struct Course {
     pub level: String,
     pub shift: String,
     pub preceptor_id: Option<u64>,
+    pub name: String
 }
 
 #[derive(Debug, FromRow, Serialize, Deserialize)]
@@ -274,12 +275,13 @@ pub struct Payload {
     pub newselfassessable: Option<NewSelfassessable>,
 }
 
-#[derive(Serialize, Deserialize, FromRow, Decode)]
+#[derive(Serialize, Deserialize, FromRow, Decode, Debug)]
 pub struct Subject {
     pub id: u64,
     pub name: String,
     pub teacher_id: u64,
     pub course_id: u64,
+    pub course_name: String,
 }
 
 impl NewSelfassessable {

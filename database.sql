@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS courses (
   division CHAR(1) NOT NULL,
   level ENUM('primary', 'secondary') NOT NULL DEFAULT 'secondary',
   shift ENUM('morning', 'afternoon') NOT NULL DEFAULT 'morning',
+  name VARCHAR(255) NOT NULL,
   preceptor_id BIGINT UNSIGNED,
   FOREIGN KEY (preceptor_id) REFERENCES users(id) ON DELETE SET NULL
 );

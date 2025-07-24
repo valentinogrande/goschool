@@ -44,27 +44,48 @@ conn = mysql.connector.connect(
 
 cursor = conn.cursor()
 
-def create_courses():
-    print()
-    print("creating courses")
-    print()
-    # years = int(input("Enter the number of years: "))
-    # divisions = int(input("Enter the number of divisions per year: "))
-    # primary = int(input("Enter the number of primary levels: "))
-    #
-    years=12 
-    divisions=3
-    primary=7
+def get_ordinal_name(year: int) -> str:
+    """Devuelve el nombre ordinal (Primero, Segundo, etc.) según el número de año"""
+    nombres = [
+        "Primer grado", "Segundo grado", "Tercero grado", "Cuarto grado", "Quinto grado", "Sexto grado", "Séptimo grado", #primaria
+        "Primer año", "Segundo año", "Tercero año", "Cuarto año", "Quinto año" # secundaria
+    ]
+    return nombres[year - 1] if 1 <= year <= len(nombres) else f"Año {year}"
 
-    for i in range(years):
-        for j in range(divisions):
-            level = "secondary" if i >= primary else "primary"
-            shift = "morning" if level == "secondary" or j == 2 else "afternoon"
+def get_division_name(level: str, division: int) -> str:
+    """Devuelve el nombre de la división según el nivel y el número de división"""
+    if level == "primary":
+        divisiones = ["Mar", "Gaviota", "Estrella"]
+    else:  # secondary
+        divisiones = ["Economía", "Naturales", "Humanidades"]
+    return divisiones[division - 1]
+
+def create_courses():
+    print("\nCreando cursos...\n")
+
+    years = 12
+    divisions = 3
+    primary_limit = 7
+
+    for i in range(years):  # 0 a 11
+        year_number = i + 1
+        level = "primary" if year_number <= primary_limit else "secondary"
+
+        for j in range(divisions):  # 0 a 2
+            division_number = j + 1
+            shift = "afternoon" if level == "primary" and division_number != 3 else "morning"
+            ordinal = get_ordinal_name(year_number)
+            division_name = get_division_name(level, division_number)
+
+            name = f"{ordinal} {division_name}"
 
             cursor.execute(
-                "INSERT INTO courses (year, division, level, shift) VALUES (%s, %s, %s, %s)",
-                (i + 1, j + 1, level, shift)
+                "INSERT INTO courses (year, division, level, shift, name) VALUES (%s, %s, %s, %s, %s)",
+                (year_number, division_number, level, shift, name)
             )
+
+    conn.commit()
+    print("\nTodos los cursos fueron creados.")
 
 def delete_tables():
     print()
