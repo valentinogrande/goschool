@@ -4,9 +4,6 @@ use bcrypt::{hash, DEFAULT_COST};
 use std::env;
 use tokio::time::{timeout, Duration};
 
-
-
-
 use crate::{jwt::validate, structs::NewUser, structs::Role};
 
 #[post("/api/v1/register/")]
@@ -75,20 +72,20 @@ pub async fn register_testing_users(req: HttpRequest, pool: web::Data<MySqlPool>
         ("valentinogrande972@gmail.com", "student"),
     ];
 
-    let debug = env::var("DEBUG").unwrap_or_default();
-    if debug != "true" {
-        let jwt = match req.cookie("jwt") {
-            Some(c) => c,
-            None => return HttpResponse::Unauthorized().finish(),
-        };
-        let token = match validate(jwt.value()) {
-            Ok(t) => t,
-            Err(_) => return HttpResponse::Unauthorized().finish(),
-        };
-        if token.claims.user.role != Role::admin {
-            return HttpResponse::Unauthorized().finish();
-        }
-    }
+    //let debug = env::var("DEBUG").unwrap_or_default();
+    //if debug != "true" {
+    //    let jwt = match req.cookie("jwt") {
+    //        Some(c) => c,
+    //        None => return HttpResponse::Unauthorized().finish(),
+    //    };
+    //    let token = match validate(jwt.value()) {
+    //        Ok(t) => t,
+    //        Err(_) => return HttpResponse::Unauthorized().finish(),
+    //    };
+    //    if token.claims.user.role != Role::admin {
+    //        return HttpResponse::Unauthorized().finish();
+    //    }
+    //}
 
     for (email, password) in users {
         let hash = match hash(password, DEFAULT_COST) {
@@ -124,7 +121,7 @@ pub async fn register_testing_users(req: HttpRequest, pool: web::Data<MySqlPool>
             Err(_) => return HttpResponse::RequestTimeout().body("Insert en roles demoró demasiado."),
         };
 
-        let _insert_personal = match timeout(Duration::from_secs(5), async {
+        let insert_personal = match timeout(Duration::from_secs(5), async {
             sqlx::query("INSERT INTO personal_data (user_id, full_name, birth_date, address, phone_number) VALUES (?, ?, ?, ?, ?)")
                 .bind(user_id)
                 .bind("valentino grande")

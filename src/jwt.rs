@@ -28,12 +28,16 @@ fn get_validation() -> Validation {
 }
 
 pub fn validate(jwt: &str) -> Result<TokenData<Claims>, jsonwebtoken::errors::Error> {
+    
     let validation = get_validation();
     
-    let public_key_pem = fs::read("ecc_public_key.pem")
+    let public_key_pem = fs::read("/shared/ecc_public_key.pem")
         .expect("ecc_public_key.pem not found");
 
-    let decoding_key = DecodingKey::from_ec_pem(&public_key_pem)?;
+    let decoding_key = match DecodingKey::from_ec_pem(&public_key_pem){
+        Ok(key) => key,
+        Err(e) => panic!("{}", e),
+    };
 
     let decode = decode::<Claims>(jwt, &decoding_key, &validation);
     

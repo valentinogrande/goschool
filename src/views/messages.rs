@@ -46,7 +46,7 @@ pub async fn post_message(
 
     let token = match validate(jwt.value()) {
         Ok(t) => t,
-        Err(_) => return HttpResponse::Unauthorized().finish(),
+        Err(e) => return HttpResponse::Unauthorized().body(e.to_string()),
     };
 
     let user = token.claims.user;

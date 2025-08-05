@@ -14,6 +14,8 @@ pub async fn login(
     pool: web::Data<MySqlPool>,
     creds: web::Json<CredentialsRole>,
 ) -> impl Responder {
+
+
     let result: (u64,String) = match sqlx::query_as("SELECT id, password FROM users WHERE email = ?")
         .bind(&creds.email)
         .fetch_one(pool.get_ref())
@@ -38,7 +40,7 @@ pub async fn login(
         .fetch_one(pool.get_ref())
         .await {
         Ok(r) => r,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
     };
     if !role_existance {
         return HttpResponse::Unauthorized().finish();
@@ -48,14 +50,14 @@ pub async fn login(
     
     let claims = Claims::new(MySelf::new(user_id as u64, creds.role.clone()));
 
-    let private_key_pem = match fs::read("ecc_private_key.pem") {
+    let private_key_pem = match fs::read("/shared/ecc_private_key.pem") {
         Ok(k) => k,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
     };
 
     let encoding_key = match EncodingKey::from_ec_pem(&private_key_pem) {
         Ok(k) => k,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
     };
 
     let token = match encode(
@@ -64,7 +66,7 @@ pub async fn login(
         &encoding_key,
     ) {
         Ok(t) => t,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
     };
 
 
@@ -73,7 +75,7 @@ pub async fn login(
         .execute(pool.get_ref())
         .await{
         Ok(_) => 0,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
     };
 
     let cookie = Cookie::build("jwt", token)

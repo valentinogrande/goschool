@@ -18,3 +18,4 @@ pub mod selfassessables_pending_grades;
 pub mod subject_messages;
 pub mod get_if_answered;
 pub mod timetables;
+pub mod health;

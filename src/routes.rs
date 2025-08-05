@@ -1,27 +1,9 @@
 use actix_web::web;
 
 use crate::views::{
-    assessmets::{get_assessments, post_assessment, update_assessment, delete_assessment},
-    courses::get_courses,
-    get_if_answered::{get_if_homework_answered, get_if_selfassessable_answered},
-    grades::{get_grades, post_grade, update_grade, delete_grade},
-    login::login,
-    logout::logout,
-    messages::{get_messages, post_message, update_message, delete_message},
-    personal_data::{get_personal_data, get_public_personal_data},
-    profile_pictures::{get_profile_picture, post_profile_picture},
-    register::{register, register_testing_users},
-    role::get_role,
-    roles::get_roles,
-    selfassessables::{
+    assessmets::{delete_assessment, get_assessments, post_assessment, update_assessment}, courses::get_courses, get_if_answered::{get_if_homework_answered, get_if_selfassessable_answered}, grades::{delete_grade, get_grades, post_grade, update_grade}, health::health, login::login, logout::logout, messages::{delete_message, get_messages, post_message, update_message}, personal_data::{get_personal_data, get_public_personal_data}, profile_pictures::{get_profile_picture, post_profile_picture}, register::{register, register_testing_users}, role::get_role, roles::get_roles, selfassessables::{
         get_selfassessables, get_selfassessables_responses, post_selfassessable_submission,
-    },
-    students::get_students,
-    subject_messages::{get_subject_messages, post_subject_message, update_subject_message, delete_subject_message},
-    subjects::get_subjects,
-    submissions::post_homework_submission,
-    verify_token::verify_token,
-    timetables::get_timetable,
+    }, students::get_students, subject_messages::{delete_subject_message, get_subject_messages, post_subject_message, update_subject_message}, subjects::get_subjects, submissions::post_homework_submission, timetables::get_timetable, verify_token::verify_token
 };
 
 pub fn register_services(cfg: &mut web::ServiceConfig) {
@@ -62,6 +44,7 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(get_timetable)
         .service(verify_token)
         .service(get_if_homework_answered)
+        .service(health)
         .service(get_if_selfassessable_answered);
 
     //.service(create_selfassessable_submission)

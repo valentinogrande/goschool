@@ -17,7 +17,7 @@ pub async fn send_grade_email(
     let from: Mailbox = from_str.parse().expect("Invalid EMAIL_FROM format");
     let base_dir = env::var("BASE_PATH").expect("BASE_PATH must be set");
 
-    let template_path = format!("{}/src/email_templates/grade_submitted.html", base_dir);
+    let template_path = format!("{}/email_templates/grade_submitted.html", base_dir);
     let template_str = match read_to_string(&template_path) {
         Ok(t) => t,
         Err(e) => {
@@ -25,7 +25,7 @@ pub async fn send_grade_email(
             return;
         }
     };
-    let footer_template_path = format!("{}/src/email_templates/footer.html", base_dir);
+    let footer_template_path = format!("{}/email_templates/footer.html", base_dir);
     let footer_template_str = match read_to_string(&footer_template_path) {
         Ok(t) => t,
         Err(e) => {
@@ -119,7 +119,7 @@ pub async fn send_message_email(
     let from: Mailbox = from_str.parse().expect("Invalid EMAIL_FROM format");
     let base_dir = env::var("BASE_PATH").expect("BASE_PATH must be set");
 
-    let template_path = format!("{}/src/email_templates/message_sent.html", base_dir);
+    let template_path = format!("{}/email_templates/message_sent.html", base_dir);
     let template_str = match read_to_string(&template_path) {
         Ok(t) => t,
         Err(e) => {
@@ -127,7 +127,7 @@ pub async fn send_message_email(
             return;
         }
     };
-    let footer_template_path = format!("{}/src/email_templates/footer.html", base_dir);
+    let footer_template_path = format!("{}/email_templates/footer.html", base_dir);
     let footer_template_str = match read_to_string(&footer_template_path) {
         Ok(t) => t,
         Err(e) => {
@@ -214,7 +214,7 @@ pub async fn send_subject_message_email(
     let from: Mailbox = from_str.parse().expect("Invalid EMAIL_FROM format");
     let base_dir = env::var("BASE_PATH").expect("BASE_PATH must be set");
 
-    let template_path = format!("{}/src/email_templates/subject_message_sent.html", base_dir);
+    let template_path = format!("{}/email_templates/subject_message_sent.html", base_dir);
     let template_str = match read_to_string(&template_path) {
         Ok(t) => t,
         Err(e) => {
@@ -222,7 +222,7 @@ pub async fn send_subject_message_email(
             return;
         }
     };
-    let footer_template_path = format!("{}/src/email_templates/footer.html", base_dir);
+    let footer_template_path = format!("{}/email_templates/footer.html", base_dir);
     let footer_template_str = match read_to_string(&footer_template_path) {
         Ok(t) => t,
         Err(e) => {
@@ -308,7 +308,7 @@ pub async fn send_assessment_email(
     let from: Mailbox = from_str.parse().expect("Invalid EMAIL_FROM format");
     let base_dir = env::var("BASE_PATH").expect("BASE_PATH must be set");
 
-    let template_path = format!("{}/src/email_templates/assessment_created.html", base_dir);
+    let template_path = format!("{}/email_templates/assessment_created.html", base_dir);
     let template_str = match read_to_string(&template_path) {
         Ok(t) => t,
         Err(e) => {
@@ -316,7 +316,7 @@ pub async fn send_assessment_email(
             return;
         }
     };
-    let footer_template_path = format!("{}/src/email_templates/footer.html", base_dir);
+    let footer_template_path = format!("{}/email_templates/footer.html", base_dir);
     let footer_template_str = match read_to_string(&footer_template_path) {
         Ok(t) => t,
         Err(e) => {
