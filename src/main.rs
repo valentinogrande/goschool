@@ -61,7 +61,7 @@ async fn main() -> std::io::Result<()> {
             .service(Files::new("/uploads/files", "./uploads/files").index_file("404"))
             .configure(register_services)
     })
-    .bind("0.0.0.0:8080")?
+    .bind("0.0.0.0:80")?
     .run()
     .await
 }

@@ -127,7 +127,7 @@ def create_users():
     print()
     print("creating users")
     print()
-    res=requests.get("http://localhost:8080/api/v1/register_testing_users/")
+    res=requests.get("http://localhost:80/api/v1/register_testing_users/")
     if res.status_code == 201:
         print("users created succesfully")
         cursor.execute("INSERT INTO families (student_id, father_id) VALUES (%s,%s)",(2,4))
