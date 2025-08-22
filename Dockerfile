@@ -37,8 +37,6 @@ RUN chmod -R u+rwX /app
 
 USER appuser
 
-
-
 ENV RUST_LOG=info
 
 CMD ["./app"]
