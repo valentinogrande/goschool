@@ -54,8 +54,8 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .app_data(web::Data::new(pool.clone()))
             .app_data(json_conf.clone())
-            .service(Files::new("/uploads/profile_pictures", "/shared/uploads/profile_pictures").index_file("404"))
-            .service(Files::new("/uploads/files", "/shared/uploads/files").index_file("404"))
+            .service(Files::new("/uploads/profile_pictures", "./uploads/profile_pictures").index_file("404"))
+            .service(Files::new("/uploads/files", "./uploads/files").index_file("404"))
             .configure(register_services)
     })
     .bind("0.0.0.0:80")?

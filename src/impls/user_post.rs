@@ -377,7 +377,7 @@ impl Post for MySelf {
             multipart,
             Some(&["jpg", "jpeg", "png"]),
             Some(&["image/jpeg", "image/png"]),
-            "/shared/uploads/profile_pictures",
+            "./uploads/profile_pictures",
         )
         .await
         {
@@ -420,7 +420,7 @@ impl Post for MySelf {
                 "application/pdf",
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             ]),
-            "shared/uploads/submissions",
+            "./uploads/submissions",
         )
         .await
         {
@@ -636,7 +636,7 @@ impl Post for MySelf {
                 "application/pdf",
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             ]),
-            "/shared/uploads/files",
+            "./uploads/files",
         )
         .await
         {
