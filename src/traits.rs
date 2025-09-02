@@ -99,6 +99,16 @@ pub trait Get {
         pool: &MySqlPool,
         assessment_id: u64)
     -> Result<u64, sqlx::Error>;
+    async fn get_assistance(
+        &self,
+        pool: &MySqlPool,
+        filter: AssistanceFilter
+    ) -> Result<Vec<Assistance>, sqlx::Error>;
+    async fn get_disciplinary_sanction(
+        &self,
+        pool: &MySqlPool,
+        filter: DisciplinarySanctionFilter
+    ) -> Result<Vec<DisciplinarySanction>, sqlx::Error>;
 }
 
 pub trait Post  {
@@ -148,6 +158,16 @@ pub trait Post  {
         pool: &MySqlPool,
         homework_id: u64        
     ) -> Result<bool, sqlx::Error>;
+    async fn post_assistance(
+        &self,
+        pool: &MySqlPool,
+        assistance: NewAssistance
+    ) -> HttpResponse;
+    async fn post_disciplinary_sanction(
+        &self,
+        pool: &MySqlPool,
+        disciplinary_sanction: NewDisciplinarySanction
+    ) -> HttpResponse;
 }
 
 
@@ -186,6 +206,11 @@ pub trait Delete {
         &self,
         pool: &MySqlPool,
         submission_id: u64
+    ) -> HttpResponse;
+    async fn delete_disciplinary_sanction(
+        &self,
+        pool: &MySqlPool,
+        disciplinary_sanction_id: u64
     ) -> HttpResponse;
 }
 
@@ -231,6 +256,18 @@ pub trait Update {
         pool: &MySqlPool,
         submission_id: u64,
         data: UpdateSubmission
+    ) -> HttpResponse;
+    async fn update_assistance(
+        &self,
+        pool: &MySqlPool,
+        assistance_id: u64,
+        data: UpdateAssistance
+    ) -> HttpResponse;
+    async fn update_disciplinary_sanction(
+        &self,
+        pool: &MySqlPool,
+        disciplinary_sanction_id: u64,
+        data: UpdateDisciplinarySanction
     ) -> HttpResponse;
 }
 

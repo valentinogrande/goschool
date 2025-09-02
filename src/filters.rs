@@ -56,3 +56,17 @@ pub struct UserFilter {
 pub struct SelfassessableFilter {
     pub assessment_id: Option<u64>,
 }
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct AssistanceFilter {
+    pub assistance_id: Option<u64>,
+    pub student_id: Option<u64>,
+    pub type_: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct DisciplinarySanctionFilter {
+    pub disciplinary_sanction_id: Option<u64>,
+    pub student_id: Option<u64>,
+    pub type_: Option<String>,
+}
