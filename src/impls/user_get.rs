@@ -1,6 +1,5 @@
 use actix_web::web;
 use chrono::Utc;
-use sqlx::query_builder;
 use sqlx::{MySql, MySqlPool, QueryBuilder};
 use std::env;
 use rand::seq::SliceRandom;
@@ -736,25 +735,88 @@ impl Get for MySelf {
             pool: &MySqlPool,
             filter: AssistanceFilter
         ) -> Result<Vec<Assistance>, sqlx::Error> {
-        let mut query = query_builder::new("SELECT DISTINCT * FROM assistance ");
+        let mut query = QueryBuilder::new("SELECT DISTINCT * FROM assistance a ");
         match self.role {
             Role::student => {
-                query.push("WHERE student_id = ");
+                query.push("WHERE a.student_id = ");
                 query.push_bind(self.id);
             }
             Role::admin => {
                 query.push("WHERE 1=1");
             }
             Role::teacher => {
-                   
+                query.push("WHERE 1=2"); // blocking access to teachers
             }
-        Ok(vec![])
+            Role::father => {
+                query.push("JOIN families f ON f.student_id = a.student_id WHERE f.father_id = ");
+                query.push_bind(self.id);
+            }
+            Role::preceptor => {
+                query.push("JOIN users u ON a.student_id = u.id JOIN courses c ON u.course_id = c.id WHERE c.preceptor_id = ");
+                query.push_bind(self.id);
+            }
+        }
+        if let Some(student_id) = filter.assistance_id {
+                query.push(" AND a.student_id = ");
+                query.push_bind(student_id);
+        }
+        if let Some(assistance_id) = filter.assistance_id {
+            query.push(" AND a.id = ");
+            query.push_bind(assistance_id);
+        }
+        if let Some(presence) = filter.presence {
+            query.push(" AND a.presence = ");
+            query.push_bind(presence);
+        }
+        if let Some(date) = filter.date {
+            query.push(" AND a.date = ");
+            query.push_bind(date);
+        }
+        let assistance = query.build_query_as().fetch_all(pool).await;
+        assistance
     }
     async fn get_disciplinary_sanction(
             &self,
             pool: &MySqlPool,
             filter: DisciplinarySanctionFilter
         ) -> Result<Vec<DisciplinarySanction>, sqlx::Error> {
-        Ok(vec![])
+
+        let mut query = QueryBuilder::new("SELECT DISTINCT * FROM disciplinary_sanctions ds ");
+        match self.role {
+            Role::student => {
+                query.push("WHERE ds.student_id = ");
+                query.push_bind(self.id);
+            }
+            Role::admin => {
+                query.push("WHERE 1=1");
+            }
+            Role::teacher => {
+                query.push("WHERE 1=2"); // blocking access to teachers
+            }
+            Role::father => {
+                query.push("JOIN families f ON f.student_id = ds.student_id WHERE f.father_id = ");
+                query.push_bind(self.id);
+            }
+            Role::preceptor => {
+                query.push("JOIN users u ON ds.student_id = u.id JOIN courses c ON u.course_id = c.id WHERE c.preceptor_id = ");
+                query.push_bind(self.id);
+            }
+        }
+        
+        if let Some(ds_id) = filter.disciplinary_sanction_id {
+            query.push(" AND ds.id = ");
+            query.push_bind(ds_id);
+        }
+        if let Some(student_id) = filter.student_id {
+            query.push(" AND ds.student_id = ");
+            query.push_bind(student_id);
+        }
+        if let Some(sanction_type) = filter.sanction_type {
+            query.push(" AND ds.sanction_type = ");
+            query.push_bind(sanction_type);
+        }
+        
+        let disciplinary_sanctions = query.build_query_as().fetch_all(pool).await;
+        disciplinary_sanctions
     }
 }
