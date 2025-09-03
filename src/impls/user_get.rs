@@ -1,5 +1,6 @@
 use actix_web::web;
 use chrono::Utc;
+use sqlx::query_builder;
 use sqlx::{MySql, MySqlPool, QueryBuilder};
 use std::env;
 use rand::seq::SliceRandom;
@@ -716,7 +717,11 @@ impl Get for MySelf {
             let res = query.build_query_as().fetch_all(pool).await;
             res
     }
-    async fn get_selfassessable_id(&self, pool: &MySqlPool, assessment_id: u64) -> Result<u64, sqlx::Error> {
+    async fn get_selfassessable_id(
+        &self,
+        pool: &MySqlPool,
+        assessment_id: u64)
+    -> Result<u64, sqlx::Error> {
         let res: u64 = match sqlx::query_scalar("SELECT id FROM selfassessables WHERE assessment_id = ?")
             .bind(assessment_id)
             .fetch_one(pool)
@@ -725,5 +730,31 @@ impl Get for MySelf {
             Err(e) => return Err(e),
         };
         Ok(res)
+    }
+     async fn get_assistance(
+            &self,
+            pool: &MySqlPool,
+            filter: AssistanceFilter
+        ) -> Result<Vec<Assistance>, sqlx::Error> {
+        let mut query = query_builder::new("SELECT DISTINCT * FROM assistance ");
+        match self.role {
+            Role::student => {
+                query.push("WHERE student_id = ");
+                query.push_bind(self.id);
+            }
+            Role::admin => {
+                query.push("WHERE 1=1");
+            }
+            Role::teacher => {
+                   
+            }
+        Ok(vec![])
+    }
+    async fn get_disciplinary_sanction(
+            &self,
+            pool: &MySqlPool,
+            filter: DisciplinarySanctionFilter
+        ) -> Result<Vec<DisciplinarySanction>, sqlx::Error> {
+        Ok(vec![])
     }
 }

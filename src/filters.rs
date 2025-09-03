@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -61,12 +62,13 @@ pub struct SelfassessableFilter {
 pub struct AssistanceFilter {
     pub assistance_id: Option<u64>,
     pub student_id: Option<u64>,
-    pub type_: Option<String>,
+    pub presence: Option<String>,
+    pub date: Option<NaiveDate>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct DisciplinarySanctionFilter {
     pub disciplinary_sanction_id: Option<u64>,
     pub student_id: Option<u64>,
-    pub type_: Option<String>,
+    pub sanction_type: Option<String>,
 }
