@@ -234,10 +234,10 @@ impl Post for MySelf {
                         pd2.full_name AS receiver_name
                     FROM grades g
                     JOIN users u1 ON u1.id = g.student_id
-                    JOIN subjects s ON s.id = g.subject
+                    JOIN subjects s ON s.id = g.subject_id
                     JOIN personal_data pd1 ON pd1.user_id = ?
                     JOIN personal_data pd2 ON pd2.user_id = g.student_id
-                    WHERE g.student_id = ? AND g.subject = ?
+                    WHERE g.student_id = ? AND g.subject_id = ?
                     "#
                 )
                 .bind(self.id)
@@ -824,5 +824,84 @@ impl Post for MySelf {
             .fetch_one(pool)
             .await;
         res
+    }
+    async fn post_assistance(
+            &self,
+            pool: &MySqlPool,
+            assistance: NewAssistance
+        ) -> HttpResponse {
+    
+        match self.role {
+            Role::preceptor => {
+                let courses = self.get_courses(pool).await.unwrap();
+                let student_id = assistance.student_id;
+                let student_course: u64 = match sqlx::query_scalar("SELECT course_id FROM users WHERE id = ?").bind(student_id).fetch_one(pool).await {
+                    Ok(sc) => sc,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+                };
+                let has_access = courses.iter().any(|course| course.id == student_course);
+
+                if !has_access {
+                    return HttpResponse::Unauthorized().finish();
+                }
+
+            },
+            Role::admin => {
+
+            },
+            _ => {
+                return HttpResponse::Unauthorized().finish();
+            }
+        }
+        let result = sqlx::query("INSERT INTO assistance (student_id, presence, date) VALUES (?, ?, ?)")
+            .bind(assistance.student_id)
+            .bind(assistance.presence)
+            .bind(assistance.date)
+            .execute(pool)
+            .await;
+        match result {
+            Ok(_) => return HttpResponse::Created().finish(),
+            Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+        }
+    }
+    async fn post_disciplinary_sanction(
+            &self,
+            pool: &MySqlPool,
+            ds: NewDisciplinarySanction
+        ) -> HttpResponse {
+        match self.role {
+            Role::preceptor => {
+                let courses = self.get_courses(pool).await.unwrap();
+                let student_id = ds.student_id;
+                let student_course: u64 = match sqlx::query_scalar("SELECT course_id FROM users WHERE id = ?").bind(student_id).fetch_one(pool).await {
+                    Ok(sc) => sc,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+                };
+                let has_access = courses.iter().any(|course| course.id == student_course);
+
+                if !has_access {
+                    return HttpResponse::Unauthorized().finish();
+                }
+
+            },
+            Role::admin => {
+
+            },
+            _ => {
+                return HttpResponse::Unauthorized().finish();
+            }
+        }
+        let result = sqlx::query("INSERT INTO disciplinary_sanction (student_id, sanction_type, quantity, description, date) VALUES (?, ?, ?, ?, ?)")
+            .bind(ds.student_id)
+            .bind(ds.sanction_type)
+            .bind(ds.quantity)
+            .bind(ds.description)
+            .bind(ds.date)
+            .execute(pool)
+            .await;
+        match result {
+            Ok(_) => return HttpResponse::Created().finish(),
+            Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+        }
     }
 }

@@ -207,6 +207,11 @@ pub trait Delete {
         pool: &MySqlPool,
         submission_id: u64
     ) -> HttpResponse;
+    async fn delete_assistance(
+        &self,
+        pool: &MySqlPool,
+        assistance_id: u64,
+        ) -> HttpResponse;
     async fn delete_disciplinary_sanction(
         &self,
         pool: &MySqlPool,

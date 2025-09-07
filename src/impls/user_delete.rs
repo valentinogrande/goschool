@@ -1,7 +1,7 @@
 use actix_web::HttpResponse;
 use sqlx::MySqlPool;
 use crate::structs::*;
-use crate::traits::Delete;
+use crate::traits::{Delete, Get};
 
 impl Delete for MySelf {
     async fn delete_assessment(&self, pool: &MySqlPool, assessment_id: u64) -> HttpResponse {
@@ -214,5 +214,86 @@ impl Delete for MySelf {
             Ok(_) => HttpResponse::Ok().finish(),
             Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
         }
+    }
+    async  fn delete_assistance(
+            &self,
+            pool: &MySqlPool,
+            assistance_id: u64,
+            ) -> HttpResponse {
+         match self.role {
+            Role::preceptor => {
+                let courses = self.get_courses(pool).await.unwrap();
+                let student_id: u64 = match sqlx::query_scalar("SELECT student_id FROM disciplinary_sanction WHERE id = ?")
+                    .bind(assistance_id)
+                    .fetch_one(pool)
+                .await{
+                    Ok(s) => s,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+                };
+                let student_course: u64 = match sqlx::query_scalar("SELECT course_id FROM users WHERE id = ?").bind(student_id).fetch_one(pool).await {
+                    Ok(sc) => sc,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+                };
+                let has_access = courses.iter().any(|course| course.id == student_course);
+
+                if !has_access {
+                    return HttpResponse::Unauthorized().finish();
+                }
+
+            },
+            Role::admin => {},
+            _ => {
+                return HttpResponse::Unauthorized().finish();
+            }
+        }
+        let result = sqlx::query("DELETE FROM disciplinary_sanction WHERE id = ?")
+            .bind(assistance_id)
+            .execute(pool)
+            .await;
+        match result {
+            Ok(_) => return HttpResponse::Ok().finish(),
+            Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+        }
+    }
+    async fn delete_disciplinary_sanction(
+            &self,
+            pool: &MySqlPool,
+            disciplinary_sanction_id: u64
+        ) -> HttpResponse {
+        match self.role {
+            Role::preceptor => {
+                let courses = self.get_courses(pool).await.unwrap();
+                let student_id: u64 = match sqlx::query_scalar("SELECT student_id FROM disciplinary_sanction WHERE id = ?")
+                    .bind(disciplinary_sanction_id)
+                    .fetch_one(pool)
+                .await{
+                    Ok(s) => s,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+                };
+                let student_course: u64 = match sqlx::query_scalar("SELECT course_id FROM users WHERE id = ?").bind(student_id).fetch_one(pool).await {
+                    Ok(sc) => sc,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+                };
+                let has_access = courses.iter().any(|course| course.id == student_course);
+
+                if !has_access {
+                    return HttpResponse::Unauthorized().finish();
+                }
+
+            },
+            Role::admin => {},
+            _ => {
+                return HttpResponse::Unauthorized().finish();
+            }
+        }
+        let result = sqlx::query("DELETE FROM disciplinary_sanction WHERE id = ?")
+            .bind(disciplinary_sanction_id)
+            .execute(pool)
+            .await;
+        match result {
+            Ok(_) => return HttpResponse::Ok().finish(),
+            Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+        }
+
     }
 }

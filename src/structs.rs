@@ -1,4 +1,3 @@
-use actix_web::cookie::time::Date;
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -81,9 +80,6 @@ pub enum AssessmentType {
     Selfassessable,
 }
 
-
-
-
 #[derive(Debug, FromRow, Serialize)]
 pub struct PendingSelfassessableGrade {
     pub id: u64,
@@ -104,30 +100,30 @@ pub struct Course {
 }
 
 
-#[derive(Debug, FromRow, Serialize, sqlx::Type)]
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
 pub struct Assistance {
     pub id: u64,
     pub student_id: u64,
     pub presence: String,
-    date: NaiveDate,
+    pub date: NaiveDate,
 
 }
 
-#[derive(Debug, FromRow, Serialize, sqlx::Type)]
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
 pub struct NewAssistance {
     pub student_id: u64,
     pub presence: String,
-    date: NaiveDate,
+    pub date: NaiveDate,
 }
 
-#[derive(Debug, FromRow, Serialize, sqlx::Type)]
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
 pub struct UpdateAssistance {
     pub student_id: u64,
     pub presence: String,
-    date: NaiveDate,
+    pub date: NaiveDate,
 }
 
-#[derive(Debug, FromRow, Serialize, sqlx::Type)]
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
 pub struct DisciplinarySanction {
     pub id: u64,
     pub student_id: u64,
@@ -137,7 +133,7 @@ pub struct DisciplinarySanction {
     pub date: NaiveDate,
 }
 
-#[derive(Debug, FromRow, Serialize, sqlx::Type)]
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
 pub struct NewDisciplinarySanction {
     pub student_id: u64,
     pub sanction_type: String,
@@ -146,7 +142,7 @@ pub struct NewDisciplinarySanction {
     pub date: NaiveDate,
 }
 
-#[derive(Debug, FromRow, Serialize, sqlx::Type)]
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
 pub struct UpdateDisciplinarySanction {
     pub student_id: u64,
     pub sanction_type: String,
@@ -363,7 +359,7 @@ impl NewSelfassessable {
         true
     }
 
-    pub fn generate_query(&self, assessable_id: u64) -> Vec<QueryBuilder<MySql>> {
+    pub fn generate_query(&self, assessable_id: u64) -> Vec<QueryBuilder<'_, MySql>> {
         let mut queries = vec![];
         let count = self.correct.len();
 

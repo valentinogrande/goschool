@@ -2,7 +2,7 @@ use actix_multipart::Multipart;
 use actix_web::HttpResponse;
 use sqlx::MySqlPool;
 use crate::structs::*;
-use crate::traits::Update;
+use crate::traits::{Update, Get};
 
 impl Update for MySelf {
     async fn update_assessment(&self, pool: &MySqlPool, assessment_id: u64, data: UpdateAssessment) -> HttpResponse {
@@ -264,5 +264,81 @@ impl Update for MySelf {
             Ok(_) => HttpResponse::Ok().finish(),
             Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
         }
+    }
+    async fn update_assistance(
+            &self,
+            pool: &MySqlPool,
+            assistance_id: u64,
+            data: UpdateAssistance
+        ) -> HttpResponse {
+        match self.role {
+            Role::preceptor => {
+                let courses = self.get_courses(pool).await.unwrap();
+                let student_id = data.student_id;
+                let student_course: u64 = match sqlx::query_scalar("SELECT course_id FROM users WHERE id = ?").bind(student_id).fetch_one(pool).await {
+                    Ok(sc) => sc,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+                };
+                let has_access = courses.iter().any(|course| course.id == student_course);
+
+                if !has_access {
+                    return HttpResponse::Unauthorized().finish();
+                }
+
+            },
+            Role::admin => {},
+            _ => {
+                return HttpResponse::Unauthorized().finish();
+            }
+        }
+        let result = sqlx::query("UPDATE assistance SET presence = ?, date = ? WHERE id = ?")
+            .bind(data.presence)
+            .bind(data.date)
+            .bind(assistance_id)
+            .execute(pool)
+            .await;
+            match result {
+                Ok(_) => return HttpResponse::Ok().finish(),
+                Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+            }
+    }
+    async fn update_disciplinary_sanction(
+            &self,
+            pool: &MySqlPool,
+            disciplinary_sanction_id: u64,
+            data: UpdateDisciplinarySanction
+        ) -> HttpResponse {
+         match self.role {
+            Role::preceptor => {
+                let courses = self.get_courses(pool).await.unwrap();
+                let student_id = data.student_id;
+                let student_course: u64 = match sqlx::query_scalar("SELECT course_id FROM users WHERE id = ?").bind(student_id).fetch_one(pool).await {
+                    Ok(sc) => sc,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+                };
+                let has_access = courses.iter().any(|course| course.id == student_course);
+
+                if !has_access {
+                    return HttpResponse::Unauthorized().finish();
+                }
+
+            },
+            Role::admin => {},
+            _ => {
+                return HttpResponse::Unauthorized().finish();
+            }
+        }
+        let result = sqlx::query("UPDATE disciplinary_sanctions SET sanction_type = ?, date = ?, quantity = ?, description = ? WHERE id = ?")
+            .bind(data.sanction_type)
+            .bind(data.date)
+            .bind(data.quantity)
+            .bind(data.description)
+            .bind(disciplinary_sanction_id)
+            .execute(pool)
+            .await;
+            match result {
+                Ok(_) => return HttpResponse::Ok().finish(),
+                Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+            }
     }
 }

@@ -58,7 +58,7 @@ impl Get for MySelf {
     }
 
     async fn get_courses(&self, pool: &MySqlPool) -> Result<Vec<Course>, sqlx::Error> {
-        let mut query = QueryBuilder::new("SELECT c.* FROM courses c ");
+        let mut query = QueryBuilder::new("SELECT DISTINCT c.* FROM courses c ");
         match self.role {
             Role::student => {
                 query.push("JOIN users u ON c.id = u.course_id WHERE u.id = ");
