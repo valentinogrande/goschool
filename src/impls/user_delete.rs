@@ -20,9 +20,11 @@ impl Delete for MySelf {
             },
             _ => false
         };
+        
         if !is_authorized {
             return HttpResponse::Unauthorized().finish();
         }
+        
         let res = sqlx::query("DELETE FROM assessments WHERE id = ?")
             .bind(assessment_id)
             .execute(pool)
@@ -49,9 +51,11 @@ impl Delete for MySelf {
             },
             _ => false
         };
+        
         if !is_authorized {
             return HttpResponse::Unauthorized().finish();
         }
+
         let res = sqlx::query("DELETE FROM grades WHERE id = ?")
             .bind(grade_id)
             .execute(pool)
@@ -77,9 +81,11 @@ impl Delete for MySelf {
                 exists.unwrap_or(false)
             }
         };
+        
         if !is_authorized {
             return HttpResponse::Unauthorized().finish();
         }
+        
         let res = sqlx::query("DELETE FROM messages WHERE id = ?")
             .bind(message_id)
             .execute(pool)
@@ -110,6 +116,7 @@ impl Delete for MySelf {
         if self.role != Role::admin && self.id != user_id {
             return HttpResponse::Unauthorized().finish();
         }
+        
         let res = sqlx::query("UPDATE users SET photo = NULL WHERE id = ?")
             .bind(user_id)
             .execute(pool)
