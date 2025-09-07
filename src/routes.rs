@@ -71,6 +71,7 @@ use crate::views::{
         get_assisstance,
         post_assistance,
         update_assistance,
+        delete_assistance,
     },
 
     // Disciplinary sanctions
@@ -146,6 +147,7 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(get_assisstance)
         .service(post_assistance)
         .service(update_assistance)
+        .service(delete_assistance)
         .service(get_disciplinary_sanction)
         .service(post_disciplinary_sanction)
         .service(update_disciplinary_sanction)
