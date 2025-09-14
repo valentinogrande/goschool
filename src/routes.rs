@@ -92,6 +92,9 @@ use crate::views::{
     profile_pictures::{
         get_profile_picture,
         post_profile_picture,
+        update_profile_picture,
+        delete_profile_picture,
+        update_self_profile_picture,
     },
 
     // Messages
@@ -118,6 +121,9 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(get_personal_data)
         .service(get_public_personal_data)
         .service(get_profile_picture)
+        .service(update_profile_picture)
+        .service(delete_profile_picture)
+        .service(update_self_profile_picture)
         .service(get_role)
         .service(get_roles)
         .service(get_students)

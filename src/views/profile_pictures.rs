@@ -48,6 +48,25 @@ pub async fn post_profile_picture(
     user.post_profile_picture(&pool, task_submission).await
 }
 
+
+#[put("/api/v1/profile_pictures/")]
+pub async fn update_self_profile_picture(
+    req: HttpRequest,
+    pool: web::Data<MySqlPool>,
+    multipart: Multipart,
+) -> impl Responder {
+    let cookie = match req.cookie("jwt") {
+        Some(c) => c,
+        None => return HttpResponse::Unauthorized().finish(),
+    };
+    let token = match validate(cookie.value()) {
+        Ok(t) => t,
+        Err(_) => return HttpResponse::Unauthorized().finish(),
+    };
+    let user = token.claims.user;
+    user.update_profile_picture(pool.get_ref(), user.id, multipart).await
+}
+
 #[put("/api/v1/profile_pictures/{user_id}")]
 pub async fn update_profile_picture(
     req: HttpRequest,
