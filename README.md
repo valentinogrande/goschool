@@ -39,7 +39,7 @@ La mayoría de los endpoints de tipo GET aceptan filtros opcionales a través de
 ### Consulta de datos personales públicos:
 
 ```bash
- curl -X GET http://localhost:8080/api/v1/public_personal_data/ -b "jwt={jwt}"
+ curl -X GET http://localhost:80/api/v1/public_personal_data/ -b "jwt={jwt}"
  ```
 
 ### 🧰 Filtros disponibles (ejemplo en filters.rs)
@@ -58,19 +58,19 @@ Puedes usarlos como parámetros en la URL.
 Filtrar por curso (course ID):
 
 ```bash
-curl -X GET "http://localhost:8080/api/v1/public_personal_data/?course=1" -b "jwt={jwt}"
+curl -X GET "http://localhost:80/api/v1/public_personal_data/?course=1" -b "jwt={jwt}"
 ```
 
 Filtrar por curso y nombre:
 
 ```bash
-curl -X GET "http://localhost:8080/api/v1/public_personal_data/?course=1&name=pepe" -b "jwt={jwt}"
+curl -X GET "http://localhost:80/api/v1/public_personal_data/?course=1&name=pepe" -b "jwt={jwt}"
 ```
 
 Filtrar por ID directamente:
 
 ```bash
-curl -X GET "http://localhost:8080/api/v1/public_personal_data/?id=123" -b "jwt={jwt}"
+curl -X GET "http://localhost:80/api/v1/public_personal_data/?id=123" -b "jwt={jwt}"
 ```
 
 ## 📌 Notas
@@ -88,12 +88,12 @@ curl -X GET "http://localhost:8080/api/v1/public_personal_data/?id=123" -b "jwt=
 
 ```bash
 # 🔑 Login
-curl -X POST http://localhost:8080/api/v1/login/ \
+curl -X POST http://localhost:80/api/v1/login/ \
   -H "Content-Type: application/json" \
   -d '{"email": "usuario", "password": "clave", "role": "rol"}'
 
 # 🧩 Obtener roles de un usuario
-curl -X POST http://localhost:8080/api/v1/roles/ \
+curl -X POST http://localhost:80/api/v1/roles/ \
   -H "Content-Type: application/json" \
   -d '{"email": "usuario", "password": "clave"}'
 ```
@@ -104,10 +104,10 @@ curl -X POST http://localhost:8080/api/v1/roles/ \
 
 ```bash
 # 📖 Listar cursos
-curl -X GET http://localhost:8080/api/v1/courses/ -b "jwt={jwt}"
+curl -X GET http://localhost:80/api/v1/courses/ -b "jwt={jwt}"
 
 # 📚 Listar materias
-curl -X GET http://localhost:8080/api/v1/subjects/ -b "jwt={jwt}"
+curl -X GET http://localhost:80/api/v1/subjects/ -b "jwt={jwt}"
 ```
 
 ---
@@ -116,10 +116,10 @@ curl -X GET http://localhost:8080/api/v1/subjects/ -b "jwt={jwt}"
 
 ```bash
 # 📝 Obtener si la tarea ya fue resuelta
-curl -X POST http://localhost:8080/api/v1/get_if_homework_answered/ -H "Content-Type: application/json" -H "Cookie: jwt={jwt}" -d '{"homework_id": 2}' 
+curl -X POST http://localhost:80/api/v1/get_if_homework_answered/ -H "Content-Type: application/json" -H "Cookie: jwt={jwt}" -d '{"homework_id": 2}' 
 
 # 📝 Obtener si el autoevaluable ya fue resuelto
-curl -X POST http://localhost:8080/api/v1/get_if_selfassessable_answered/ -H "Content-Type: application/json" -H "Cookie: jwt={jwt}" -d '{"selfassessable_id": 2}'
+curl -X POST http://localhost:80/api/v1/get_if_selfassessable_answered/ -H "Content-Type: application/json" -H "Cookie: jwt={jwt}" -d '{"selfassessable_id": 2}'
 
 ```
 
@@ -127,7 +127,7 @@ curl -X POST http://localhost:8080/api/v1/get_if_selfassessable_answered/ -H "Co
 
 ```bash
 # 📖 Listar horarios
-curl -X GET http://localhost:8080/api/v1/timetables/ -b "jwt={jwt}"
+curl -X GET http://localhost:80/api/v1/timetables/ -b "jwt={jwt}"
 ```
 
  ---
@@ -136,10 +136,10 @@ curl -X GET http://localhost:8080/api/v1/timetables/ -b "jwt={jwt}"
 
 ```bash
 # 📋 Listar evaluaciones
-curl -X GET http://localhost:8080/api/v1/assessments/ -b "jwt={jwt}"
+curl -X GET http://localhost:80/api/v1/assessments/ -b "jwt={jwt}"
 
 # ➕ Crear evaluación
-curl -X POST http://localhost:8080/api/v1/assessments/ \
+curl -X POST http://localhost:80/api/v1/assessments/ \
   -H "Content-Type: application/json" \
   -b "jwt={jwt}" \
   -d '{
@@ -152,7 +152,7 @@ curl -X POST http://localhost:8080/api/v1/assessments/ \
   }'
 
 # 🤓 Crear autoevaluable
-curl -X POST http://localhost:8080/api/v1/assessments/ \
+curl -X POST http://localhost:80/api/v1/assessments/ \
   -H "Content-Type: application/json" \
   -b "jwt={jwt}" \
   -d '{
@@ -171,7 +171,7 @@ curl -X POST http://localhost:8080/api/v1/assessments/ \
   }'
 
 # ✅ Responder autoevaluable
-curl -X POST http://localhost:8080/api/v1/selfassessables/ \
+curl -X POST http://localhost:80/api/v1/selfassessables/ \
   -H "Content-Type: application/json" \
   -b "jwt={jwt}" \
   -d '{"assessment_id":1,"answers":["respuesta1","respuesta2"]}'
@@ -183,10 +183,10 @@ curl -X POST http://localhost:8080/api/v1/selfassessables/ \
 
 ```bash
 # 📊 Listar notas
-curl -X GET http://localhost:8080/api/v1/grades/ -b "jwt={jwt}"
+curl -X GET http://localhost:80/api/v1/grades/ -b "jwt={jwt}"
 
 # 📝 Cargar una nota
-curl -X POST http://localhost:8080/api/v1/grades/ \
+curl -X POST http://localhost:80/api/v1/grades/ \
   -H "Content-Type: application/json" \
   -b "jwt={jwt}" \
   -d '{
@@ -205,10 +205,10 @@ curl -X POST http://localhost:8080/api/v1/grades/ \
 
 ```bash
 # 👤 Obtener datos personales
-curl -X GET http://localhost:8080/api/v1/personal_data/ -b "jwt={jwt}"
+curl -X GET http://localhost:80/api/v1/personal_data/ -b "jwt={jwt}"
 
 # 👤 Obtener datos personales de otros (nombre y foto)
-curl -X GET http://localhost:8080/api/v1/public_personal_data/ -b "jwt={jwt}"
+curl -X GET http://localhost:80/api/v1/public_personal_data/ -b "jwt={jwt}"
 ```
 ---
 
@@ -216,14 +216,14 @@ curl -X GET http://localhost:8080/api/v1/public_personal_data/ -b "jwt={jwt}"
 
 ```bash
 # 📷 Subir foto de perfil
-curl -X POST http://localhost:8080/api/v1/profile_pictures/ \
+curl -X POST http://localhost:80/api/v1/profile_pictures/ \
   -b "jwt={jwt}" -F "file=@ruta/imagen.jpg"
 
 # 🖼️ Obtener link de la foto de perfil
-curl -X GET http://localhost:8080/api/v1/profile_pictures/ -b "jwt={jwt}"
+curl -X GET http://localhost:80/api/v1/profile_pictures/ -b "jwt={jwt}"
 
 # 📑 Subir tarea (homework)
-curl -X POST http://localhost:8080/api/v1/homework_submission/ \
+curl -X POST http://localhost:80/api/v1/homework_submission/ \
   -H "Cookie: jwt={jwt}" \
   -F "file=@archivo.pdf" -F "homework_id=1"
 ```
@@ -236,7 +236,7 @@ curl -X POST http://localhost:8080/api/v1/homework_submission/ \
 ```bash 1
 # ✉️ Crear mensaje
 
-curl -X POST http://localhost:8080/api/v1/subject_messages/ \
+curl -X POST http://localhost:80/api/v1/subject_messages/ \
   -H "Cookie: jwt={jwt}" \
   -F "subject_id=1" \
   -F "type=file" \
@@ -246,7 +246,7 @@ curl -X POST http://localhost:8080/api/v1/subject_messages/ \
 
 # crear mensaje sin archivo 
 
-curl -X POST http://localhost:8080/api/v1/subject_messages/ \
+curl -X POST http://localhost:80/api/v1/subject_messages/ \
   -H "Cookie: jwt={jwt}" \
   -F "subject_id=1" \
   -F "title=Reunion" \
@@ -255,7 +255,7 @@ curl -X POST http://localhost:8080/api/v1/subject_messages/ \
 
 # 📬 Obtener Mensajes
 
-curl -X GET "http://localhost:8080/api/v1/subject_messages/" \
+curl -X GET "http://localhost:80/api/v1/subject_messages/" \
   -H "Cookie: jwt={jwt}" \
   -H "Accept: application/json"
 
@@ -265,13 +265,13 @@ curl -X GET "http://localhost:8080/api/v1/subject_messages/" \
 
 ```bash
 # ✉️ Crear mensaje
-curl -X POST http://localhost:8080/api/v1/messages/ \
+curl -X POST http://localhost:80/api/v1/messages/ \
   -H "Content-Type: application/json" \
   -H "Cookie: jwt={jwt}" \
   -d '{"title":"Título","message":"Mensaje","courses":"34,35,36"}'
 
 # 📬 Obtener mensajes
-curl -X GET http://localhost:8080/api/v1/messages/ -b "jwt={jwt}"
+curl -X GET http://localhost:80/api/v1/messages/ -b "jwt={jwt}"
 ```
 
 ---
@@ -280,10 +280,10 @@ curl -X GET http://localhost:8080/api/v1/messages/ -b "jwt={jwt}"
 
 ```bash
 # ✔️ Verificar token JWT
-curl -X GET "http://localhost:8080/api/v1/verify_token/" -b "jwt={jwt}"
+curl -X GET "http://localhost:80/api/v1/verify_token/" -b "jwt={jwt}"
 
 # 🔍 Obtener rol actual
-curl -X GET "http://localhost:8080/api/v1/role/" -b "jwt={jwt}"
+curl -X GET "http://localhost:80/api/v1/role/" -b "jwt={jwt}"
 ```
 
 ---
