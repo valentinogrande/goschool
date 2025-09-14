@@ -13,52 +13,62 @@ impl Get for MySelf {
         &self,
         pool: web::Data<MySqlPool>,
         filter: UserFilter,
-    ) -> Result<Vec<u64>, sqlx::Error> {
-        let mut query = sqlx::QueryBuilder::new("SELECT DISTINCT users.id FROM users ");
+    ) -> Result<Vec<PubUser>, sqlx::Error> {
+        
+    let mut query = sqlx::QueryBuilder::new("SELECT DISTINCT users.id, users.photo, users.course_id FROM users ");
 
-        match &self.role {
-            Role::teacher => {
-                query.push("JOIN courses c ON users.course_id = c.id ");
-                query.push("JOIN subjects s ON s.course_id = c.id ");
-                query.push("WHERE s.teacher_id = ");
+    match &self.role {
+        Role::teacher => {
+            query.push("JOIN courses c ON users.course_id = c.id ");
+            query.push("JOIN subjects s ON s.course_id = c.id ");
+            query.push("WHERE s.teacher_id = ");
+            query.push_bind(self.id);
+        }
+        Role::student => {
+                query.push("WHERE user.id = ");
                 query.push_bind(self.id);
             }
-            Role::student => {
-                return Ok(vec![self.id]);
-            }
-            Role::preceptor => {
-                query.push("JOIN courses c ON users.course_id = c.id ");
-                query.push("WHERE c.preceptor_id = ");
-                query.push_bind(self.id);
-            }
-            Role::father => {
-                query.push("JOIN families f ON f.student_id = users.id ");
-                query.push("WHERE f.father_id = ");
-                query.push_bind(self.id);
-            }
-            Role::admin => {
+        Role::preceptor => {
+            query.push("JOIN courses c ON users.course_id = c.id ");
+            query.push("WHERE c.preceptor_id = ");
+            query.push_bind(self.id);
+        }
+        Role::father => {
+            query.push("JOIN families f ON f.student_id = users.id ");
+            query.push("WHERE f.father_id = ");
+            query.push_bind(self.id);
+        }
+        Role::admin => {
                 query.push("WHERE 1=1");
             }
-        }
-        if let Some(c) = filter.course {
-            query.push(" AND users.course_id = ");
-            query.push_bind(c);
-        }
+    }
 
-        if let Some(n) = filter.name {
-            query.push(" AND EXISTS (SELECT 1 FROM personal_data pd WHERE pd.user_id = users.id AND pd.full_name LIKE )");
-            query.push_bind(format!("%{}%", n));
-        }
-        let res = query
-            .build_query_scalar::<u64>()
-            .fetch_all(pool.as_ref())
-            .await;
+    if let Some(c) = filter.course {
+        query.push(" AND users.course_id = ");
+        query.push_bind(c);
+    }
 
-        res
+    if let Some(n) = filter.name {
+        query.push(" AND EXISTS (SELECT 1 FROM personal_data pd WHERE pd.user_id = users.id AND pd.full_name LIKE ");
+        query.push_bind(format!("%{}%", n));
+        query.push(")");
+    }
+
+    let res: Result<Vec<PubUser>, sqlx::Error> = query
+        .build_query_as::<PubUser>()
+        .fetch_all(pool.as_ref())
+        .await;
+
+    res
+
     }
 
     async fn get_courses(&self, pool: &MySqlPool) -> Result<Vec<Course>, sqlx::Error> {
-        let mut query = QueryBuilder::new("SELECT DISTINCT c.* FROM courses c ");
+        
+        let mut query = QueryBuilder::new(
+            "SELECT c.* FROM courses c "
+        );
+
         match self.role {
             Role::student => {
                 query.push("JOIN users u ON c.id = u.course_id WHERE u.id = ");
@@ -79,10 +89,14 @@ impl Get for MySelf {
                 query.push("JOIN subjects s ON c.id = s.course_id WHERE s.teacher_id = ");
                 query.push_bind(self.id);
             }
-        };
+        }
 
-        let res = query.build_query_as().fetch_all(pool).await;
+        // Agrupar por ID para evitar duplicados
+        query.push(" GROUP BY c.id");
+
+        let res = query.build_query_as::<Course>().fetch_all(pool).await;
         res
+
     }
     async fn get_grades(
         &self,

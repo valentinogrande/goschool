@@ -38,6 +38,13 @@ pub struct CredentialsRole {
     pub role: Role,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Decode, sqlx::Type, FromRow)]
+pub struct PubUser{
+    pub id: u64,
+    pub photo: String,
+    pub course_id: u64,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[sqlx(type_name = "ENUM('admin', 'teacher', 'student', 'preceptor', 'father')")]

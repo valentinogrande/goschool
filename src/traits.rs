@@ -14,7 +14,7 @@ pub trait Get {
         &self,
         pool: web::Data<MySqlPool>,
         filter: UserFilter)
-    -> Result<Vec<u64>, sqlx::Error>;
+    -> Result<Vec<PubUser>, sqlx::Error>;
 
     async fn get_courses(
         &self,
