@@ -1056,7 +1056,6 @@ Get disciplinary sanctions.
 ```json
 [
   {
-    "id": 1,
     "student_id": 3,
     "sanction_type": "warning",
     "quantity": 1,

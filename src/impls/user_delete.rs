@@ -230,7 +230,7 @@ impl Delete for MySelf {
          match self.role {
             Role::preceptor => {
                 let courses = self.get_courses(pool).await.unwrap();
-                let student_id: u64 = match sqlx::query_scalar("SELECT student_id FROM disciplinary_sanction WHERE id = ?")
+                let student_id: u64 = match sqlx::query_scalar("SELECT student_id FROM assisstance WHERE id = ?")
                     .bind(assistance_id)
                     .fetch_one(pool)
                 .await{
@@ -253,7 +253,7 @@ impl Delete for MySelf {
                 return HttpResponse::Unauthorized().finish();
             }
         }
-        let result = sqlx::query("DELETE FROM disciplinary_sanction WHERE id = ?")
+        let result = sqlx::query("DELETE FROM assisstance WHERE id = ?")
             .bind(assistance_id)
             .execute(pool)
             .await;
@@ -270,7 +270,7 @@ impl Delete for MySelf {
         match self.role {
             Role::preceptor => {
                 let courses = self.get_courses(pool).await.unwrap();
-                let student_id: u64 = match sqlx::query_scalar("SELECT student_id FROM disciplinary_sanction WHERE id = ?")
+                let student_id: u64 = match sqlx::query_scalar("SELECT student_id FROM disciplinary_sanctions WHERE id = ?")
                     .bind(disciplinary_sanction_id)
                     .fetch_one(pool)
                 .await{
@@ -293,7 +293,7 @@ impl Delete for MySelf {
                 return HttpResponse::Unauthorized().finish();
             }
         }
-        let result = sqlx::query("DELETE FROM disciplinary_sanction WHERE id = ?")
+        let result = sqlx::query("DELETE FROM disciplinary_sanctions WHERE id = ?")
             .bind(disciplinary_sanction_id)
             .execute(pool)
             .await;

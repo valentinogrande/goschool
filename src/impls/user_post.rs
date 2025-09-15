@@ -891,7 +891,7 @@ impl Post for MySelf {
                 return HttpResponse::Unauthorized().finish();
             }
         }
-        let result = sqlx::query("INSERT INTO disciplinary_sanction (student_id, sanction_type, quantity, description, date) VALUES (?, ?, ?, ?, ?)")
+        let result = sqlx::query("INSERT INTO disciplinary_sanctions (student_id, sanction_type, quantity, description, date) VALUES (?, ?, ?, ?, ?)")
             .bind(ds.student_id)
             .bind(ds.sanction_type)
             .bind(ds.quantity)
