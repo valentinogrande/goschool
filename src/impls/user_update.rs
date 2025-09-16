@@ -311,7 +311,13 @@ impl Update for MySelf {
          match self.role {
             Role::preceptor => {
                 let courses = self.get_courses(pool).await.unwrap();
-                let student_id = data.student_id;
+                let student_id: u64 = match sqlx::query_scalar("SELECT student_id FROM disciplinary_sanctions WHERE id = ?")
+                    .bind(disciplinary_sanction_id)
+                    .fetch_one(pool)
+                .await{
+                    Ok(s) => s,
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
+                };
                 let student_course: u64 = match sqlx::query_scalar("SELECT course_id FROM users WHERE id = ?").bind(student_id).fetch_one(pool).await {
                     Ok(sc) => sc,
                     Err(e) => return HttpResponse::InternalServerError().json(e.to_string())

@@ -151,7 +151,6 @@ pub struct NewDisciplinarySanction {
 
 #[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
 pub struct UpdateDisciplinarySanction {
-    pub student_id: u64,
     pub sanction_type: String,
     pub quantity: i32,
     pub description: String,
