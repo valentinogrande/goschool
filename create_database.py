@@ -103,7 +103,7 @@ def delete_tables():
 
 def create_tables(file):
     print()
-    print("creating tables")
+    print("creating tables...")
     print()
     sql_script = file.read()
     commands = sql_script.split(';')
@@ -125,7 +125,7 @@ def create_tables(file):
 
 def create_users():
     print()
-    print("creating users")
+    print("creating users...")
     print()
     res=requests.get("http://localhost:80/api/v1/register_testing_users/")
     if res.status_code == 201:
@@ -146,7 +146,7 @@ def create_users():
 
 def create_preceptors():
     print()
-    print("making preceptors")
+    print("making preceptors...")
     print()
     cursor.execute("UPDATE courses SET preceptor_id=3 WHERE id=34")
     cursor.execute("UPDATE courses SET preceptor_id=3 WHERE id=35")
@@ -155,7 +155,7 @@ def create_preceptors():
 
 def create_timetables():
     print()
-    print("making timetables")
+    print("making timetables...")
     print()
     cursor.execute("INSERT INTO timetables (course_id, subject_id, start_time, end_time, day) VALUES (%s, %s, %s, %s, %s)", (34,1,"07:00:00","13:00:00","Monday"))
     cursor.execute("INSERT INTO timetables (course_id, subject_id, start_time, end_time, day) VALUES (%s, %s, %s, %s, %s)", (34,3,"07:00:00","13:00:00","Tuesday"))
@@ -165,6 +165,16 @@ def create_timetables():
     cursor.execute("INSERT INTO timetables (course_id, subject_id, start_time, end_time, day) VALUES (%s, %s, %s, %s, %s)", (34,2,"08:15:00","9:30:00","Friday"))
 
 
+def check_already_created():
+    print()
+    print("\033[91mChecking if the data had been already inserted...\033[0m")
+    cursor.execute("SELECT 1 FROM users LIMIT 1")
+    data = cursor.fetchone()
+    
+    if data is None:
+        return False
+    else:
+        return True
 
 with open('database.sql', 'r') as file:
     
@@ -191,12 +201,15 @@ with open('database.sql', 'r') as file:
         
         if command == "create_all":
             generate_key_pair()
-            create_tables(file)
-            create_courses()
-            create_users()
-            create_preceptors()
- #           create_timetables()
-            print("\033[92mAll tables created succesfully\033[0m")
+            if not check_already_created(): 
+                create_tables(file)
+                create_courses()
+                create_users()
+                create_preceptors()
+                create_timetables()
+                print("\033[92mAll tables created succesfully\033[0m")
+            else:
+                print("\033[91mData had been already inserted, so no changes.\033[0m")
     
 conn.commit()
 cursor.close()

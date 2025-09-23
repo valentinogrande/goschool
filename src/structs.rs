@@ -41,8 +41,10 @@ pub struct CredentialsRole {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Decode, sqlx::Type, FromRow)]
 pub struct PubUser{
     pub id: u64,
+    pub email: String,
     pub photo: Option<String>,
     pub course_id: Option<u64>,
+    pub full_name: Option<String>,
 }
 
 #[allow(non_camel_case_types)]

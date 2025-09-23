@@ -15,7 +15,7 @@ impl Get for MySelf {
         filter: UserFilter,
     ) -> Result<Vec<PubUser>, sqlx::Error> {
         
-    let mut query = sqlx::QueryBuilder::new("SELECT DISTINCT users.id, users.photo, users.course_id FROM users ");
+    let mut query = sqlx::QueryBuilder::new("SELECT DISTINCT users.id, users.photo, users.course_id, users.email, pd.full_name FROM users JOIN personal_data pd ON users.id = pd.user_id ");
 
     match &self.role {
         Role::teacher => {
@@ -49,9 +49,8 @@ impl Get for MySelf {
     }
 
     if let Some(n) = filter.name {
-        query.push(" AND EXISTS (SELECT 1 FROM personal_data pd WHERE pd.user_id = users.id AND pd.full_name LIKE ");
+        query.push(" AND pd.full_name LIKE ");
         query.push_bind(format!("%{}%", n));
-        query.push(")");
     }
 
     let res: Result<Vec<PubUser>, sqlx::Error> = query
@@ -90,9 +89,6 @@ impl Get for MySelf {
                 query.push_bind(self.id);
             }
         }
-
-        // Agrupar por ID para evitar duplicados
-        query.push(" GROUP BY c.id");
 
         let res = query.build_query_as::<Course>().fetch_all(pool).await;
         res
