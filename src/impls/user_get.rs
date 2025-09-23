@@ -54,7 +54,7 @@ impl Get for MySelf {
     }
 
     query.push(
-        " GROUP BY users.id, users.photo, users.course_id, users.email, pd.full_name"
+        " GROUP BY users.id"
     );
 
     let res: Result<Vec<PubUser>, sqlx::Error> = query
