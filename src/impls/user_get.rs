@@ -25,7 +25,7 @@ impl Get for MySelf {
             query.push_bind(self.id);
         }
         Role::student => {
-                query.push("WHERE user.id = ");
+                query.push("WHERE users.id = ");
                 query.push_bind(self.id);
             }
         Role::preceptor => {
@@ -52,6 +52,10 @@ impl Get for MySelf {
         query.push(" AND pd.full_name LIKE ");
         query.push_bind(format!("%{}%", n));
     }
+
+    query.push(
+        " GROUP BY users.id, users.photo, users.course_id, users.email, pd.full_name"
+    );
 
     let res: Result<Vec<PubUser>, sqlx::Error> = query
         .build_query_as::<PubUser>()

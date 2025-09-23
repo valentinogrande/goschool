@@ -253,7 +253,7 @@ impl Delete for MySelf {
                 return HttpResponse::Unauthorized().finish();
             }
         }
-        let result = sqlx::query("DELETE FROM assisstance WHERE id = ?")
+        let result = sqlx::query("DELETE FROM assistance WHERE id = ?")
             .bind(assistance_id)
             .execute(pool)
             .await;
