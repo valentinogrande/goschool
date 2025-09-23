@@ -17,8 +17,7 @@ impl Get for MySelf {
     
     let mut query = sqlx::QueryBuilder::new(
         "SELECT DISTINCT users.id, users.photo, users.course_id, users.email, pd.full_name 
-         FROM users 
-         JOIN personal_data pd ON users.id = pd.user_id "
+         FROM users "
     );
 
     match &self.role {

@@ -44,7 +44,7 @@ pub struct PubUser{
     pub email: String,
     pub photo: Option<String>,
     pub course_id: Option<u64>,
-    pub full_name: Option<String>,
+    //pub full_name: Option<String>,
 }
 
 #[allow(non_camel_case_types)]
