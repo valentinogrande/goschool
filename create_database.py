@@ -6,17 +6,17 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 import os
 
-from fake_data import generate_fake_data
+#from fake_data import generate_fake_data
 
 def generate_key_pair():
     try: 
-        os.remove("ecc_private_key.pem")
-        os.remove("ecc_public_key.pem")
+        os.remove("/shared/ecc_private_key.pem")
+        os.remove("/shared/ecc_public_key.pem")
     except:
         pass
     private_key = ec.generate_private_key(ec.SECP256R1())  # P-256
 
-    with open("ecc_private_key.pem", "wb") as f:
+    with open("/shared/ecc_private_key.pem", "wb") as f:
         f.write(private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
@@ -24,7 +24,7 @@ def generate_key_pair():
         ))
 
     public_key = private_key.public_key()
-    with open("ecc_public_key.pem", "wb") as f:
+    with open("/shared/ecc_public_key.pem", "wb") as f:
         f.write(public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
@@ -36,8 +36,8 @@ def generate_key_pair():
 current_year = datetime.now().year
 
 conn = mysql.connector.connect(
-    host='localhost',
-    user='root',
+    host='mysql',
+    user='adminweb',
     password='mili2009',
     database=f'colegio_stella_maris_{current_year}'
 )
@@ -101,33 +101,33 @@ def delete_tables():
         cursor.execute(f"DROP TABLE IF EXISTS `{table_name}`")
     cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
 
-def create_tables(file):
-    print()
-    print("creating tables...")
-    print()
-    sql_script = file.read()
-    commands = sql_script.split(';')
-
-    for command in commands:
-        command = command.strip()
-        if command.startswith('--'):
-            continue
-        if command:
-            try:
-                if command.startswith("ALTER"):
-                    pass
-                else:
-                    table = command.split()[5]
-                    print(f'creating table: {table}')
-                cursor.execute(command)
-            except mysql.connector.Error as err:
-                print(f'Error: {err}')
+# def create_tables(file):
+#     print()
+#     print("creating tables...")
+#     print()
+#     sql_script = file.read()
+#     commands = sql_script.split(';')
+#
+#     for command in commands:
+#         command = command.strip()
+#         if command.startswith('--'):
+#             continue
+#         if command:
+#             try:
+#                 if command.startswith("ALTER"):
+#                     pass
+#                 else:
+#                     table = command.split()[5]
+#                     print(f'creating table: {table}')
+#                 cursor.execute(command)
+#             except mysql.connector.Error as err:
+#                 print(f'Error: {err}')
 
 def create_users():
     print()
     print("creating users...")
     print()
-    res=requests.get("http://localhost:80/api/v1/register_testing_users/")
+    res=requests.get("http://backend/api/v1/register_testing_users/")
     if res.status_code == 201:
         print("users created succesfully")
         cursor.execute("INSERT INTO families (student_id, father_id) VALUES (%s,%s)",(2,4))
@@ -176,41 +176,41 @@ def check_already_created():
     else:
         return True
 
-with open('database.sql', 'r') as file:
+#with open('database.sql', 'r') as file:
+
+
+if len(sys.argv) > 1:
+    command = sys.argv[1]
+
+    if command == "create_courses":
+        create_courses()
+    if command == "delete_tables":
+        delete_tables()
+    #if command == "create_tables":
+        #create_tables(file)
+    if command == "create_users":
+        create_users()
+    if command == "create_preceptors":
+        create_preceptors()
+    if command == "generate_rsa":
+        generate_key_pair()
+    if command == "create_timetables":
+        create_timetables()
+    #if command == "insert_fake_data":
+        #generate_fake_data()
     
-
-    if len(sys.argv) > 1:
-        command = sys.argv[1]
-
-        if command == "create_courses":
+    if command == "create_all":
+        generate_key_pair()
+        if not check_already_created(): 
+            #create_tables(file)
             create_courses()
-        if command == "delete_tables":
-            delete_tables()
-        if command == "create_tables":
-            create_tables(file)
-        if command == "create_users":
             create_users()
-        if command == "create_preceptors":
             create_preceptors()
-        if command == "generate_rsa":
-            generate_key_pair()
-        if command == "create_timetables":
             create_timetables()
-        if command == "insert_fake_data":
-            generate_fake_data()
-        
-        if command == "create_all":
-            generate_key_pair()
-            if not check_already_created(): 
-                create_tables(file)
-                create_courses()
-                create_users()
-                create_preceptors()
-                create_timetables()
-                print("\033[92mAll tables created succesfully\033[0m")
-            else:
-                print("\033[91mData had been already inserted, so no changes.\033[0m")
-    
+            print("\033[92mAll tables created succesfully\033[0m")
+        else:
+            print("\033[91mData had been already inserted, so no changes.\033[0m")
+
 conn.commit()
 cursor.close()
 conn.close()
