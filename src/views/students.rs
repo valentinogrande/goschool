@@ -23,11 +23,11 @@ pub async fn get_students(
 
     let user = token.claims.user;
 
-    let users_id = match user.get_students(pool, filter.into_inner()).await {
+    let users = match user.get_students(pool, filter.into_inner()).await {
         Ok(u) => u,
         Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
     };
 
-    HttpResponse::Ok().json(users_id)
+    HttpResponse::Ok().json(users)
     
 }

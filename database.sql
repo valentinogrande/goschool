@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS selfassessable_pending_grades (
 CREATE TABLE IF NOT EXISTS assistance (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   student_id BIGINT UNSIGNED NOT NULL,
-  presence ENUM('present','absent','excused') DEFAULT 'present',
+  presence ENUM('present','absent','excused','late') DEFAULT 'present',
   date DATE NOT NULL,
   FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
 );

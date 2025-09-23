@@ -230,7 +230,7 @@ impl Delete for MySelf {
          match self.role {
             Role::preceptor => {
                 let courses = self.get_courses(pool).await.unwrap();
-                let student_id: u64 = match sqlx::query_scalar("SELECT student_id FROM assisstance WHERE id = ?")
+                let student_id: u64 = match sqlx::query_scalar("SELECT student_id FROM assistance WHERE id = ?")
                     .bind(assistance_id)
                     .fetch_one(pool)
                 .await{
