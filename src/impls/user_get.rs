@@ -9,17 +9,28 @@ use crate::structs::*;
 use crate::traits::Get;
 
 impl Get for MySelf {
-   async fn get_students(
+    async fn get_students(
     &self,
     pool: web::Data<MySqlPool>,
     filter: UserFilter,
 ) -> Result<Vec<PubUser>, sqlx::Error> {
     
-    let mut query = sqlx::QueryBuilder::new("SELECT users.id, users.photo, users.course_id, users.email, pd.full_name FROM users JOIN personal_data pd ON users.id = pd.user_id ");
-    
+    let mut query = sqlx::QueryBuilder::new(
+        "SELECT DISTINCT users.id, users.photo, users.course_id, users.email, pd.full_name 
+         FROM users 
+         JOIN personal_data pd ON users.id = pd.user_id "
+    );
+
     match &self.role {
         Role::teacher => {
-            query.push("WHERE EXISTS (SELECT 1 FROM courses c JOIN subjects s ON s.course_id = c.id WHERE users.course_id = c.id AND s.teacher_id = ");
+            // More specific join to avoid duplicates from multiple subjects
+            query.push(
+                "WHERE users.id IN (
+                    SELECT DISTINCT s.student_id 
+                    FROM student_subjects ss 
+                    JOIN subjects s ON ss.subject_id = s.id 
+                    WHERE s.teacher_id = "
+            );
             query.push_bind(self.id);
             query.push(")");
         }
@@ -28,33 +39,44 @@ impl Get for MySelf {
             query.push_bind(self.id);
         }
         Role::preceptor => {
-            query.push("WHERE EXISTS (SELECT 1 FROM courses c WHERE users.course_id = c.id AND c.preceptor_id = ");
+            // Use EXISTS instead of JOIN to avoid duplicates
+            query.push(
+                "WHERE EXISTS (
+                    SELECT 1 FROM courses c 
+                    WHERE c.id = users.course_id 
+                    AND c.preceptor_id = "
+            );
             query.push_bind(self.id);
             query.push(")");
         }
         Role::father => {
-            query.push("WHERE EXISTS (SELECT 1 FROM families f WHERE f.student_id = users.id AND f.father_id = ");
+            query.push("JOIN families f ON f.student_id = users.id ");
+            query.push("WHERE f.father_id = ");
             query.push_bind(self.id);
-            query.push(")");
         }
         Role::admin => {
             query.push("WHERE 1=1");
         }
     }
-    
+
     if let Some(c) = filter.course {
         query.push(" AND users.course_id = ");
         query.push_bind(c);
     }
+
     if let Some(n) = filter.name {
         query.push(" AND pd.full_name LIKE ");
         query.push_bind(format!("%{}%", n));
     }
-    
+
+    // Add ORDER BY to ensure consistent results
+    query.push(" ORDER BY pd.full_name, users.id");
+
     let res: Result<Vec<PubUser>, sqlx::Error> = query
         .build_query_as::<PubUser>()
         .fetch_all(pool.as_ref())
         .await;
+
     res
 }
 
