@@ -62,7 +62,7 @@ pub async fn register(
 }
 
 #[get("/api/v1/register_testing_users/")]
-pub async fn register_testing_users(req: HttpRequest, pool: web::Data<MySqlPool>) -> impl Responder {
+pub async fn register_testing_users(pool: web::Data<MySqlPool>) -> impl Responder {
     let users = vec![
         ("admin", "admin"),
         ("student", "student"),
@@ -86,8 +86,9 @@ pub async fn register_testing_users(req: HttpRequest, pool: web::Data<MySqlPool>
     //        return HttpResponse::Unauthorized().finish();
     //    }
     //}
-
+    let mut i = 0;
     for (email, password) in users {
+        i=i+1;
         let hash = match hash(password, DEFAULT_COST) {
             Ok(h) => h,
             Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
@@ -120,23 +121,24 @@ pub async fn register_testing_users(req: HttpRequest, pool: web::Data<MySqlPool>
             Ok(Err(e)) => return HttpResponse::InternalServerError().body(e.to_string()),
             Err(_) => return HttpResponse::RequestTimeout().body("Insert en roles demoró demasiado."),
         };
-
-        let insert_personal = match timeout(Duration::from_secs(5), async {
-            sqlx::query("INSERT INTO personal_data (user_id, full_name, birth_date, address, phone_number) VALUES (?, ?, ?, ?, ?)")
-                .bind(user_id)
-                .bind("valentino grande")
-                .bind("2024-07-18 15:30:00")
-                .bind("santa coloma 9282")
-                .bind("543412115831")
-                .execute(pool.get_ref())
-                .await
-        })
-        .await
-        {
-            Ok(Ok(_)) => (),
-            Ok(Err(e)) => return HttpResponse::InternalServerError().body(e.to_string()),
-            Err(_) => return HttpResponse::RequestTimeout().body("Insert en personal_data demoró demasiado."),
-        };
+        if i == 6 {
+            let _insert_personal = match timeout(Duration::from_secs(5), async {
+                sqlx::query("INSERT INTO personal_data (user_id, full_name, birth_date, address, phone_number) VALUES (?, ?, ?, ?, ?)")
+                    .bind(user_id)
+                    .bind("valentino grande")
+                    .bind("2024-07-18 15:30:00")
+                    .bind("santa coloma 9282")
+                    .bind("543412115831")
+                    .execute(pool.get_ref())
+                    .await
+            })
+            .await
+            {
+                Ok(Ok(_)) => (),
+                Ok(Err(e)) => return HttpResponse::InternalServerError().body(e.to_string()),
+                Err(_) => return HttpResponse::RequestTimeout().body("Insert en personal_data demoró demasiado."),
+            };
+        }
     }
 
     HttpResponse::Created().finish()

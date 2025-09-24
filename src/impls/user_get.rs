@@ -16,52 +16,55 @@ impl Get for MySelf {
         filter: UserFilter,
     ) -> Result<Vec<PubUser>, sqlx::Error> {
         
-    let mut query = sqlx::QueryBuilder::new("SELECT DISTINCT users.id, users.photo, users.course_id FROM users ");
+    
+        let mut query = sqlx::QueryBuilder::new(
+            "SELECT users.id, users.photo, users.course_id, users.email, pd.full_name \
+             FROM users \
+             JOIN personal_data pd ON users.id = pd.user_id "
+        );
 
-    match &self.role {
-        Role::teacher => {
-            query.push("JOIN courses c ON users.course_id = c.id ");
-            query.push("JOIN subjects s ON s.course_id = c.id ");
-            query.push("WHERE s.teacher_id = ");
-            query.push_bind(self.id);
-        }
-        Role::student => {
-                query.push("WHERE user.id = ");
+        match &self.role {
+            Role::teacher => {
+                query.push("JOIN courses c ON users.course_id = c.id ");
+                query.push("JOIN subjects s ON s.course_id = c.id ");
+                query.push("WHERE s.teacher_id = ");
                 query.push_bind(self.id);
             }
-        Role::preceptor => {
-            query.push("JOIN courses c ON users.course_id = c.id ");
-            query.push("WHERE c.preceptor_id = ");
-            query.push_bind(self.id);
-        }
-        Role::father => {
-            query.push("JOIN families f ON f.student_id = users.id ");
-            query.push("WHERE f.father_id = ");
-            query.push_bind(self.id);
-        }
-        Role::admin => {
-                query.push("WHERE 1=1");
+            Role::student => {
+                query.push("WHERE users.id = ");
+                query.push_bind(self.id);
             }
-    }
+            Role::preceptor => {
+                query.push("JOIN courses c ON users.course_id = c.id ");
+                query.push("WHERE c.preceptor_id = ");
+                query.push_bind(self.id);
+            }
+            Role::father => {
+                query.push("JOIN families f ON f.student_id = users.id ");
+                query.push("WHERE f.father_id = ");
+                query.push_bind(self.id);
+            }
+            Role::admin => {
+                query.push("WHERE 1=1 ");
+            }
+        }
 
-    if let Some(c) = filter.course {
-        query.push(" AND users.course_id = ");
-        query.push_bind(c);
-    }
+        if let Some(c) = filter.course {
+            query.push(" AND users.course_id = ");
+            query.push_bind(c);
+        }
 
-    if let Some(n) = filter.name {
-        query.push(" AND EXISTS (SELECT 1 FROM personal_data pd WHERE pd.user_id = users.id AND pd.full_name LIKE ");
-        query.push_bind(format!("%{}%", n));
-        query.push(")");
-    }
+        if let Some(n) = filter.name {
+            query.push(" AND pd.full_name LIKE ");
+            query.push_bind(format!("%{}%", n));
+        }
 
-    let res: Result<Vec<PubUser>, sqlx::Error> = query
-        .build_query_as::<PubUser>()
-        .fetch_all(pool.as_ref())
-        .await;
+        let res: Result<Vec<PubUser>, sqlx::Error> = query
+            .build_query_as::<PubUser>()
+            .fetch_all(pool.as_ref())
+            .await;
 
-    res
-
+        res
     }
 
     async fn get_courses(&self, pool: &MySqlPool) -> Result<Vec<Course>, sqlx::Error> {
