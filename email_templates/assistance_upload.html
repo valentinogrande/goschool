@@ -2,7 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Nueva evaluación creada</title>
+
+  <title>Nueva inasistencia subida</title>
+
   <style>
     body { font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px; }
     .container { max-width: 600px; background-color: #fff; padding: 30px; margin: auto; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); color: #333; }
@@ -14,10 +16,11 @@
 </head>
 <body>
   <div class="container">
-    <h2>Hola {{ student_name }} 👋</h2>
-    <p>Desde <strong>{{ sender_name }}</strong> te informamos que se ha creado una nueva evaluación en la materia <strong>{{ subject_name }}</strong>:</p>
-    <div class="assessment-box">{{ assessment_title }}</div>
-    <div class="due-date">Fecha de entrega: <strong>{{ due_date }}</strong></div>
+    
+      <h2>Hola {{ student_name }} 👋</h2>
+
+      <p>Desde <strong>{{ sender_name }}</strong> te informamos que se ha registrado una nueva inasistencia el dia <strong>{{ date }}</strong> de caracter <strong>{{ presence }}</strong>:</p>
+
   </div>
 
   {% include 'footer' %}

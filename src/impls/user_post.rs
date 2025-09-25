@@ -9,6 +9,7 @@ use crate::parse_multipart::parse_multipart;
 use crate::structs::*;
 use crate::traits::{Get, Post};
 use crate::send_grade_email;
+use crate::views::disciplinary_sanctions;
 
 impl Post for MySelf {
     async fn post_assessment(&self, pool: &MySqlPool, payload: Payload) -> HttpResponse {
@@ -735,10 +736,10 @@ impl Post for MySelf {
             .bind(subject_id)
             .bind(self.id)
             .bind(type_)
-                .bind(file_path)
+            .bind(file_path)
             .bind(title)
             .execute(pool)
-                .await
+            .await
         };
 
         match insert_result {
@@ -853,6 +854,37 @@ impl Post for MySelf {
                 return HttpResponse::Unauthorized().finish();
             }
         }
+
+        if assistance.presence != "present" {
+
+            let students: Vec<(String, String)> = match sqlx::query_as::<_, (String, String)>(
+                    r#"
+                    SELECT u.email, pd.full_name
+                    FROM users u
+                    JOIN personal_data pd ON pd.user_id = u.id
+                    WHERE u.id = ?
+                    "#
+                )
+                .bind(assistance.student_id)
+                .fetch_all(pool)
+                .await
+                {
+                    Ok(list) => list,
+                    Err(_) => vec![],
+                };
+
+                let sender_name: String = match sqlx::query_scalar("SELECT full_name FROM personal_data WHERE user_id = ?")
+                    .bind(self.id)
+                    .fetch_one(pool)
+                    .await
+                {
+                    Ok(name) => name,
+                    Err(_) => "Remitente".to_string(),
+                };
+                
+                send_assistance_email(students, sender_name, assistance.presence, assistance.date);
+        }
+
         let result = sqlx::query("INSERT INTO assistance (student_id, presence, date) VALUES (?, ?, ?)")
             .bind(assistance.student_id)
             .bind(assistance.presence)
@@ -891,6 +923,34 @@ impl Post for MySelf {
                 return HttpResponse::Unauthorized().finish();
             }
         }
+
+        let students: Vec<(String, String)> = match sqlx::query_as::<_, (String, String)>(
+                r#"
+                SELECT u.email, pd.full_name
+                FROM users u
+                JOIN personal_data pd ON pd.user_id = u.id
+                WHERE u.id = ?
+                "#
+            )
+            .bind(ds.student_id)
+            .fetch_all(pool)
+            .await
+            {
+                Ok(list) => list,
+                Err(_) => vec![],
+            };
+
+            let sender_name: String = match sqlx::query_scalar("SELECT full_name FROM personal_data WHERE user_id = ?")
+                .bind(self.id)
+                .fetch_one(pool)
+                .await
+            {
+                Ok(name) => name,
+                Err(_) => "Remitente".to_string(),
+            };
+
+        send_disciplinary_sanction_email(students, sender_name, ds.sanction_type, ds.quantity, ds.description, ds.date);
+
         let result = sqlx::query("INSERT INTO disciplinary_sanctions (student_id, sanction_type, quantity, description, date) VALUES (?, ?, ?, ?, ?)")
             .bind(ds.student_id)
             .bind(ds.sanction_type)

@@ -167,7 +167,7 @@ pub async fn send_message_email(
                 Ok(to) => {
                     let mut context = Context::new();
                     context.insert("sender_name", &ammonia::clean(&sender_name));
-                    context.insert("receiver_name", &ammonia::clean(&student_name));
+                    context.insert("student_name", &ammonia::clean(&student_name));
                     context.insert("message", &ammonia::clean(&message));
 
                     let mut tera = Tera::default();
@@ -259,7 +259,7 @@ pub async fn send_subject_message_email(
                 Ok(to) => {
                     let mut context = Context::new();
                     context.insert("sender_name", &ammonia::clean(&sender_name));
-                    context.insert("receiver_name", &ammonia::clean(&student_name));
+                    context.insert("student_name", &ammonia::clean(&student_name));
                     context.insert("subject_name", &ammonia::clean(&subject_name));
                     context.insert("message", &ammonia::clean(&message));
 
@@ -355,7 +355,7 @@ pub async fn send_assessment_email(
                 Ok(to) => {
                     let mut context = Context::new();
                     context.insert("sender_name", &ammonia::clean(&sender_name));
-                    context.insert("receiver_name", &ammonia::clean(&student_name));
+                    context.insert("student_name", &ammonia::clean(&student_name));
                     context.insert("subject_name", &ammonia::clean(&subject_name));
                     context.insert("assessment_title", &ammonia::clean(&assessment_title));
                     context.insert("due_date", &ammonia::clean(&due_date));
@@ -388,6 +388,222 @@ pub async fn send_assessment_email(
                     }
                 }
                 Err(e) => eprintln!("❌ Dirección inválida '{}': {}", to_str, e),
+            }
+        })
+    });
+
+    futures::future::join_all(tasks).await;
+}
+
+pub async fn send_assistance_email(
+    reply_to: Vec<String>,
+    sender_name: &str,
+    student_name: &str,
+    presence: &str,
+    date: &str,
+) {
+    let from_str = env::var("EMAIL_FROM").expect("EMAIL_FROM must be set");
+    let from: Mailbox = from_str.parse().expect("Invalid EMAIL_FROM format");
+    let base_dir = env::var("BASE_PATH").expect("BASE_PATH must be set");
+
+    let template_path = format!("{}/email_templates/assistance_upload.html", base_dir);
+    let template_str = match read_to_string(&template_path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("Error cargando template: {}", e);
+            return;
+        }
+    };
+    let footer_template_path = format!("{}/email_templates/footer.html", base_dir);
+    let footer_template_str = match read_to_string(&footer_template_path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("Error cargando template: {}", e);
+            return;
+        }
+    };
+
+    let email_subject = "New non-attendance have been registered";
+
+    let credentials = Credentials::new(
+        env::var("EMAIL_USERNAME").expect("EMAIL_USERNAME must be set"),
+        env::var("EMAIL_PASSWORD").expect("EMAIL_PASSWORD must be set"),
+    );
+
+    let mailer = SmtpTransport::relay("smtp.gmail.com")
+        .unwrap()
+        .credentials(credentials)
+        .build();
+
+    let header = ContentType::TEXT_HTML;
+
+    let sender_name = sender_name.to_string();
+    let student_name = student_name.to_string();
+    let presence = presence.to_string();
+    let date = date.to_string();
+
+    let tasks = reply_to.into_iter().map(|to_str| {
+        let from = from.clone();
+        let mailer = mailer.clone();
+        let header = header.clone();
+        let subject_email = email_subject.to_string();
+        let to_str_clone = to_str.clone();
+
+        let template_clone = template_str.clone();
+        let footer_template_clone = footer_template_str.clone();
+
+        let sender_name = sender_name.clone();
+        let student_name = student_name.clone();
+        let presence = presence.clone();
+        let date = date.clone();
+
+        task::spawn_blocking(move || {
+            match to_str_clone.parse::<Mailbox>() {
+                Ok(to) => {
+                    let mut context = Context::new();
+                    context.insert("sender_name", &ammonia::clean(&sender_name));
+                    context.insert("student_name", &ammonia::clean(&student_name));
+                    context.insert("presence", &ammonia::clean(&presence));
+                    context.insert("date", &ammonia::clean(&date));
+
+                    let mut tera = Tera::default();
+                    tera.add_raw_template("assistance_upload", &template_clone).expect("Template inválido");
+                    tera.add_raw_template("footer", &footer_template_clone).expect("Template inválido");
+
+                    let body = match tera.render("assistance_upload", &context) {
+                        Ok(s) => s,
+                        Err(e) => {
+                            eprintln!("Error renderizando template: {}", e);
+                            return;
+                        }
+                    };
+
+                    let email = Message::builder()
+                        .from(from)
+                        .to(to)
+                        .subject(subject_email)
+                        .header(header)
+                        .body(body)
+                        .unwrap();
+
+                    match mailer.send(&email) {
+                        Ok(_) => println!("✅ Email enviado a {}", to_str_clone),
+                        Err(e) => eprintln!("❌ Error al enviar a {}: {:?}", to_str_clone, e),
+                    }
+                }
+                Err(e) => eprintln!("❌ Dirección inválida '{}': {}", to_str_clone, e),
+            }
+        })
+    });
+
+    futures::future::join_all(tasks).await;
+}
+
+pub async fn send_disciplinary_sanction_email(
+    reply_to: Vec<String>,
+    sender_name: &str,
+    student_name: &str,
+    sanction_type: &str,
+    quantity: &str,
+    description: &str,
+    date: &str,
+) {
+    let from_str = env::var("EMAIL_FROM").expect("EMAIL_FROM must be set");
+    let from: Mailbox = from_str.parse().expect("Invalid EMAIL_FROM format");
+    let base_dir = env::var("BASE_PATH").expect("BASE_PATH must be set");
+
+    let template_path = format!("{}/email_templates/disciplinary_sanction_upload.html", base_dir);
+    let template_str = match read_to_string(&template_path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("Error cargando template: {}", e);
+            return;
+        }
+    };
+    let footer_template_path = format!("{}/email_templates/footer.html", base_dir);
+    let footer_template_str = match read_to_string(&footer_template_path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("Error cargando template: {}", e);
+            return;
+        }
+    };
+
+    let email_subject = "disciplinary_sanction_upload";
+
+    let credentials = Credentials::new(
+        env::var("EMAIL_USERNAME").expect("EMAIL_USERNAME must be set"),
+        env::var("EMAIL_PASSWORD").expect("EMAIL_PASSWORD must be set"),
+    );
+
+    let mailer = SmtpTransport::relay("smtp.gmail.com")
+        .unwrap()
+        .credentials(credentials)
+        .build();
+
+    let header = ContentType::TEXT_HTML;
+
+    let sender_name = sender_name.to_string();
+    let student_name = student_name.to_string();
+    let sanction_type = sanction_type.to_string();
+    let quantity = quantity.to_string();
+    let description = description.to_string();
+    let date = date.to_string();
+
+    let tasks = reply_to.into_iter().map(|to_str| {
+        let from = from.clone();
+        let mailer = mailer.clone();
+        let header = header.clone();
+        let subject_email = email_subject.to_string();
+        let to_str_clone = to_str.clone();
+
+        let template_clone = template_str.clone();
+        let footer_template_clone = footer_template_str.clone();
+
+        let sender_name = sender_name.clone();
+        let student_name = student_name.clone();
+        let sanction_type = sanction_type.clone();
+        let quantity = quantity.clone();
+        let description = description.clone();
+        let date = date.clone();
+
+        task::spawn_blocking(move || {
+            match to_str_clone.parse::<Mailbox>() {
+                Ok(to) => {
+                    let mut context = Context::new();
+                    context.insert("sender_name", &ammonia::clean(&sender_name));
+                    context.insert("student_name", &ammonia::clean(&student_name));
+                    context.insert("sanction_type", &ammonia::clean(&sanction_type));
+                    context.insert("description", &ammonia::clean(&description));
+                    context.insert("quantity", &ammonia::clean(&quantity));
+                    context.insert("date", &ammonia::clean(&date));
+
+                    let mut tera = Tera::default();
+                    tera.add_raw_template("disciplinary_sanction_upload", &template_clone).expect("Template inválido");
+                    tera.add_raw_template("footer", &footer_template_clone).expect("Template inválido");
+
+                    let body = match tera.render("disciplinary_sanction_upload", &context) {
+                        Ok(s) => s,
+                        Err(e) => {
+                            eprintln!("Error renderizando template: {}", e);
+                            return;
+                        }
+                    };
+
+                    let email = Message::builder()
+                        .from(from)
+                        .to(to)
+                        .subject(subject_email)
+                        .header(header)
+                        .body(body)
+                        .unwrap();
+
+                    match mailer.send(&email) {
+                        Ok(_) => println!("✅ Email enviado a {}", to_str_clone),
+                        Err(e) => eprintln!("❌ Error al enviar a {}: {:?}", to_str_clone, e),
+                    }
+                }
+                Err(e) => eprintln!("❌ Dirección inválida '{}': {}", to_str_clone, e),
             }
         })
     });
