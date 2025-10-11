@@ -22,6 +22,17 @@ pub struct MessageFilter {
     pub course_id: Option<u64>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct ChatFilter {
+    pub name: Option<String>,
+}
+
+
+#[derive(Serialize, Deserialize)]
+pub struct ChatMessageFilter {
+    pub message: Option<String>,
+    pub chat_id: Option<u64>,
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct TimetableFilter {

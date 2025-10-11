@@ -837,4 +837,102 @@ impl Get for MySelf {
         let disciplinary_sanctions = query.build_query_as().fetch_all(pool).await;
         disciplinary_sanctions
     }
+    async fn get_chats(
+            &self,
+            pool: &MySqlPool,
+            filter: ChatFilter
+        ) -> Result<Vec<Chat>, sqlx::Error> {
+        
+let mut query = QueryBuilder::new(r#"
+    SELECT 
+        c.id AS chat_id,
+        c.name,
+        c.photo,
+        c.description,
+        c.created_at,
+        m.id AS last_message_id,
+        m.message AS last_message,
+        m.created_at AS last_message_time,
+        CASE 
+            WHEN EXISTS (
+                SELECT 1 
+                FROM chat_messages cm
+                LEFT JOIN reads r 
+                    ON r.message_id = cm.id AND r.reader_id = ?
+                WHERE cm.chat_id = c.id AND r.id IS NULL
+            ) THEN TRUE
+            ELSE FALSE
+        END AS has_unread
+    FROM chats c
+    JOIN chat_parciticipants cp 
+        ON c.id = cp.chat_id
+    LEFT JOIN chat_messages m 
+        ON m.id = (
+            SELECT id 
+            FROM chat_messages 
+            WHERE chat_id = c.id 
+            ORDER BY created_at DESC 
+            LIMIT 1
+        )
+    WHERE cp.user_id = ?
+"#);
+
+        // bind the user_id twice: once for unread check, once for filter
+        query.push_bind(self.id);
+        query.push_bind(self.id);
+
+        if let Some(n) = filter.name {
+            query.push(" AND c.name LIKE ");
+            query.push_bind(format!("%{}%", n));
+        }
+
+        query.push(" ORDER BY m.created_at IS NULL, m.created_at DESC");
+
+        let chats = query.build_query_as().fetch_all(pool).await;
+
+        chats
+
+    }
+
+    async fn get_chat_messages(
+            &self,
+            pool: &MySqlPool,
+            filter: ChatMessageFilter
+        ) -> Result<Vec<ChatMessage>, sqlx::Error> {
+        
+        let mut query = QueryBuilder::new(r#"
+            SELECT * 
+            FROM chat_message cm
+            JOIN chats c ON cm.chat_id = c.id
+            JOIN chat_parciticipants cp ON c.id = cp.chat_id
+            WHERE cp.user_id = ?
+        "#);
+
+        query.push_bind(self.id);
+
+        if let Some(c) = filter.chat_id {
+            query.push(" AND c.id = ?");
+            query.push_bind(c);
+        }
+
+        if let Some(m) = filter.message {
+            query.push(" AND cm.message LIKE ");
+            query.push_bind(format!("%{}%", m));
+        }
+
+        let messages = query.build_query_as::<ChatMessage>().fetch_all(pool).await;
+        let msg = messages?;
+
+        for m in &msg {
+            sqlx::query(
+                "INSERT IGNORE INTO reads (message_id, reader_id) VALUES (?, ?)"
+            )
+            .bind(m.id)
+            .bind(self.id)
+            .execute(pool)
+            .await?;
+        }
+
+        Ok(msg)
+    }
 }

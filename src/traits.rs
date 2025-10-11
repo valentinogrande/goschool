@@ -109,6 +109,16 @@ pub trait Get {
         pool: &MySqlPool,
         filter: DisciplinarySanctionFilter
     ) -> Result<Vec<DisciplinarySanction>, sqlx::Error>;
+    async fn get_chats(
+        &self,
+        pool: &MySqlPool,
+        filter: ChatFilter
+    ) -> Result<Vec<Chat>, sqlx::Error>;
+    async fn get_chat_messages(
+        &self,
+        pool: &MySqlPool,
+        filter: ChatMessageFilter
+    ) -> Result<Vec<ChatMessage>, sqlx::Error>;
 }
 
 pub trait Post  {
@@ -168,6 +178,16 @@ pub trait Post  {
         pool: &MySqlPool,
         disciplinary_sanction: NewDisciplinarySanction
     ) -> HttpResponse;
+    async fn post_chat(
+        &self,
+        pool: &MySqlPool,
+        chat: NewChat
+    ) -> HttpResponse;
+    async fn post_chat_message(
+        &self,
+        pool: &MySqlPool,
+        message: NewChatMessage
+    ) -> HttpResponse;
 }
 
 
@@ -216,6 +236,16 @@ pub trait Delete {
         &self,
         pool: &MySqlPool,
         disciplinary_sanction_id: u64
+    ) -> HttpResponse;
+    async fn delete_chat(
+        &self,
+        pool: &MySqlPool,
+        chat_id: u64
+    ) -> HttpResponse;
+    async fn delete_chat_message(
+        &self,
+        pool: &MySqlPool,
+        chat_message_id: u64
     ) -> HttpResponse;
 }
 
@@ -273,6 +303,18 @@ pub trait Update {
         pool: &MySqlPool,
         disciplinary_sanction_id: u64,
         data: UpdateDisciplinarySanction
+    ) -> HttpResponse;
+    async fn update_chat(
+        &self,
+        pool: &MySqlPool,
+        assistance_id: u64,
+        data: UpdateChat
+    ) -> HttpResponse;
+    async fn update_chat_message(
+        &self,
+        pool: &MySqlPool,
+        disciplinary_sanction_id: u64,
+        data: UpdateChatMessage
     ) -> HttpResponse;
 }
 

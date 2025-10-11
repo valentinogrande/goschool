@@ -20,5 +20,6 @@ pub mod get_if_answered;
 pub mod timetables;
 pub mod assistance;
 pub mod disciplinary_sanctions;
+pub mod chat;
+pub mod chat_message;
 pub mod health;
-

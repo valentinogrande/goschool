@@ -110,6 +110,63 @@ pub struct Course {
 
 
 #[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
+pub struct Chat {
+    pub id: u64,
+    pub name: String,
+    pub photo: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub description: Option<String>,
+    pub last_message_id: Option<u64>,
+    pub last_message: Option<String>,
+    pub last_message_time: Option<DateTime<Utc>>,
+    pub has_read: bool,
+}
+
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
+pub struct NewChat {
+    pub name: String,
+    pub photo: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub description: Option<String>,
+}
+
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
+pub struct UpdateChat {
+    pub name: String,
+    pub photo: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub description: Option<String>,
+}
+
+
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
+pub struct ChatMessage{
+    pub id: u64,
+    pub chat_id: u64,
+    pub sender_id: u64,
+    pub created_at: DateTime<Utc>,
+    pub type_message: String,
+    pub message: String,
+}
+
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
+pub struct NewChatMessage{
+    pub chat_id: u64,
+    pub sender_id: u64,
+    pub created_at: DateTime<Utc>,
+    pub type_message: String,
+    pub message: String,
+}
+
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
+pub struct UpdateChatMessage{
+    pub chat_id: u64,
+    pub sender_id: u64,
+    pub created_at: DateTime<Utc>,
+    pub type_message: String,
+    pub message: String,
+}
+#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
 pub struct Assistance {
     pub id: u64,
     pub student_id: u64,
