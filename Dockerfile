@@ -29,7 +29,7 @@ COPY --from=builder /app/email_templates /app/email_templates
 # Crear usuario no root y usarlo
 RUN useradd -m appuser
 
-RUN mkdir -p /app/uploads/profile_pictures /app/uploads/files
+RUN mkdir -p /app/uploads/profile_pictures /app/uploads/files /app/uploads/submissions /app/uploads/chat_files
 
 # Dar propiedad total a appuser sobre todo el directorio /app
 RUN chown -R appuser:appuser /app

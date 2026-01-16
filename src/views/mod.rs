@@ -22,4 +22,5 @@ pub mod assistance;
 pub mod disciplinary_sanctions;
 pub mod chat;
 pub mod chat_message;
+pub mod chat_api;
 pub mod health;

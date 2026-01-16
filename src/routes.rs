@@ -61,7 +61,7 @@ use crate::views::{
     },
 
     // Submissions
-    submissions::post_homework_submission,
+    submissions::{post_homework_submission, update_submission, delete_submission},
 
     // Timetables
     timetables::get_timetable,
@@ -104,7 +104,23 @@ use crate::views::{
         post_message,
         update_message,
     },
+
+    // Chat API
+    chat_api::{
+        get_user_chats,
+        create_chat,
+        get_chat_messages,
+        send_message,
+        add_participants,
+        remove_participant,
+        get_available_users,
+        upload_chat_file,
+        mark_chat_as_read,
+    },
 };
+
+// WebSocket handler
+use crate::websocket::chat_websocket;
 
 
 pub fn register_services(cfg: &mut web::ServiceConfig) {
@@ -134,6 +150,8 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(update_assessment)
         .service(delete_assessment)
         .service(post_homework_submission)
+        .service(update_submission)
+        .service(delete_submission)
         .service(post_selfassessable_submission)
         .service(get_selfassessables)
         .service(get_selfassessables_responses)
@@ -157,6 +175,17 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(get_disciplinary_sanction)
         .service(post_disciplinary_sanction)
         .service(update_disciplinary_sanction)
-        .service(delete_disciplinary_sanction);
-    //.service(create_selfassessable_submission)
+        .service(delete_disciplinary_sanction)
+        // Chat WebSocket
+        .service(chat_websocket)
+        // Chat REST API
+        .service(get_user_chats)
+        .service(create_chat)
+        .service(get_chat_messages)
+        .service(send_message)
+        .service(add_participants)
+        .service(remove_participant)
+        .service(get_available_users)
+        .service(upload_chat_file)
+        .service(mark_chat_as_read);
 }

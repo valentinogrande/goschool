@@ -17,11 +17,13 @@ mod structs;
 mod traits;
 mod views;
 mod email;
+mod websocket;
 
 use jwt::Claims;
 
 use cron::start_cron_task;
 use routes::register_services;
+use websocket::ChatConnectionManager;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -42,6 +44,10 @@ async fn main() -> std::io::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     let json_conf = json::json_config();
 
+    // Initialize WebSocket connection manager for chat
+    let chat_manager = web::Data::new(ChatConnectionManager::new());
+    log::info!("Chat WebSocket manager initialized");
+
     HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()
@@ -53,9 +59,12 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .wrap(cors)
             .app_data(web::Data::new(pool.clone()))
+            .app_data(chat_manager.clone())
             .app_data(json_conf.clone())
             .service(Files::new("/uploads/profile_pictures", "./uploads/profile_pictures").index_file("404"))
             .service(Files::new("/uploads/files", "./uploads/files").index_file("404"))
+            .service(Files::new("/uploads/submissions", "./uploads/submissions").index_file("404"))
+            .service(Files::new("/uploads/chat_files", "./uploads/chat_files").index_file("404"))
             .configure(register_services)
     })
     .bind("0.0.0.0:80")?

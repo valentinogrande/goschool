@@ -114,57 +114,108 @@ pub struct Chat {
     pub id: u64,
     pub name: String,
     pub photo: Option<String>,
-    pub created_at: DateTime<Utc>,
     pub description: Option<String>,
-    pub last_message_id: Option<u64>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub chat_type: String, // 'direct' or 'group'
+    pub created_by: u64,
+    // Computed fields from queries (not in DB)
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub last_message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub last_message_time: Option<DateTime<Utc>>,
-    pub has_read: bool,
+    #[serde(default)]
+    pub unread_count: i64,
+    #[serde(default)]
+    pub is_online: bool, // For direct chats
 }
 
-#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NewChat {
     pub name: String,
     pub photo: Option<String>,
-    pub created_at: DateTime<Utc>,
     pub description: Option<String>,
+    pub chat_type: String,
 }
 
-#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct UpdateChat {
-    pub name: String,
+    pub name: Option<String>,
     pub photo: Option<String>,
-    pub created_at: DateTime<Utc>,
     pub description: Option<String>,
 }
 
-
-#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
-pub struct ChatMessage{
+#[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
+pub struct ChatMessage {
     pub id: u64,
     pub chat_id: u64,
     pub sender_id: u64,
     pub created_at: DateTime<Utc>,
-    pub type_message: String,
+    pub updated_at: DateTime<Utc>,
+    pub type_message: String, // 'text', 'file', 'image'
     pub message: String,
+    pub file_path: Option<String>,
+    pub file_name: Option<String>,
+    pub file_size: Option<u32>,
+    pub is_deleted: bool,
+    pub reply_to_id: Option<u64>,
 }
 
-#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
-pub struct NewChatMessage{
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NewChatMessage {
     pub chat_id: u64,
-    pub sender_id: u64,
-    pub created_at: DateTime<Utc>,
-    pub type_message: String,
     pub message: String,
+    pub type_message: String,
+    pub reply_to_id: Option<u64>,
 }
 
-#[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
-pub struct UpdateChatMessage{
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateChatMessage {
+    pub message: Option<String>,
+    pub is_deleted: Option<bool>,
+}
+
+#[derive(Debug, FromRow, Serialize, Deserialize, Clone)]
+pub struct ChatParticipant {
+    pub id: u64,
+    pub user_id: u64,
     pub chat_id: u64,
-    pub sender_id: u64,
-    pub created_at: DateTime<Utc>,
-    pub type_message: String,
+    pub joined_at: DateTime<Utc>,
+    pub last_read_at: Option<DateTime<Utc>>,
+    pub is_admin: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NewChatRequest {
+    pub participant_ids: Vec<u64>,
+    pub chat_type: String, // 'direct' or 'group'
+    pub name: Option<String>, // Required for groups
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SendMessageRequest {
+    pub chat_id: u64,
     pub message: String,
+    pub type_message: Option<String>,
+    pub reply_to_id: Option<u64>,
+}
+
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+pub struct ReadReceipt {
+    pub id: u64,
+    pub message_id: u64,
+    pub reader_id: u64,
+    pub read_at: DateTime<Utc>,
+}
+
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+pub struct TypingIndicator {
+    pub id: u64,
+    pub chat_id: u64,
+    pub user_id: u64,
+    pub started_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
 }
 #[derive(Debug, FromRow, Serialize, Deserialize, sqlx::Type)]
 pub struct Assistance {
@@ -530,6 +581,15 @@ pub struct UpdateTimetable {
     pub day: Option<String>,
     pub start_time: Option<NaiveTime>,
     pub end_time: Option<NaiveTime>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct NewTimetable {
+    pub course_id: u64,
+    pub subject_id: u64,
+    pub day: String,
+    pub start_time: NaiveTime,
+    pub end_time: NaiveTime,
 }
 
 #[derive(Serialize, Deserialize)]

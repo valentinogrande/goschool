@@ -6,10 +6,11 @@
 
 ## 📋 Table of Contents
 
+- [Project Architecture](#-project-architecture)
 - [Installation & Setup](#-installation--setup)
 - [Authentication](#-authentication)
 - [API Overview](#-api-overview)
-- [Endpoints Documentation](#-endpoints-documentation)
+- [REST API Endpoints](#-endpoints-documentation)
   - [Authentication & Authorization](#authentication--authorization)
   - [Users & Personal Data](#users--personal-data)
   - [Academic Management](#academic-management)
@@ -18,9 +19,107 @@
   - [File Management](#file-management)
   - [Attendance & Discipline](#attendance--discipline)
   - [Utility Endpoints](#utility-endpoints)
+- [Chat System](#-chat-system)
+  - [Chat REST API](#chat-rest-api)
+  - [WebSocket API](#websocket-api)
 - [Data Models](#-data-models)
-- [Error Handling](#-error-handling)
 - [Filtering System](#-filtering-system)
+- [Error Handling](#-error-handling)
+- [Security Features](#-security-features)
+- [Database Schema](#-database-schema)
+- [Development Guide](#-development-guide)
+
+---
+
+## 🏗️ Project Architecture
+
+### Technology Stack
+
+| Component | Technology | Version |
+|-----------|------------|---------|
+| Web Framework | Actix-web | 4.x |
+| Async Runtime | Tokio | 1.44.2 |
+| Database | MySQL + SQLx | 8.0 / 0.8 |
+| Authentication | JWT (ES256) | jsonwebtoken 9.3 |
+| Password Hashing | bcrypt | 0.17 |
+| WebSocket | actix-ws | 0.3 |
+| Email | Lettre + Tera | 0.11 / 1.x |
+| Scheduling | Cron | 0.15 |
+
+### Directory Structure
+
+```
+back/
+├── src/
+│   ├── main.rs              # Server setup, middleware, static files
+│   ├── routes.rs            # Route registration & service config
+│   ├── structs.rs           # Data models (User, Grade, Assessment, etc.)
+│   ├── traits.rs            # CRUD trait definitions
+│   ├── filters.rs           # Query filter definitions
+│   ├── jwt.rs               # JWT creation & validation
+│   ├── json.rs              # JSON parsing configuration
+│   ├── cron.rs              # Scheduled tasks (auto-grading)
+│   ├── email.rs             # Email service with templates
+│   ├── parse_multipart.rs   # File upload handling
+│   ├── views/               # API endpoint handlers (27 files)
+│   │   ├── login.rs         # Authentication endpoints
+│   │   ├── grades.rs        # Grade management
+│   │   ├── assessments.rs   # Assessment/task management
+│   │   ├── chats.rs         # Chat REST endpoints
+│   │   └── ...              # Other resource handlers
+│   ├── impls/               # Trait implementations
+│   │   ├── user_get.rs      # GET operations
+│   │   ├── user_post.rs     # POST operations
+│   │   ├── user_update.rs   # PUT operations
+│   │   ├── user_delete.rs   # DELETE operations
+│   │   └── chat_authorization.rs
+│   └── websocket/           # Real-time chat
+│       ├── handler.rs       # WebSocket connection handling
+│       ├── manager.rs       # Connection state management
+│       ├── protocol.rs      # Message type definitions
+│       └── mod.rs
+├── Cargo.toml               # Dependencies
+├── init.sql                 # Database schema
+├── create_database.py       # Setup script
+├── fake_data.py             # Test data generator
+└── email_templates/         # HTML email templates
+```
+
+### Request Flow
+
+```
+Client Request
+     │
+     ▼
+┌─────────────────┐
+│  Nginx Proxy    │  (SSL termination, rate limiting)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Actix-web      │  (Routing, CORS, Logging)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  JWT Middleware │  (Token validation, role extraction)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  View Handler   │  (Request processing)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Trait Impl     │  (Database operations via SQLx)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  MySQL          │  (Data persistence)
+└─────────────────┘
+```
 
 ---
 
@@ -1309,6 +1408,404 @@ curl -X GET "http://localhost:80/api/v1/subjects/?teacher_id=2&course_id=1" -b "
 
 ---
 
+## 💬 Chat System
+
+GoSchool includes a real-time chat system supporting direct messages and group conversations.
+
+### Chat REST API
+
+#### `GET /api/v1/chats/`
+Get list of user's chats with metadata.
+
+**Query Parameters:**
+- `name` (optional): Filter by chat name
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "name": "Math Study Group",
+    "photo": "http://localhost:80/uploads/chat_files/uuid.jpg",
+    "description": "Group for math discussions",
+    "created_at": "2025-01-15T10:30:00Z",
+    "updated_at": "2025-01-15T14:00:00Z",
+    "chat_type": "group",
+    "created_by": 2,
+    "unread_count": 5,
+    "last_message": {
+      "message": "Hello everyone!",
+      "sender_name": "John Doe",
+      "created_at": "2025-01-15T14:00:00Z"
+    }
+  }
+]
+```
+
+**Example:**
+```bash
+curl -X GET http://localhost:80/api/v1/chats/ -b "jwt={jwt}"
+```
+
+---
+
+#### `POST /api/v1/chats/`
+Create a new direct or group chat.
+
+**Request Body (Direct Chat):**
+```json
+{
+  "chat_type": "direct",
+  "participant_ids": [3]
+}
+```
+
+**Request Body (Group Chat):**
+```json
+{
+  "chat_type": "group",
+  "name": "Study Group",
+  "description": "Group for studying together",
+  "participant_ids": [3, 4, 5]
+}
+```
+
+**Chat Types:**
+- `direct`: One-on-one conversation (exactly 1 participant required)
+- `group`: Multi-user conversation (name required, 1+ participants)
+
+**Response:** `201 Created`
+```json
+{
+  "id": 1,
+  "name": "Study Group",
+  "chat_type": "group"
+}
+```
+
+**Example:**
+```bash
+# Create direct chat
+curl -X POST http://localhost:80/api/v1/chats/ \
+  -H "Content-Type: application/json" \
+  -b "jwt={jwt}" \
+  -d '{"chat_type": "direct", "participant_ids": [3]}'
+
+# Create group chat
+curl -X POST http://localhost:80/api/v1/chats/ \
+  -H "Content-Type: application/json" \
+  -b "jwt={jwt}" \
+  -d '{
+    "chat_type": "group",
+    "name": "Math Group",
+    "description": "Math study group",
+    "participant_ids": [3, 4, 5]
+  }'
+```
+
+---
+
+#### `GET /api/v1/chat_messages/`
+Get chat message history.
+
+**Query Parameters:**
+- `chat_id` (required): Chat ID to get messages from
+- `message` (optional): Filter by message content
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": 1,
+    "chat_id": 1,
+    "sender_id": 2,
+    "message": "Hello everyone!",
+    "type_message": "text",
+    "file_path": null,
+    "file_name": null,
+    "file_size": null,
+    "is_deleted": false,
+    "reply_to_id": null,
+    "created_at": "2025-01-15T14:00:00Z",
+    "updated_at": "2025-01-15T14:00:00Z",
+    "sender_name": "John Doe",
+    "sender_photo": "http://localhost:80/uploads/profile_pictures/uuid.jpg"
+  }
+]
+```
+
+**Example:**
+```bash
+curl -X GET "http://localhost:80/api/v1/chat_messages/?chat_id=1" -b "jwt={jwt}"
+```
+
+---
+
+#### `POST /api/v1/chat_messages/`
+Send a text message to a chat.
+
+**Request Body:**
+```json
+{
+  "chat_id": 1,
+  "message": "Hello everyone!",
+  "reply_to_id": null
+}
+```
+
+**Response:** `201 Created`
+
+**Example:**
+```bash
+curl -X POST http://localhost:80/api/v1/chat_messages/ \
+  -H "Content-Type: application/json" \
+  -b "jwt={jwt}" \
+  -d '{"chat_id": 1, "message": "Hello!"}'
+```
+
+---
+
+#### `POST /api/v1/chat_files/upload/`
+Upload a file to a chat.
+
+**Form Data:**
+- `chat_id`: Chat ID (required)
+- `file`: File to upload (required)
+- `reply_to_id`: Message ID to reply to (optional)
+
+**Response:** `201 Created`
+
+**Example:**
+```bash
+curl -X POST http://localhost:80/api/v1/chat_files/upload/ \
+  -b "jwt={jwt}" \
+  -F "chat_id=1" \
+  -F "file=@document.pdf"
+```
+
+---
+
+#### `PUT /api/v1/chat_participants/`
+Add participants to a group chat.
+
+**Request Body:**
+```json
+{
+  "chat_id": 1,
+  "user_ids": [6, 7]
+}
+```
+
+**Response:** `200 OK`
+
+**Example:**
+```bash
+curl -X PUT http://localhost:80/api/v1/chat_participants/ \
+  -H "Content-Type: application/json" \
+  -b "jwt={jwt}" \
+  -d '{"chat_id": 1, "user_ids": [6, 7]}'
+```
+
+---
+
+#### `DELETE /api/v1/chat_participants/{user_id}`
+Remove a participant from a chat.
+
+**Query Parameters:**
+- `chat_id` (required): Chat ID
+
+**Response:** `200 OK`
+
+**Example:**
+```bash
+curl -X DELETE "http://localhost:80/api/v1/chat_participants/6?chat_id=1" -b "jwt={jwt}"
+```
+
+---
+
+#### `PUT /api/v1/chats/{id}/mark_read/`
+Mark all messages in a chat as read.
+
+**Response:** `200 OK`
+
+**Example:**
+```bash
+curl -X PUT http://localhost:80/api/v1/chats/1/mark_read/ -b "jwt={jwt}"
+```
+
+---
+
+#### `GET /api/v1/users/available/`
+Get list of users available for chat creation.
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": 3,
+    "full_name": "Jane Doe",
+    "photo": "http://localhost:80/uploads/profile_pictures/uuid.jpg"
+  }
+]
+```
+
+---
+
+### WebSocket API
+
+Connect to `/api/v1/ws/chat/` for real-time messaging capabilities.
+
+#### Connection
+
+```javascript
+const ws = new WebSocket('wss://localhost/api/v1/ws/chat/');
+// JWT cookie must be set for authentication
+```
+
+#### Client → Server Messages
+
+**Send Message:**
+```json
+{
+  "type": "SendMessage",
+  "chat_id": 1,
+  "message": "Hello!",
+  "reply_to_id": null
+}
+```
+
+**Typing Indicators:**
+```json
+{ "type": "TypingStart", "chat_id": 1 }
+{ "type": "TypingStop", "chat_id": 1 }
+```
+
+**Mark as Read:**
+```json
+{
+  "type": "MarkAsRead",
+  "message_id": 123
+}
+```
+
+**Join/Leave Chat Room:**
+```json
+{ "type": "JoinChat", "chat_id": 1 }
+{ "type": "LeaveChat", "chat_id": 1 }
+```
+
+**Heartbeat:**
+```json
+{ "type": "Ping" }
+```
+
+#### Server → Client Messages
+
+**New Message:**
+```json
+{
+  "type": "NewMessage",
+  "chat_id": 1,
+  "message": {
+    "id": 123,
+    "message": "Hello!",
+    "sender_id": 2,
+    "created_at": "2025-01-15T14:00:00Z"
+  },
+  "sender": {
+    "id": 2,
+    "full_name": "John Doe",
+    "photo": "..."
+  }
+}
+```
+
+**Message Read Receipt:**
+```json
+{
+  "type": "MessageRead",
+  "message_id": 123,
+  "reader_id": 3,
+  "read_at": "2025-01-15T14:05:00Z"
+}
+```
+
+**Typing Indicators:**
+```json
+{
+  "type": "UserTyping",
+  "chat_id": 1,
+  "user_id": 3,
+  "user_name": "Jane Doe"
+}
+```
+```json
+{
+  "type": "UserStoppedTyping",
+  "chat_id": 1,
+  "user_id": 3
+}
+```
+
+**User Online/Offline Status:**
+```json
+{ "type": "UserOnline", "user_id": 3 }
+{ "type": "UserOffline", "user_id": 3 }
+```
+
+**Error:**
+```json
+{
+  "type": "Error",
+  "message": "Error description"
+}
+```
+
+**Heartbeat Response:**
+```json
+{ "type": "Pong" }
+```
+
+#### WebSocket Example (JavaScript)
+
+```javascript
+const ws = new WebSocket('wss://yourserver.com/api/v1/ws/chat/');
+
+ws.onopen = () => {
+  console.log('Connected');
+  // Join a chat room
+  ws.send(JSON.stringify({ type: 'JoinChat', chat_id: 1 }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  switch (data.type) {
+    case 'NewMessage':
+      console.log('New message:', data.message);
+      break;
+    case 'UserTyping':
+      console.log(`${data.user_name} is typing...`);
+      break;
+    case 'UserOnline':
+      console.log(`User ${data.user_id} is online`);
+      break;
+  }
+};
+
+// Send a message
+ws.send(JSON.stringify({
+  type: 'SendMessage',
+  chat_id: 1,
+  message: 'Hello!',
+  reply_to_id: null
+}));
+
+// Start typing indicator
+ws.send(JSON.stringify({ type: 'TypingStart', chat_id: 1 }));
+```
+
+---
+
 ## ⚠️ Error Handling
 
 ### Common HTTP Status Codes
@@ -1474,20 +1971,256 @@ DEBUG=true
 
 ---
 
-## 📚 Additional Resources
+## 🗄️ Database Schema
 
-### Database Schema
-The system automatically creates all necessary tables including:
-- `users`, `roles`, `personal_data`
-- `courses`, `subjects`, `timetables`
-- `assessments`, `grades`, `submissions`
-- `messages`, `subject_messages`
-- `selfassessables`, `selfassessable_tasks`
-- `assistance`, `disciplinary_sanctions`
+### Entity Relationship Overview
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────────┐
+│   users     │────<│   roles     │     │  personal_data  │
+└─────────────┘     └─────────────┘     └─────────────────┘
+      │                                          │
+      │ 1:N                                     1:1
+      │                                          │
+      ▼                                          ▼
+┌─────────────┐     ┌─────────────┐     ┌─────────────────┐
+│  courses    │────<│  subjects   │────<│   assessments   │
+└─────────────┘     └─────────────┘     └─────────────────┘
+      │                   │                      │
+      │                   │                      │
+      ▼                   ▼                      ▼
+┌─────────────┐     ┌─────────────┐     ┌─────────────────┐
+│ timetables  │     │   grades    │     │ selfassessables │
+└─────────────┘     └─────────────┘     └─────────────────┘
+```
+
+### Core Tables
+
+| Table | Description | Key Columns |
+|-------|-------------|-------------|
+| `users` | User accounts | `id`, `email`, `password`, `course_id`, `photo`, `last_login` |
+| `roles` | User role assignments | `id`, `user_id`, `role` (admin/teacher/student/father/preceptor) |
+| `personal_data` | User profiles | `id`, `user_id`, `full_name`, `birth_date`, `address`, `phone_number` |
+| `families` | Parent-student relations | `id`, `student_id`, `father_id` |
+
+### Academic Tables
+
+| Table | Description | Key Columns |
+|-------|-------------|-------------|
+| `courses` | Classes/grade levels | `id`, `year`, `division`, `level`, `shift`, `name`, `preceptor_id` |
+| `subjects` | Academic subjects | `id`, `name`, `course_id`, `teacher_id` |
+| `timetables` | Class schedules | `id`, `course_id`, `subject_id`, `day`, `start_time`, `end_time` |
+| `assessments` | Tasks/exams | `id`, `type`, `subject_id`, `task`, `due_date`, `created_at` |
+| `grades` | Student grades | `id`, `student_id`, `subject_id`, `assessment_id`, `grade`, `grade_type`, `description` |
+| `homework_submissions` | Student submissions | `id`, `task_id`, `student_id`, `path` |
+
+### Self-Assessment Tables
+
+| Table | Description | Key Columns |
+|-------|-------------|-------------|
+| `selfassessables` | Auto-graded quizzes | `id`, `assessment_id` |
+| `selfassessable_tasks` | Quiz questions | `id`, `selfassessable_id`, `question`, `correct`, `incorrect1-4` |
+| `selfassessable_submissions` | Student answers | `id`, `selfassessable_id`, `answers`, `student_id` |
+| `selfassessable_pending_grades` | Auto-grading queue | `id`, `selfassessable_id`, `student_id`, `grade` |
+
+### Communication Tables
+
+| Table | Description | Key Columns |
+|-------|-------------|-------------|
+| `messages` | System announcements | `id`, `sender_id`, `message`, `title`, `created_at` |
+| `message_courses` | Message distribution | `message_id`, `course_id` |
+| `subject_messages` | Subject-specific content | `id`, `sender_id`, `subject_id`, `title`, `content`, `type` |
+| `reads` | Message read receipts | `id`, `message_id`, `reader_id`, `when` |
+
+### Chat Tables
+
+| Table | Description | Key Columns |
+|-------|-------------|-------------|
+| `chats` | Conversations | `id`, `name`, `photo`, `description`, `chat_type`, `created_by` |
+| `chat_participants` | Chat membership | `id`, `user_id`, `chat_id`, `joined_at`, `last_read_at`, `is_admin` |
+| `chat_messages` | Chat history | `id`, `chat_id`, `sender_id`, `message`, `type_message`, `file_path`, `reply_to_id` |
+
+### Attendance & Discipline Tables
+
+| Table | Description | Key Columns |
+|-------|-------------|-------------|
+| `assistance` | Attendance records | `id`, `student_id`, `presence`, `date` |
+| `disciplinary_sanctions` | Disciplinary records | `id`, `student_id`, `sanction_type`, `quantity`, `description`, `date` |
+
+### Database Enums
+
+```sql
+-- Role types
+ENUM('admin', 'teacher', 'student', 'father', 'preceptor')
+
+-- Assessment types
+ENUM('exam', 'homework', 'project', 'oral', 'remedial', 'selfassessable')
+
+-- Grade types
+ENUM('numerical', 'conceptual', 'percentage')
+
+-- Presence status
+ENUM('present', 'absent', 'excused', 'late')
+
+-- Chat types
+ENUM('direct', 'group')
+
+-- Message types
+ENUM('text', 'file')
+
+-- Subject message types
+ENUM('message', 'link', 'file')
+```
+
+---
+
+## 🛠️ Development Guide
+
+### Prerequisites
+
+- **Rust**: 1.75+ (stable)
+- **MySQL**: 8.0+
+- **Python**: 3.8+ (for database setup scripts)
+- **OpenSSL**: For JWT key generation
+
+### Local Development Setup
+
+```bash
+# 1. Clone and navigate to backend
+cd back
+
+# 2. Set up environment variables
+export DATABASE_URL="mysql://user:password@localhost:3306/goschool2025"
+export BASE_URL="http://localhost:80"
+export BASE_PATH="/var/www/goschool"
+export DEBUG="true"
+
+# 3. Create database and tables
+python3 create_database.py create_all
+
+# 4. Run development server
+cargo run
+
+# Or build release binary
+cargo build --release
+./target/release/back
+```
+
+### Environment Variables Reference
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `DATABASE_URL` | Yes | MySQL connection string | `mysql://user:pass@localhost:3306/goschool2025` |
+| `BASE_URL` | Yes | Public-facing URL | `https://yourserver.com` |
+| `BASE_PATH` | Yes | File storage base path | `/var/www/goschool` |
+| `DEBUG` | No | Enable debug features | `true` or `false` |
+| `EMAIL_FROM` | No | Email sender address | `noreply@school.com` |
+| `EMAIL_USERNAME` | No | SMTP username | `smtp_user` |
+| `EMAIL_PASSWORD` | No | SMTP password | `smtp_pass` |
+
+### Code Patterns
+
+**Adding a New Endpoint:**
+
+1. Define struct in `structs.rs`:
+```rust
+#[derive(Serialize, Deserialize)]
+pub struct NewResource {
+    pub field: String,
+}
+```
+
+2. Add trait method in `traits.rs`:
+```rust
+async fn get_resources(&self, pool: &MySqlPool, filter: ResourceFilter) -> Result<Vec<Resource>, sqlx::Error>;
+```
+
+3. Implement in `impls/`:
+```rust
+impl Get for MySelf {
+    async fn get_resources(&self, pool: &MySqlPool, filter: ResourceFilter) -> Result<Vec<Resource>, sqlx::Error> {
+        sqlx::query_as!(Resource, "SELECT * FROM resources WHERE ...")
+            .fetch_all(pool)
+            .await
+    }
+}
+```
+
+4. Create handler in `views/`:
+```rust
+pub async fn get_resources(
+    pool: Data<MySqlPool>,
+    req: HttpRequest,
+    filter: Query<ResourceFilter>,
+) -> HttpResponse {
+    let jwt = req.cookie("jwt").unwrap();
+    let user = get_myself_from_token(&jwt.value()).unwrap();
+    match user.get_resources(&pool, filter.into_inner()).await {
+        Ok(resources) => HttpResponse::Ok().json(resources),
+        Err(e) => HttpResponse::InternalServerError().json(e.to_string()),
+    }
+}
+```
+
+5. Register route in `routes.rs`:
+```rust
+.route("/resources/", web::get().to(get_resources))
+```
+
+### Testing
+
+```bash
+# Create test users (requires DEBUG=true)
+curl http://localhost:80/api/v1/register_testing_users/
+
+# Health check
+curl http://localhost:80/api/v1/health/
+
+# Login and save cookie
+curl -c cookies.txt -X POST http://localhost:80/api/v1/login/ \
+  -H "Content-Type: application/json" \
+  -d '{"email": "admin", "password": "admin", "role": "admin"}'
+
+# Use saved cookie for subsequent requests
+curl -b cookies.txt http://localhost:80/api/v1/courses/
+```
 
 ### Cron Jobs
-- **Self-Assessment Grading**: Every 15 minutes
-- **Grade Migration**: Automatic conversion of expired self-assessments
+
+The backend runs automatic scheduled tasks:
+
+| Task | Schedule | Description |
+|------|----------|-------------|
+| Self-Assessment Grading | Every 15 minutes | Grades expired self-assessments automatically |
+
+```rust
+// Cron expression: 0 0/15 * * * * *
+// Runs at minute 0, 15, 30, 45 of every hour
+```
+
+### File Upload Paths
+
+| Upload Type | Storage Path | URL Path |
+|-------------|--------------|----------|
+| Profile Pictures | `./uploads/profile_pictures/` | `/uploads/profile_pictures/{uuid}` |
+| General Files | `./uploads/files/` | `/uploads/files/{uuid}` |
+| Homework Submissions | `./uploads/submissions/` | `/uploads/submissions/{uuid}` |
+| Chat Files | `./uploads/chat_files/` | `/uploads/chat_files/{uuid}` |
+
+### Common Issues
+
+**JWT Token Invalid:**
+- Ensure JWT keys exist in `/shared/ecc_private_key.pem` and `/shared/ecc_public_key.pem`
+- Run `python3 create_database.py create_all` to regenerate keys
+
+**Database Connection Failed:**
+- Verify `DATABASE_URL` format: `mysql://user:password@host:port/database`
+- Ensure MySQL is running and accessible
+
+**File Upload Fails:**
+- Check file size (max 10MB)
+- Verify MIME type is supported
+- Ensure upload directories exist and are writable
 
 ---
 

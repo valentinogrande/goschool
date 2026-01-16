@@ -347,4 +347,32 @@ impl Update for MySelf {
                 Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
             }
     }
+
+    async fn update_timetable(
+        &self,
+        pool: &MySqlPool,
+        timetable_id: u64,
+        data: UpdateTimetable
+    ) -> HttpResponse {
+        // Only admin or teacher can update timetables
+        if !matches!(self.role, Role::admin | Role::teacher) {
+            return HttpResponse::Unauthorized().finish();
+        }
+
+        let result = sqlx::query(
+            "UPDATE timetables SET day = ?, start_time = ?, end_time = ?, subject_id = ? WHERE id = ?"
+        )
+        .bind(data.day)
+        .bind(data.start_time)
+        .bind(data.end_time)
+        .bind(data.subject_id)
+        .bind(timetable_id)
+        .execute(pool)
+        .await;
+
+        match result {
+            Ok(_) => HttpResponse::Ok().finish(),
+            Err(e) => HttpResponse::InternalServerError().json(e.to_string())
+        }
+    }
 }

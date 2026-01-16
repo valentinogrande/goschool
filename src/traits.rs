@@ -178,16 +178,21 @@ pub trait Post  {
         pool: &MySqlPool,
         disciplinary_sanction: NewDisciplinarySanction
     ) -> HttpResponse;
-    async fn post_chat(
+    async fn post_timetable(
         &self,
         pool: &MySqlPool,
-        chat: NewChat
+        timetable: NewTimetable
     ) -> HttpResponse;
-    async fn post_chat_message(
-        &self,
-        pool: &MySqlPool,
-        message: NewChatMessage
-    ) -> HttpResponse;
+    // async fn post_chat(
+    //     &self,
+    //     pool: &MySqlPool,
+    //     chat: NewChat
+    // ) -> HttpResponse;
+    // async fn post_chat_message(
+    //     &self,
+    //     pool: &MySqlPool,
+    //     message: NewChatMessage
+    // ) -> HttpResponse;
 }
 
 
@@ -237,16 +242,21 @@ pub trait Delete {
         pool: &MySqlPool,
         disciplinary_sanction_id: u64
     ) -> HttpResponse;
-    async fn delete_chat(
+    async fn delete_timetable(
         &self,
         pool: &MySqlPool,
-        chat_id: u64
+        timetable_id: u64
     ) -> HttpResponse;
-    async fn delete_chat_message(
-        &self,
-        pool: &MySqlPool,
-        chat_message_id: u64
-    ) -> HttpResponse;
+    // async fn delete_chat(
+    //     &self,
+    //     pool: &MySqlPool,
+    //     chat_id: u64
+    // ) -> HttpResponse;
+    // async fn delete_chat_message(
+    //     &self,
+    //     pool: &MySqlPool,
+    //     chat_message_id: u64
+    // ) -> HttpResponse;
 }
 
 pub trait Update {
@@ -304,17 +314,23 @@ pub trait Update {
         disciplinary_sanction_id: u64,
         data: UpdateDisciplinarySanction
     ) -> HttpResponse;
-    async fn update_chat(
+    async fn update_timetable(
         &self,
         pool: &MySqlPool,
-        assistance_id: u64,
-        data: UpdateChat
+        timetable_id: u64,
+        data: UpdateTimetable
     ) -> HttpResponse;
-    async fn update_chat_message(
-        &self,
-        pool: &MySqlPool,
-        disciplinary_sanction_id: u64,
-        data: UpdateChatMessage
-    ) -> HttpResponse;
+    // async fn update_chat(
+    //     &self,
+    //     pool: &MySqlPool,
+    //     assistance_id: u64,
+    //     data: UpdateChat
+    // ) -> HttpResponse;
+    // async fn update_chat_message(
+    //     &self,
+    //     pool: &MySqlPool,
+    //     disciplinary_sanction_id: u64,
+    //     data: UpdateChatMessage
+    // ) -> HttpResponse;
 }
 

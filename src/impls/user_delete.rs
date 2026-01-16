@@ -303,4 +303,25 @@ impl Delete for MySelf {
         }
 
     }
+
+    async fn delete_timetable(
+        &self,
+        pool: &MySqlPool,
+        timetable_id: u64
+    ) -> HttpResponse {
+        // Only admin or teacher can delete timetables
+        if !matches!(self.role, Role::admin | Role::teacher) {
+            return HttpResponse::Unauthorized().finish();
+        }
+
+        let result = sqlx::query("DELETE FROM timetables WHERE id = ?")
+            .bind(timetable_id)
+            .execute(pool)
+            .await;
+
+        match result {
+            Ok(_) => HttpResponse::Ok().finish(),
+            Err(e) => HttpResponse::InternalServerError().json(e.to_string())
+        }
+    }
 }

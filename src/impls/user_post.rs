@@ -964,4 +964,55 @@ impl Post for MySelf {
             Err(e) => return HttpResponse::InternalServerError().json(e.to_string())
         }
     }
+
+    async fn post_timetable(&self, pool: &MySqlPool, timetable: NewTimetable) -> HttpResponse {
+        // Only admin and preceptor can create timetables
+        match self.role {
+            Role::admin => {}
+            Role::preceptor => {
+                // Preceptor can only create timetables for their assigned courses
+                let preceptor_courses: Vec<u64> = match self.get_courses(pool).await {
+                    Ok(c) => c.iter().map(|c| c.id).collect(),
+                    Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+                };
+                if !preceptor_courses.contains(&timetable.course_id) {
+                    return HttpResponse::Unauthorized().json("No permission for this course");
+                }
+            }
+            _ => return HttpResponse::Unauthorized().json("Only admin and preceptor can manage timetables"),
+        }
+
+        // Validate that the subject belongs to the course
+        let subject_valid: bool = match sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM subjects WHERE id = ? AND course_id = ?)"
+        )
+        .bind(timetable.subject_id)
+        .bind(timetable.course_id)
+        .fetch_one(pool)
+        .await
+        {
+            Ok(v) => v,
+            Err(e) => return HttpResponse::InternalServerError().json(e.to_string()),
+        };
+
+        if !subject_valid {
+            return HttpResponse::BadRequest().json("Subject does not belong to this course");
+        }
+
+        let result = sqlx::query(
+            "INSERT INTO timetables (course_id, subject_id, day, start_time, end_time) VALUES (?, ?, ?, ?, ?)"
+        )
+        .bind(timetable.course_id)
+        .bind(timetable.subject_id)
+        .bind(&timetable.day)
+        .bind(timetable.start_time)
+        .bind(timetable.end_time)
+        .execute(pool)
+        .await;
+
+        match result {
+            Ok(_) => HttpResponse::Created().finish(),
+            Err(e) => HttpResponse::InternalServerError().json(e.to_string())
+        }
+    }
 }
