@@ -1,4 +1,7 @@
 target/
 .git/
 __pycache__/
+README.md
+create_database.py
+fake_data.py
 

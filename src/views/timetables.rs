@@ -53,7 +53,7 @@ pub async fn post_timetable(
     user.post_timetable(&pool, timetable.into_inner()).await
 }
 
-#[put("/api/v1/timetable/{id}")]
+#[put("/api/v1/timetables/{id}")]
 pub async fn update_timetable(
     pool: web::Data<MySqlPool>,
     timetable: web::Json<UpdateTimetable>,
@@ -76,7 +76,7 @@ pub async fn update_timetable(
     user.update_timetable(&pool, timetable_id.into_inner(), timetable.into_inner()).await
 }
 
-#[delete("/api/v1/timetable/{id}")]
+#[delete("/api/v1/timetables/{id}")]
 pub async fn delete_timetable(
     pool: web::Data<MySqlPool>,
     timetable_id: web::Path<u64>,
