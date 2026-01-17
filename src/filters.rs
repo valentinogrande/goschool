@@ -62,6 +62,7 @@ pub struct UserFilter {
     pub course: Option<u64>,
     pub name: Option<String>,
     pub user_id: Option<u64>,
+    pub role: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy)]

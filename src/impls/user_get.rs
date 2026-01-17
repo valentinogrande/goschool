@@ -8,7 +8,6 @@ use crate::filters::*;
 use crate::structs::*;
 use crate::traits::Get;
 
-
 impl Get for MySelf {
     async fn get_students(
         &self,
@@ -57,6 +56,12 @@ impl Get for MySelf {
         if let Some(n) = filter.name {
             query.push(" AND pd.full_name LIKE ");
             query.push_bind(format!("%{}%", n));
+        }
+
+        if let Some(r) = filter.role {
+            query.push(" AND users.id IN (SELECT user_id FROM roles WHERE role = ");
+            query.push_bind(r);
+            query.push(")");
         }
 
         let res: Result<Vec<PubUser>, sqlx::Error> = query

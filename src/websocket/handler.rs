@@ -42,20 +42,29 @@ pub async fn chat_websocket(
     manager: web::Data<ChatConnectionManager>,
     pool: web::Data<MySqlPool>,
 ) -> Result<HttpResponse, Error> {
+    log::info!("[WS DEBUG] New WebSocket connection request from {:?}", req.peer_addr());
+    log::debug!("[WS DEBUG] Request headers: {:?}", req.headers());
 
     // Extract and validate JWT from cookie
     let cookie = match req.cookie("jwt") {
-        Some(c) => c,
+        Some(c) => {
+            log::debug!("[WS DEBUG] JWT cookie found");
+            c
+        },
         None => {
-            log::warn!("WebSocket rejected: No JWT cookie");
+            log::warn!("[WS DEBUG] WebSocket rejected: No JWT cookie found");
+            log::debug!("[WS DEBUG] Available cookies: {:?}", req.cookies());
             return Ok(HttpResponse::Unauthorized().body("Authentication required"));
         }
     };
 
     let token = match validate(cookie.value()) {
-        Ok(t) => t,
+        Ok(t) => {
+            log::debug!("[WS DEBUG] JWT validated successfully");
+            t
+        },
         Err(e) => {
-            log::warn!("WebSocket rejected: Invalid JWT - {}", e);
+            log::warn!("[WS DEBUG] WebSocket rejected: Invalid JWT - {}", e);
             return Ok(HttpResponse::Unauthorized().body("Invalid authentication token"));
         }
     };
@@ -63,23 +72,27 @@ pub async fn chat_websocket(
     let user_id = token.claims.user.id;
     let user_role = token.claims.user.role.clone();
 
-    log::info!("WebSocket: User {} ({:?}) authenticated", user_id, user_role);
+    log::info!("[WS DEBUG] WebSocket: User {} ({:?}) authenticated successfully", user_id, user_role);
 
     // Upgrade HTTP connection to WebSocket
+    log::info!("[WS DEBUG] Upgrading HTTP connection to WebSocket for user {}", user_id);
     let (response, mut session, mut msg_stream) = actix_ws::handle(&req, stream)?;
+    log::info!("[WS DEBUG] WebSocket upgrade successful for user {}", user_id);
 
     // Register connection in manager
     manager.connect(user_id, session.clone());
+    log::info!("[WS DEBUG] User {} registered in connection manager", user_id);
 
     // Spawn a task to handle incoming messages
     let manager_clone = manager.get_ref().clone();
     let pool_clone = pool.get_ref().clone();
 
     actix_web::rt::spawn(async move {
+        log::info!("[WS DEBUG] Message handler spawned for user {}", user_id);
         while let Some(Ok(msg)) = msg_stream.next().await {
             match msg {
                 Message::Text(text) => {
-                    log::debug!("Received text message from user {}: {}", user_id, text);
+                    log::info!("[WS DEBUG] Received text message from user {}: {}", user_id, text);
 
                     // Parse the client message
                     match serde_json::from_str::<ClientMessage>(&text) {
@@ -110,18 +123,19 @@ pub async fn chat_websocket(
                     log::debug!("Received pong from user {}", user_id);
                 }
                 Message::Close(reason) => {
-                    log::info!("User {} closed WebSocket: {:?}", user_id, reason);
+                    log::info!("[WS DEBUG] User {} closed WebSocket connection: {:?}", user_id, reason);
                     break;
                 }
                 _ => {
-                    log::debug!("Received other message type from user {}", user_id);
+                    log::debug!("[WS DEBUG] Received other message type from user {}", user_id);
                 }
             }
         }
 
         // Unregister connection when stream ends
+        log::info!("[WS DEBUG] Disconnecting user {} from connection manager", user_id);
         manager_clone.disconnect(user_id);
-        log::info!("WebSocket handler ended for user {}", user_id);
+        log::info!("[WS DEBUG] WebSocket handler ended for user {}", user_id);
     });
 
     Ok(response)
@@ -180,7 +194,10 @@ async fn handle_send_message(
     manager: &ChatConnectionManager,
     pool: &MySqlPool,
 ) {
+    log::info!("[WS DEBUG] handle_send_message: user={}, chat={}, msg_len={}", sender_id, chat_id, message.len());
+
     // Verify user is a participant of the chat
+    log::debug!("[WS DEBUG] Checking if user {} is participant of chat {}", sender_id, chat_id);
     let is_participant: bool = match sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM chat_participants WHERE user_id = ? AND chat_id = ?)",
     )
@@ -189,9 +206,12 @@ async fn handle_send_message(
     .fetch_one(pool)
     .await
     {
-        Ok(exists) => exists,
+        Ok(exists) => {
+            log::debug!("[WS DEBUG] Participant check result: {}", exists);
+            exists
+        },
         Err(e) => {
-            log::error!("Failed to verify chat participant: {}", e);
+            log::error!("[WS DEBUG] Failed to verify chat participant: {} - SQL Error: {}", sender_id, e);
             manager.send_to_user(
                 sender_id,
                 ServerMessage::error("Failed to verify chat access"),
@@ -214,6 +234,7 @@ async fn handle_send_message(
     }
 
     // Insert message into database
+    log::debug!("[WS DEBUG] Inserting message into database for chat {}", chat_id);
     let insert_result = sqlx::query(
         "INSERT INTO chat_messages (chat_id, sender_id, message, type_message, reply_to_id, created_at)
          VALUES (?, ?, ?, 'text', ?, NOW())"
@@ -226,9 +247,12 @@ async fn handle_send_message(
     .await;
 
     let message_id = match insert_result {
-        Ok(result) => result.last_insert_id(),
+        Ok(result) => {
+            log::info!("[WS DEBUG] Message inserted with ID: {}", result.last_insert_id());
+            result.last_insert_id()
+        },
         Err(e) => {
-            log::error!("Failed to insert message: {}", e);
+            log::error!("[WS DEBUG] Failed to insert message: {} - SQL Error: {}", sender_id, e);
             manager.send_to_user(sender_id, ServerMessage::error("Failed to send message")).await;
             return;
         }
@@ -247,12 +271,14 @@ async fn handle_send_message(
         WHERE cm.id = ?
     ";
 
+    log::debug!("[WS DEBUG] Fetching created message with sender info, message_id={}", message_id);
     match sqlx::query_as::<_, MessageWithSender>(query)
         .bind(message_id)
         .fetch_one(pool)
         .await
     {
         Ok(row) => {
+            log::debug!("[WS DEBUG] Message fetched successfully, broadcasting to chat {}", chat_id);
             // Construct ChatMessage and PubUser from the joined query result
             let chat_message = ChatMessage {
                 id: row.id,

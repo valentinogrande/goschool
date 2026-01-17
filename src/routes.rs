@@ -64,7 +64,12 @@ use crate::views::{
     submissions::{post_homework_submission, update_submission, delete_submission},
 
     // Timetables
-    timetables::get_timetable,
+    timetables::{
+        get_timetable,
+        post_timetable,
+        update_timetable,
+        delete_timetable,
+    },
 
     // Assistance
     assistance::{
@@ -86,6 +91,8 @@ use crate::views::{
     personal_data::{
         get_personal_data,
         get_public_personal_data,
+        update_personal_data,
+        delete_personal_data,
     },
 
     // Profile pictures
@@ -136,6 +143,8 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(delete_message)
         .service(get_personal_data)
         .service(get_public_personal_data)
+        .service(update_personal_data)
+        .service(delete_personal_data)
         .service(get_profile_picture)
         .service(update_profile_picture)
         .service(delete_profile_picture)
@@ -164,6 +173,9 @@ pub fn register_services(cfg: &mut web::ServiceConfig) {
         .service(register)
         .service(register_testing_users)
         .service(get_timetable)
+        .service(post_timetable)
+        .service(update_timetable)
+        .service(delete_timetable)
         .service(verify_token)
         .service(get_if_homework_answered)
         .service(health)
