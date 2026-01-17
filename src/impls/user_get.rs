@@ -857,14 +857,14 @@ let mut query = QueryBuilder::new(r#"
             WHEN EXISTS (
                 SELECT 1 
                 FROM chat_messages cm
-                LEFT JOIN reads r 
+                LEFT JOIN `reads` r 
                     ON r.message_id = cm.id AND r.reader_id = ?
                 WHERE cm.chat_id = c.id AND r.id IS NULL
             ) THEN TRUE
             ELSE FALSE
         END AS has_unread
     FROM chats c
-    JOIN chat_parciticipants cp 
+    JOIN chat_participants cp 
         ON c.id = cp.chat_id
     LEFT JOIN chat_messages m 
         ON m.id = (
@@ -904,7 +904,7 @@ let mut query = QueryBuilder::new(r#"
             SELECT * 
             FROM chat_message cm
             JOIN chats c ON cm.chat_id = c.id
-            JOIN chat_parciticipants cp ON c.id = cp.chat_id
+            JOIN chat_participants cp ON c.id = cp.chat_id
             WHERE cp.user_id = ?
         "#);
 
@@ -925,7 +925,7 @@ let mut query = QueryBuilder::new(r#"
 
         for m in &msg {
             sqlx::query(
-                "INSERT IGNORE INTO reads (message_id, reader_id) VALUES (?, ?)"
+                "INSERT IGNORE INTO `reads` (message_id, reader_id) VALUES (?, ?)"
             )
             .bind(m.id)
             .bind(self.id)

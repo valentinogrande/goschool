@@ -195,7 +195,6 @@ pub struct NewChatRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SendMessageRequest {
-    pub chat_id: u64,
     pub message: String,
     pub type_message: Option<String>,
     pub reply_to_id: Option<u64>,

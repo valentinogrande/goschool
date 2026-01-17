@@ -36,7 +36,7 @@ pub async fn get_user_chats(
              WHERE cm.chat_id = c.id AND cm.is_deleted = FALSE
              ORDER BY cm.created_at DESC LIMIT 1) as last_message_time,
             (SELECT COUNT(*) FROM chat_messages cm
-             LEFT JOIN reads r ON r.message_id = cm.id AND r.reader_id = ?
+             LEFT JOIN `reads` r ON r.message_id = cm.id AND r.reader_id = ?
              WHERE cm.chat_id = c.id AND cm.sender_id != ? AND r.id IS NULL
              AND cm.is_deleted = FALSE) as unread_count,
             FALSE as is_online
@@ -616,7 +616,7 @@ pub async fn mark_chat_as_read(
     // Mark all messages as read
     let result = sqlx::query(
         r#"
-        INSERT INTO reads (message_id, reader_id, read_at)
+        INSERT INTO `reads` (message_id, reader_id, read_at)
         SELECT cm.id, ?, NOW()
         FROM chat_messages cm
         WHERE cm.chat_id = ? AND cm.sender_id != ?

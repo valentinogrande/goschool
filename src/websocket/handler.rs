@@ -478,7 +478,7 @@ async fn handle_mark_as_read(
 
     // Insert read receipt (ignore duplicates)
     match sqlx::query(
-        "INSERT INTO reads (message_id, reader_id, read_at)
+        "INSERT INTO `reads` (message_id, reader_id, read_at)
          VALUES (?, ?, NOW())
          ON DUPLICATE KEY UPDATE read_at = NOW()"
     )
